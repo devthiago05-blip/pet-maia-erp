@@ -1,4 +1,11 @@
+"use client";
+
+import { useState } from "react";
+
 export default function PetPage() {
+
+  const [tab, setTab] =
+    useState("dados");
   return (
     <div className="space-y-6">
 
@@ -67,19 +74,142 @@ export default function PetPage() {
 
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2">
 
-          <div className="bg-white rounded-2xl border border-slate-200 p-6">
+  <div className="bg-white rounded-2xl border border-slate-200 p-2 mb-6">
 
-            <h3 className="font-bold text-lg mb-4">
-              Observações
-            </h3>
+    <div className="flex flex-wrap gap-2">
 
-            <p className="text-slate-600">
-              Nenhuma observação cadastrada.
-            </p>
+      <button
+        onClick={() =>
+          setTab("dados")
+        }
+        className={`px-4 py-2 rounded-xl ${
+          tab === "dados"
+            ? "bg-[#8A0EEA] text-white"
+            : "bg-slate-100"
+        }`}
+      >
+        Dados
+      </button>
 
-          </div>
+      <button
+        onClick={() =>
+          setTab("historico")
+        }
+        className={`px-4 py-2 rounded-xl ${
+          tab === "historico"
+            ? "bg-[#8A0EEA] text-white"
+            : "bg-slate-100"
+        }`}
+      >
+        Histórico
+      </button>
+
+      <button
+        onClick={() =>
+          setTab("vacinas")
+        }
+        className={`px-4 py-2 rounded-xl ${
+          tab === "vacinas"
+            ? "bg-[#8A0EEA] text-white"
+            : "bg-slate-100"
+        }`}
+      >
+        Vacinas
+      </button>
+
+      <button
+        onClick={() =>
+          setTab("banhos")
+        }
+        className={`px-4 py-2 rounded-xl ${
+          tab === "banhos"
+            ? "bg-[#8A0EEA] text-white"
+            : "bg-slate-100"
+        }`}
+      >
+        Banhos
+      </button>
+
+      <button
+        onClick={() =>
+          setTab("financeiro")
+        }
+        className={`px-4 py-2 rounded-xl ${
+          tab === "financeiro"
+            ? "bg-[#8A0EEA] text-white"
+            : "bg-slate-100"
+        }`}
+      >
+        Financeiro
+      </button>
+
+    </div>
+
+  </div>
+
+        
+
+        {tab === "dados" && (
+  <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <h3 className="font-bold text-lg mb-4">
+      Dados do Pet
+    </h3>
+
+    <p>
+      Aqui ficarão os dados completos do pet.
+    </p>
+  </div>
+)}
+
+{tab === "historico" && (
+  <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <h3 className="font-bold text-lg mb-4">
+      Histórico
+    </h3>
+
+    <p>
+      Nenhum histórico cadastrado.
+    </p>
+  </div>
+)}
+
+{tab === "vacinas" && (
+  <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <h3 className="font-bold text-lg mb-4">
+      Vacinas
+    </h3>
+
+    <p>
+      Nenhuma vacina cadastrada.
+    </p>
+  </div>
+)}
+
+{tab === "banhos" && (
+  <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <h3 className="font-bold text-lg mb-4">
+      Banhos e Tosas
+    </h3>
+
+    <p>
+      Nenhum banho registrado.
+    </p>
+  </div>
+)}
+
+{tab === "financeiro" && (
+  <div className="bg-white rounded-2xl border border-slate-200 p-6">
+    <h3 className="font-bold text-lg mb-4">
+      Financeiro
+    </h3>
+
+    <p>
+      Nenhum lançamento financeiro.
+    </p>
+  </div>
+)}
 
           <div className="bg-white rounded-2xl border border-slate-200 p-6">
 

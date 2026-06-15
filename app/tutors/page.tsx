@@ -14,6 +14,22 @@ export default function TutorsPage() {
   console.log("EDITAR:", tutor);
 };
   const [tutors, setTutors] = useState<any[]>([]);
+  useEffect(() => {
+  const savedTutors =
+    localStorage.getItem("tutors");
+
+  if (savedTutors) {
+    setTutors(JSON.parse(savedTutors));
+  }
+}, []);
+useEffect(() => {
+  if (tutors.length > 0) {
+    localStorage.setItem(
+      "tutors",
+      JSON.stringify(tutors)
+    );
+  }
+}, [tutors]);
   const [search, setSearch] = useState("");
   const filteredTutors = tutors.filter((tutor) =>
   tutor.nome
@@ -21,25 +37,11 @@ export default function TutorsPage() {
     .includes(search.toLowerCase())
 );
   useEffect(() => {
-  const savedTutors = localStorage.getItem("tutors");
+  const savedTutors =
+    localStorage.getItem("tutors");
 
   if (savedTutors) {
     setTutors(JSON.parse(savedTutors));
-  } else {
-    setTutors([
-      {
-        id: 1,
-        nome: "João Silva",
-        telefone: "(85) 99999-9999",
-        pets: 2,
-      },
-      {
-        id: 2,
-        nome: "Maria Souza",
-        telefone: "(85) 98888-8888",
-        pets: 1,
-      },
-    ]);
   }
 }, []);
 useEffect(() => {

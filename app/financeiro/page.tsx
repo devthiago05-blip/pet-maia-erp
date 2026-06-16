@@ -24,13 +24,32 @@ export default function FinanceiroPage() {
     valor: 90,
   },
 ]);
-const totalReceita = entries.reduce(
-  (total, entry) => total + entry.valor,
-  0
-);
+const totalReceitas = entries
+  .filter(
+    (entry) =>
+      (entry.tipo || "Receita") ===
+      "Receita"
+  )
+  .reduce(
+    (total, entry) =>
+      total + entry.valor,
+    0
+  );
 
-const totalAtendimentos =
-  entries.length;
+const totalDespesas = entries
+  .filter(
+    (entry) =>
+      entry.tipo === "Despesa"
+  )
+  .reduce(
+    (total, entry) =>
+      total + entry.valor,
+    0
+  );
+
+const lucro =
+  totalReceitas -
+  totalDespesas;
   return (
   <div className="flex">
     <Sidebar />
@@ -73,31 +92,31 @@ const totalAtendimentos =
 
         <div className="bg-white border rounded-2xl p-6">
           <p className="text-slate-500">
-            Receita do Dia
+            Receitas
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ {totalReceita.toFixed(2)}
+            R$ {totalReceitas.toFixed(2)}
           </h2>
         </div>
 
         <div className="bg-white border rounded-2xl p-6">
           <p className="text-slate-500">
-            Receita do Mês
+            Despesas
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ {totalReceita.toFixed(2)}
+            R$ {totalDespesas.toFixed(2)}
           </h2>
         </div>
 
         <div className="bg-white border rounded-2xl p-6">
           <p className="text-slate-500">
-            Atendimentos
+            Lucro
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            {totalAtendimentos}
+            R$ {lucro.toFixed(2)}
           </h2>
         </div>
 

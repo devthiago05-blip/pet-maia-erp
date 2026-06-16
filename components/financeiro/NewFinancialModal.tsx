@@ -7,6 +7,7 @@ interface FinancialEntry {
   descricao: string;
   valor: number;
   formaPagamento: string;
+  tipo: "Receita" | "Despesa";
 }
 
 interface NewFinancialModalProps {
@@ -23,6 +24,11 @@ export function NewFinancialModal({
 
   const [valor, setValor] =
     useState("");
+
+    const [tipo, setTipo] =
+  useState<"Receita" | "Despesa">(
+    "Receita"
+  );
 
   const [
     formaPagamento,
@@ -45,6 +51,7 @@ export function NewFinancialModal({
       descricao,
       valor: Number(valor),
       formaPagamento,
+      tipo,
     });
 
     setDescricao("");
@@ -98,7 +105,25 @@ export function NewFinancialModal({
                 }
                 className="w-full border rounded-xl p-3"
               />
+              <select
+  value={tipo}
+  onChange={(e) =>
+    setTipo(
+      e.target.value as
+        | "Receita"
+        | "Despesa"
+    )
+  }
+  className="w-full border rounded-xl p-3"
+>
+  <option value="Receita">
+    Receita
+  </option>
 
+  <option value="Despesa">
+    Despesa
+  </option>
+</select>
               <select
                 value={formaPagamento}
                 onChange={(e) =>

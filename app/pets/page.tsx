@@ -1,5 +1,7 @@
 "use client";
 
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
 import { useEffect, useState } from "react";
 
 import { PetTable } from "@/components/pets/PetTable";
@@ -40,7 +42,13 @@ export default function PetsPage() {
 }, []);
 
   return (
-    <div className="space-y-6">
+  <div className="flex">
+    <Sidebar />
+
+    <main className="flex-1 bg-slate-50 min-h-screen">
+      <Header />
+
+      <div className="p-8 space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-[#8A0EEA]">
           Pets
@@ -80,6 +88,8 @@ export default function PetsPage() {
     )
   }
 />
-    </div>
-  );
+          </div>
+    </main>
+  </div>
+);
 }

@@ -1,8 +1,34 @@
 "use client";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
+import { FinancialTable } from "@/components/financeiro/FinancialTable";
 
 export default function FinanceiroPage() {
+    const entries = [
+  {
+    id: 1,
+    descricao: "Banho",
+    valor: 50,
+  },
+  {
+    id: 2,
+    descricao: "Consulta",
+    valor: 120,
+  },
+  {
+    id: 3,
+    descricao: "Vacina",
+    valor: 90,
+  },
+];
   return (
-    <div className="space-y-6">
+  <div className="flex">
+    <Sidebar />
+
+    <main className="flex-1 bg-slate-50 min-h-screen">
+      <Header />
+
+      <div className="p-8 space-y-6">
 
       <div>
         <h1 className="text-3xl font-bold text-[#8A0EEA]">
@@ -47,7 +73,11 @@ export default function FinanceiroPage() {
         </div>
 
       </div>
-
-    </div>
-  );
+    <FinancialTable
+  entries={entries}
+/>
+          </div>
+    </main>
+  </div>
+);
 }

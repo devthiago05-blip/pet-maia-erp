@@ -1,9 +1,9 @@
 "use client";
 
+import { Sidebar } from "@/components/layout/Sidebar";
+import { Header } from "@/components/layout/Header";
 import { useState } from "react";
-
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
-
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 
 export default function AgendaPage() {
@@ -49,7 +49,13 @@ export default function AgendaPage() {
 ];
 
   return (
-    <div className="space-y-6">
+  <div className="flex">
+    <Sidebar />
+
+    <main className="flex-1 bg-slate-50 min-h-screen">
+      <Header />
+
+      <div className="p-8 space-y-6">
 
       <div className="flex items-center justify-between">
 
@@ -101,6 +107,8 @@ export default function AgendaPage() {
   }
 />
 
-    </div>
-  );
+          </div>
+    </main>
+  </div>
+);
 }

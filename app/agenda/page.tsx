@@ -4,8 +4,10 @@ import { useState } from "react";
 
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
 
+import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
+
 export default function AgendaPage() {
-  const [appointments] = useState([
+  const [appointments, setAppointments] = useState([
     {
       id: 1,
       pet: "Rex",
@@ -47,9 +49,14 @@ export default function AgendaPage() {
           </p>
         </div>
 
-        <button className="bg-[#8A0EEA] text-white px-4 py-2 rounded-xl">
-          Novo Agendamento
-        </button>
+        <NewAppointmentModal
+  onSave={(novoAgendamento) =>
+    setAppointments([
+      ...appointments,
+      novoAgendamento,
+    ])
+  }
+/>
 
       </div>
 

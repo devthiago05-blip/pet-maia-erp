@@ -3,7 +3,13 @@
 import { useState } from "react";
 
 interface NewAppointmentModalProps {
+  pets: {
+    id: number;
+    nome: string;
+  }[];
+
   onSave: (appointment: {
+
     id: number;
     pet: string;
     servico: string;
@@ -14,6 +20,7 @@ interface NewAppointmentModalProps {
 }
 
 export function NewAppointmentModal({
+  pets,
   onSave,
 }: NewAppointmentModalProps) {
   const [open, setOpen] = useState(false);
@@ -76,14 +83,26 @@ export function NewAppointmentModal({
 
             <div className="grid gap-4">
 
-              <input
-                placeholder="Pet"
-                value={pet}
-                onChange={(e) =>
-                  setPet(e.target.value)
-                }
-                className="border rounded-xl p-3"
-              />
+              <select
+  value={pet}
+  onChange={(e) =>
+    setPet(e.target.value)
+  }
+  className="border rounded-xl p-3"
+>
+  <option value="">
+    Selecione um Pet
+  </option>
+
+  {pets.map((petItem) => (
+    <option
+      key={petItem.id}
+      value={petItem.nome}
+    >
+      {petItem.nome}
+    </option>
+  ))}
+</select>
 
               <input
                 placeholder="Serviço"

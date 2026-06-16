@@ -33,6 +33,20 @@ export default function AgendaPage() {
       status: "Concluído",
     },
   ]);
+  const pets = [
+  {
+    id: 1,
+    nome: "Rex",
+  },
+  {
+    id: 2,
+    nome: "Mel",
+  },
+  {
+    id: 3,
+    nome: "Nina",
+  },
+];
 
   return (
     <div className="space-y-6">
@@ -50,6 +64,7 @@ export default function AgendaPage() {
         </div>
 
         <NewAppointmentModal
+  pets={pets}
   onSave={(novoAgendamento) =>
     setAppointments([
       ...appointments,

@@ -1,10 +1,13 @@
 "use client";
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
+import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 
 export default function FinanceiroPage() {
-    const entries = [
+    const [entries, setEntries] = useState([
+  
   {
     id: 1,
     descricao: "Banho",
@@ -20,7 +23,7 @@ export default function FinanceiroPage() {
     descricao: "Vacina",
     valor: 90,
   },
-];
+]);
   return (
   <div className="flex">
     <Sidebar />
@@ -31,9 +34,28 @@ export default function FinanceiroPage() {
       <div className="p-8 space-y-6">
 
       <div>
-        <h1 className="text-3xl font-bold text-[#8A0EEA]">
-          Financeiro
-        </h1>
+        <div className="flex items-center justify-between">
+
+  <div>
+    <h1 className="text-3xl font-bold text-[#8A0EEA]">
+      Financeiro
+    </h1>
+
+    <p className="text-slate-500">
+      Controle financeiro da clínica
+    </p>
+  </div>
+
+  <NewFinancialModal
+    onSave={(novoLancamento) =>
+      setEntries([
+        ...entries,
+        novoLancamento,
+      ])
+    }
+  />
+
+</div>
 
         <p className="text-slate-500">
           Controle financeiro da clínica

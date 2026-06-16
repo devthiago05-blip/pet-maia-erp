@@ -6,10 +6,12 @@ interface FinancialEntry {
 
 interface FinancialTableProps {
   entries: FinancialEntry[];
+  onDelete: (id: number) => void;
 }
 
 export function FinancialTable({
   entries,
+  onDelete,
 }: FinancialTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -24,6 +26,9 @@ export function FinancialTable({
 
             <th className="text-left p-4">
               Valor
+            </th>
+            <th className="text-left p-4">
+              Ações
             </th>
           </tr>
         </thead>
@@ -41,6 +46,25 @@ export function FinancialTable({
               <td className="p-4">
                 R$ {entry.valor}
               </td>
+              <td className="p-4">
+
+  <button
+    onClick={() => {
+      const confirmar =
+        window.confirm(
+          "Excluir lançamento?"
+        );
+
+      if (confirmar) {
+        onDelete(entry.id);
+      }
+    }}
+    className="text-red-600"
+  >
+    Excluir
+  </button>
+
+</td>
             </tr>
           ))}
         </tbody>

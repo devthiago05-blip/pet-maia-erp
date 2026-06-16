@@ -24,6 +24,13 @@ export default function FinanceiroPage() {
     valor: 90,
   },
 ]);
+const totalReceita = entries.reduce(
+  (total, entry) => total + entry.valor,
+  0
+);
+
+const totalAtendimentos =
+  entries.length;
   return (
   <div className="flex">
     <Sidebar />
@@ -70,7 +77,7 @@ export default function FinanceiroPage() {
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ 0,00
+            R$ {totalReceita.toFixed(2)}
           </h2>
         </div>
 
@@ -80,7 +87,7 @@ export default function FinanceiroPage() {
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ 0,00
+            R$ {totalReceita.toFixed(2)}
           </h2>
         </div>
 
@@ -90,13 +97,21 @@ export default function FinanceiroPage() {
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            0
+            {totalAtendimentos}
           </h2>
         </div>
 
       </div>
     <FinancialTable
   entries={entries}
+  onDelete={(id) =>
+    setEntries(
+      entries.filter(
+        (entry) =>
+          entry.id !== id
+      )
+    )
+  }
 />
           </div>
     </main>

@@ -71,8 +71,18 @@ export function AppointmentTable({
                 </td>
 
                 <td className="p-4">
-                  {appointment.status}
-                </td>
+  <span
+    className={`px-3 py-1 rounded-full text-sm font-medium ${
+      appointment.status === "Concluído"
+        ? "bg-green-100 text-green-700"
+        : appointment.status === "Cancelado"
+        ? "bg-red-100 text-red-700"
+        : "bg-yellow-100 text-yellow-700"
+    }`}
+  >
+    {appointment.status}
+  </span>
+</td>
                 <td className="p-4">
   <div className="flex gap-3">
 

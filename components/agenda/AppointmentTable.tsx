@@ -9,10 +9,16 @@ interface Appointment {
 
 interface AppointmentTableProps {
   appointments: Appointment[];
+
+  onDelete: (id: number) => void;
+
+  onComplete: (id: number) => void;
 }
 
 export function AppointmentTable({
   appointments,
+  onDelete,
+  onComplete,
 }: AppointmentTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -36,6 +42,9 @@ export function AppointmentTable({
 
             <th className="text-left p-4">
               Status
+            </th>
+            <th className="text-left p-4">
+              Ações
             </th>
           </tr>
 
@@ -64,6 +73,40 @@ export function AppointmentTable({
                 <td className="p-4">
                   {appointment.status}
                 </td>
+                <td className="p-4">
+  <div className="flex gap-3">
+
+    <button
+      onClick={() =>
+        onComplete(
+          appointment.id
+        )
+      }
+      className="text-green-600"
+    >
+      Concluir
+    </button>
+
+    <button
+      onClick={() => {
+        const confirmar =
+          window.confirm(
+            "Excluir agendamento?"
+          );
+
+        if (confirmar) {
+          onDelete(
+            appointment.id
+          );
+        }
+      }}
+      className="text-red-600"
+    >
+      Excluir
+    </button>
+
+  </div>
+</td>
               </tr>
             )
           )}

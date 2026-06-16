@@ -76,8 +76,30 @@ export default function AgendaPage() {
       </div>
 
       <AppointmentTable
-        appointments={appointments}
-      />
+  appointments={appointments}
+  onDelete={(id) =>
+    setAppointments(
+      appointments.filter(
+        (appointment) =>
+          appointment.id !== id
+      )
+    )
+  }
+  onComplete={(id) =>
+    setAppointments(
+      appointments.map(
+        (appointment) =>
+          appointment.id === id
+            ? {
+                ...appointment,
+                status:
+                  "Concluído",
+              }
+            : appointment
+      )
+    )
+  }
+/>
 
     </div>
   );

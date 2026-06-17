@@ -1,5 +1,5 @@
 "use client";
-
+import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -15,12 +15,22 @@ export default function TutorsPage() {
 };
   const [tutors, setTutors] = useState<any[]>([]);
   useEffect(() => {
-  const savedTutors =
-    localStorage.getItem("tutors");
+  async function loadTutors() {
+    const { data, error } =
+      await supabase
+        .from("tutors")
+        .select("*");
+      console.log("DATA:", data);
+console.log("ERROR:", error);
+    if (error) {
+      console.error(error);
+      return;
+    }
 
-  if (savedTutors) {
-    setTutors(JSON.parse(savedTutors));
+    setTutors(data || []);
   }
+
+  loadTutors();
 }, []);
 useEffect(() => {
   if (tutors.length > 0) {

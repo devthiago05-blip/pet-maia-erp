@@ -90,12 +90,36 @@ useEffect(() => {
 </div>
 
             <NewTutorModal
-  onSave={(novoTutor) =>
-    setTutors([
-      ...tutors,
-      novoTutor,
-    ])
-  }
+  onSave={async (novoTutor) => {
+
+    const { error } =
+      await supabase
+        .from("tutors")
+        .insert([
+          {
+            nome: novoTutor.nome,
+            telefone:
+              novoTutor.telefone,
+            email:
+              novoTutor.email,
+          },
+        ]);
+
+    if (error) {
+      console.error(error);
+      alert(
+        "Erro ao salvar tutor"
+      );
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("tutors")
+        .select("*");
+
+    setTutors(data || []);
+  }}
 />
 
           </div>

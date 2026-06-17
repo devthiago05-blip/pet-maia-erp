@@ -45,7 +45,15 @@ if (!telefone.trim()) {
   alert("Informe o telefone");
   return;
 }
+const telefoneLimpo =
+  telefone.replace(/\D/g, "");
 
+if (telefoneLimpo.length !== 11) {
+  alert(
+    "Telefone deve estar no formato (85) 99999-9999"
+  );
+  return;
+}
 if (email && !email.includes("@")) {
   alert("Digite um email válido");
   return;
@@ -118,14 +126,16 @@ return (
           <input
             value={telefone}
             onChange={(e) => {
-              const value = e.target.value.replace(/\D/g, "");
+  const value = e.target.value
+    .replace(/\D/g, "")
+    .slice(0, 11);
 
-              const formatted = value
-                .replace(/^(\d{2})(\d)/g, "($1) $2")
-                .replace(/(\d{5})(\d)/, "$1-$2");
+  const formatted = value
+    .replace(/^(\d{2})(\d)/g, "($1) $2")
+    .replace(/(\d{5})(\d)/, "$1-$2");
 
-              setTelefone(formatted);
-            }}
+  setTelefone(formatted);
+}}
             className="w-full border rounded-lg p-2 mt-1"
           />
         </div>
@@ -148,7 +158,7 @@ return (
           onClick={handleSave}
           className="bg-[#8A0EEA] text-white py-2 rounded-xl mt-2"
         >
-          Salvar Tutor
+          Salvar Alterações
         </button>
       </div>
     </DialogContent>

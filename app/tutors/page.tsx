@@ -1,4 +1,5 @@
 "use client";
+import { EditTutorModal } from "@/components/tutors/EditTutorModal";
 import { supabase } from "@/lib/supabase";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -11,9 +12,11 @@ export default function TutorsPage() {
   
 
   const handleEdit = (tutor: any) => {
-  console.log("EDITAR:", tutor);
+  setEditingTutor(tutor);
 };
   const [tutors, setTutors] = useState<any[]>([]);
+  const [editingTutor, setEditingTutor] =
+  useState<any | null>(null);
   useEffect(() => {
   async function loadTutors() {
     const { data, error } =
@@ -121,6 +124,47 @@ useEffect(() => {
     setTutors(data || []);
   }}
 />
+{editingTutor && (
+  <EditTutorModal
+    tutor={editingTutor}
+    onSave={async (
+      tutorAtualizado
+    ) => {
+
+      const { error } =
+        await supabase
+          .from("tutors")
+          .update({
+            nome:
+              tutorAtualizado.nome,
+            telefone:
+              tutorAtualizado.telefone,
+            email:
+              tutorAtualizado.email,
+          })
+          .eq(
+            "id",
+            tutorAtualizado.id
+          );
+
+      if (error) {
+        console.error(error);
+        alert(
+          "Erro ao atualizar tutor"
+        );
+        return;
+      }
+
+      const { data } =
+        await supabase
+          .from("tutors")
+          .select("*");
+
+      setTutors(data || []);
+      setEditingTutor(null);
+    }}
+  />
+)}
 
           </div>
 

@@ -126,13 +126,27 @@ useEffect(() => {
 
          <TutorTable
   tutors={filteredTutors}
-  onDelete={(id) =>
-    setTutors(
-      tutors.filter(
-        (tutor) => tutor.id !== id
-      )
-    )
-  }
+  onDelete={async (id) => {
+
+    const { error } =
+      await supabase
+        .from("tutors")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao excluir tutor");
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("tutors")
+        .select("*");
+
+    setTutors(data || []);
+  }}
   onEdit={handleEdit}
 />
         </div>

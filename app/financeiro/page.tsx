@@ -1,29 +1,14 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
 import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 
 export default function FinanceiroPage() {
-    const [entries, setEntries] = useState([
-  
-  {
-    id: 1,
-    descricao: "Banho",
-    valor: 50,
-  },
-  {
-    id: 2,
-    descricao: "Consulta",
-    valor: 120,
-  },
-  {
-    id: 3,
-    descricao: "Vacina",
-    valor: 90,
-  },
-]);
+    const [entries, setEntries] =
+  useState<any[]>([]);
 const totalReceitas = entries
   .filter(
     (entry) =>
@@ -50,6 +35,33 @@ const totalDespesas = entries
 const lucro =
   totalReceitas -
   totalDespesas;
+  useEffect(() => {
+  async function loadFinancial() {
+
+    const { data, error } =
+      await supabase
+        .from("financial_entries")
+        .select("*")
+        .order(
+          "created_at",
+          { ascending: false }
+        );
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    console.log(
+      "FINANCEIRO:",
+      data
+    );
+
+    setEntries(data || []);
+  }
+
+  loadFinancial();
+}, []);
   return (
   <div className="flex">
     <Sidebar />
@@ -83,9 +95,7 @@ const lucro =
 
 </div>
 
-        <p className="text-slate-500">
-          Controle financeiro da clínica
-        </p>
+        
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

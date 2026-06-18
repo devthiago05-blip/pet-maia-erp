@@ -1,53 +1,85 @@
 "use client";
-
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
-import { useState } from "react";
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 
 export default function AgendaPage() {
-  const [appointments, setAppointments] = useState([
-    {
-      id: 1,
-      pet: "Rex",
-      servico: "Banho",
-      data: "17/06/2026",
-      hora: "08:00",
-      status: "Agendado",
-    },
-    {
-      id: 2,
-      pet: "Mel",
-      servico: "Consulta",
-      data: "17/06/2026",
-      hora: "09:00",
-      status: "Agendado",
-    },
-    {
-      id: 3,
-      pet: "Nina",
-      servico: "Vacina",
-      data: "17/06/2026",
-      hora: "10:00",
-      status: "Concluído",
-    },
-  ]);
-  const pets = [
-  {
-    id: 1,
-    nome: "Rex",
-  },
-  {
-    id: 2,
-    nome: "Mel",
-  },
-  {
-    id: 3,
-    nome: "Nina",
-  },
-];
+const [appointments, setAppointments] =
+  useState<any[]>([]);
 
+const [pets, setPets] =
+  useState<any[]>([]);
+
+const [tutors, setTutors] =
+  useState<any[]>([]);
+
+useEffect(() => {
+  async function loadPets() {
+    const { data, error } =
+      await supabase
+        .from("pets")
+        .select(`
+          *,
+          tutors (
+            nome
+          )
+        `);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setPets(data || []);
+  }
+
+  loadPets();
+}, []);
+
+useEffect(() => {
+  async function loadTutors() {
+    const { data, error } =
+      await supabase
+        .from("tutors")
+        .select("*")
+        .order("nome");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setTutors(data || []);
+  }
+
+  loadTutors();
+}, []);
+
+useEffect(() => {
+  async function loadAppointments() {
+    const { data, error } =
+      await supabase
+        .from("appointments")
+        .select(`
+          *,
+          pets (
+            nome
+          )
+        `);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setAppointments(data || []);
+  }
+
+  loadAppointments();
+}, []);
   return (
   <div className="flex">
     <Sidebar />
@@ -70,41 +102,120 @@ export default function AgendaPage() {
         </div>
 
         <NewAppointmentModal
-  pets={pets}
-  onSave={(novoAgendamento) =>
-    setAppointments([
-      ...appointments,
-      novoAgendamento,
-    ])
-  }
+          tutors={tutors}
+          pets={pets}
+          onSave={async (novoAgendamento) => {
+
+    const petSelecionado =
+      pets.find(
+        (p) =>
+          p.nome ===
+          novoAgendamento.pet
+      );
+
+    if (!petSelecionado) {
+      alert("Pet não encontrado");
+      return;
+    }
+
+    const { error } =
+      await supabase
+        .from("appointments")
+        .insert([
+          {
+            pet_id:
+              petSelecionado.id,
+            servico:
+              novoAgendamento.servico,
+            data:
+              novoAgendamento.data,
+            hora:
+              novoAgendamento.hora,
+            status:
+              novoAgendamento.status,
+          },
+        ]);
+
+    if (error) {
+      console.error(error);
+      alert(
+        error.message
+      );
+      return;
+    }
+
+    alert(
+      "Agendamento criado com sucesso!"
+    );
+    const { data } =
+  await supabase
+    .from("appointments")
+    .select(`
+      *,
+      pets (
+        nome
+      )
+    `);
+
+setAppointments(data || []);
+  }}
 />
 
       </div>
 
-      <AppointmentTable
+     <AppointmentTable
   appointments={appointments}
-  onDelete={(id) =>
+
+  onComplete={async (id) => {
+
+    const { error } =
+      await supabase
+        .from("appointments")
+        .update({
+          status: "Concluído",
+        })
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert(
+        "Erro ao concluir agendamento"
+      );
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("appointments")
+        .select(`
+          *,
+          pets (
+            nome
+          )
+        `);
+
+    setAppointments(data || []);
+  }}
+
+  onDelete={async (id) => {
+
+    const { error } =
+      await supabase
+        .from("appointments")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
     setAppointments(
       appointments.filter(
-        (appointment) =>
-          appointment.id !== id
+        (a) => a.id !== id
       )
-    )
-  }
-  onComplete={(id) =>
-    setAppointments(
-      appointments.map(
-        (appointment) =>
-          appointment.id === id
-            ? {
-                ...appointment,
-                status:
-                  "Concluído",
-              }
-            : appointment
-      )
-    )
-  }
+    );
+  }}
 />
 
           </div>

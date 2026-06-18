@@ -3,13 +3,19 @@
 import { useState } from "react";
 
 interface NewAppointmentModalProps {
-  pets: {
+
+  tutors: {
     id: number;
     nome: string;
   }[];
 
-  onSave: (appointment: {
+  pets: {
+    id: number;
+    nome: string;
+    tutor_id: number;
+  }[];
 
+  onSave: (appointment: {
     id: number;
     pet: string;
     servico: string;
@@ -20,19 +26,30 @@ interface NewAppointmentModalProps {
 }
 
 export function NewAppointmentModal({
+  tutors,
   pets,
   onSave,
 }: NewAppointmentModalProps) {
   const [open, setOpen] = useState(false);
 
   const [pet, setPet] = useState("");
+  const [tutorId, setTutorId] =
+  useState("");
   const [servico, setServico] = useState("");
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [status, setStatus] =
-    useState("Agendado");
+  useState("Agendado");
 
-  function handleSave() {
+const petsFiltrados =
+  pets.filter(
+    (petItem) =>
+      String(
+        petItem.tutor_id
+      ) === tutorId
+  );
+
+function handleSave() {
     if (
       !pet ||
       !servico ||
@@ -42,6 +59,7 @@ export function NewAppointmentModal({
       alert(
         "Preencha todos os campos obrigatórios"
       );
+      
       return;
     }
 
@@ -82,7 +100,26 @@ export function NewAppointmentModal({
             </h2>
 
             <div className="grid gap-4">
+            <select
+  value={tutorId}
+  onChange={(e) =>
+    setTutorId(e.target.value)
+  }
+  className="border rounded-xl p-3"
+>
+  <option value="">
+    Selecione um Tutor
+  </option>
 
+  {tutors.map((tutor) => (
+    <option
+      key={tutor.id}
+      value={tutor.id}
+    >
+      {tutor.nome}
+    </option>
+  ))}
+</select>
               <select
   value={pet}
   onChange={(e) =>
@@ -94,7 +131,7 @@ export function NewAppointmentModal({
     Selecione um Pet
   </option>
 
-  {pets.map((petItem) => (
+  {petsFiltrados.map((petItem) => (
     <option
       key={petItem.id}
       value={petItem.nome}
@@ -104,14 +141,49 @@ export function NewAppointmentModal({
   ))}
 </select>
 
-              <input
-                placeholder="Serviço"
-                value={servico}
-                onChange={(e) =>
-                  setServico(e.target.value)
-                }
-                className="border rounded-xl p-3"
-              />
+              <select
+  value={servico}
+  onChange={(e) =>
+    setServico(e.target.value)
+  }
+  className="border rounded-xl p-3"
+>
+  <option value="">
+    Selecione o Serviço
+  </option>
+
+  <option value="Consulta">
+    Consulta
+  </option>
+
+  <option value="Retorno">
+    Retorno
+  </option>
+
+  <option value="Vacina">
+    Vacina
+  </option>
+
+  <option value="Banho">
+    Banho
+  </option>
+
+  <option value="Tosa">
+    Tosa
+  </option>
+
+  <option value="Exame">
+    Exame
+  </option>
+
+  <option value="Cirurgia">
+    Cirurgia
+  </option>
+
+  <option value="Internação">
+    Internação
+  </option>
+</select>
 
               <input
                 type="date"

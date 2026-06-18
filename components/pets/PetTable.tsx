@@ -12,11 +12,13 @@ interface Pet {
 interface PetTableProps {
   pets: Pet[];
   onDelete: (id: number) => void;
+  onEdit: (pet: Pet) => void;
 }
 
 export function PetTable({
   pets,
   onDelete,
+  onEdit,
 }: PetTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -50,7 +52,15 @@ export function PetTable({
               <td className="p-4">
   {pet.tutors?.nome || "-"}
 </td>
-              <td className="p-4">
+              <td className="p-4 flex gap-4">
+
+  <button
+    className="text-blue-600"
+    onClick={() => onEdit(pet)}
+  >
+    Editar
+  </button>
+
   <button
     className="text-red-600"
     onClick={() => {
@@ -66,6 +76,7 @@ export function PetTable({
   >
     Excluir
   </button>
+
 </td>
             </tr>
           ))}

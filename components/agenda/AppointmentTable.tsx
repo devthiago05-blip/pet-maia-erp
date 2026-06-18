@@ -1,10 +1,13 @@
 interface Appointment {
   id: number;
-  pet: string;
   servico: string;
   data: string;
   hora: string;
   status: string;
+
+  pets?: {
+    nome: string;
+  };
 }
 
 interface AppointmentTableProps {
@@ -59,16 +62,16 @@ export function AppointmentTable({
                 className="border-t"
               >
                 <td className="p-4">
-                  {appointment.hora}
-                </td>
+  {appointment.hora}
+</td>
 
-                <td className="p-4">
-                  {appointment.pet}
-                </td>
+<td className="p-4">
+  {appointment.pets?.nome || "-"}
+</td>
 
-                <td className="p-4">
-                  {appointment.servico}
-                </td>
+<td className="p-4">
+  {appointment.servico}
+</td>
 
                 <td className="p-4">
   <span

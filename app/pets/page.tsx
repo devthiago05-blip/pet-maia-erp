@@ -1,4 +1,5 @@
 "use client";
+import { EditPetModal } from "@/components/pets/EditPetModal";
 import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
@@ -59,6 +60,8 @@ useEffect(() => {
 
   loadTutors();
 }, []);
+const [editingPet, setEditingPet] =
+  useState<any | null>(null);
 console.log("TUTORES:", tutors);
   return (
   <div className="flex">
@@ -128,14 +131,92 @@ console.log("TUTORES:", tutors);
     setPets(data || []);
   }}
 />
+{editingPet && (
+  <EditPetModal
+    pet={editingPet}
+    tutors={tutors}
+    onSave={async (
+      petAtualizado
+    ) => {
+
+      const { error } =
+        await supabase
+          .from("pets")
+          .update({
+            nome:
+              petAtualizado.nome,
+            especie:
+              petAtualizado.especie,
+            raca:
+              petAtualizado.raca,
+            tutor_id:
+              Number(
+                petAtualizado.tutorId
+              ),
+          })
+          .eq(
+            "id",
+            petAtualizado.id
+          );
+
+      if (error) {
+        console.error(error);
+        alert(
+          "Erro ao atualizar pet"
+        );
+        return;
+      }
+
+      const { data } =
+        await supabase
+          .from("pets")
+          .select(`
+            *,
+            tutors (
+              nome
+            )
+          `);
+
+      setPets(data || []);
+      setEditingPet(null);
+
+      alert(
+        "Pet atualizado com sucesso!"
+      );
+    }}
+  />
+)}
       <PetTable
   pets={filteredPets}
-  onDelete={(id) =>
+  onDelete={async (id) => {
+
+    const confirmar = window.confirm(
+      "Deseja realmente excluir este pet?"
+    );
+
+    if (!confirmar) return;
+
+    const { error } =
+      await supabase
+        .from("pets")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert("Erro ao excluir pet");
+      return;
+    }
+
     setPets(
       pets.filter(
         (pet) => pet.id !== id
       )
-    )
+    );
+  }}
+
+  onEdit={(pet) =>
+    setEditingPet(pet)
   }
 />
           </div>

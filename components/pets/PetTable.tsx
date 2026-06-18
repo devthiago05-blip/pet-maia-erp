@@ -4,7 +4,9 @@ interface Pet {
   nome: string;
   especie: string;
   raca: string;
-  tutor: string;
+  tutors?: {
+    nome: string;
+  };
 }
 
 interface PetTableProps {
@@ -45,7 +47,9 @@ export function PetTable({
 </td>
               <td className="p-4">{pet.especie}</td>
               <td className="p-4">{pet.raca}</td>
-              <td className="p-4">{pet.tutor}</td>
+              <td className="p-4">
+  {pet.tutors?.nome || "-"}
+</td>
               <td className="p-4">
   <button
     className="text-red-600"

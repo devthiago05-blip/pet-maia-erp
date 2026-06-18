@@ -178,13 +178,12 @@ export function NewPetModal({
     }
 
     onSave({
-      id: Date.now(),
-      nome,
-      especie,
-      raca,
-      tutor:
-        tutorSelecionado.nome,
-    });
+  id: Date.now(),
+  nome,
+  especie,
+  raca,
+  tutorId,
+});
 
     setOpen(false);
 

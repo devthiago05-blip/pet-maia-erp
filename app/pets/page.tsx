@@ -1,5 +1,5 @@
 "use client";
-
+import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { useEffect, useState } from "react";
@@ -8,39 +8,58 @@ import { PetTable } from "@/components/pets/PetTable";
 import { NewPetModal } from "@/components/pets/NewPetModal";
 
 export default function PetsPage() {
-  const [pets, setPets] = useState([
-    {
-      id: 1,
-      nome: "Rex",
-      especie: "Cachorro",
-      raca: "Pitbull",
-      tutor: "Thiago Lima",
-    },
-    {
-      id: 2,
-      nome: "Mel",
-      especie: "Gato",
-      raca: "SRD",
-      tutor: "Maria Souza",
-    },
-  ]);
   const [search, setSearch] = useState("");
+  const [pets, setPets] = useState<any[]>([]);
   const [tutors, setTutors] = useState<any[]>([]);
   const filteredPets = pets.filter((pet) =>
   pet.nome
     .toLowerCase()
     .includes(search.toLowerCase())
 );
+useEffect(() => {
+  async function loadPets() {
 
-  useEffect(() => {
-  const savedTutors =
-    localStorage.getItem("tutors");
+    const { data, error } =
+  await supabase
+    .from("pets")
+    .select(`
+      *,
+      tutors (
+        nome
+      )
+    `);
 
-  if (savedTutors) {
-    setTutors(JSON.parse(savedTutors));
+    console.log("PETS:", data);
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setPets(data || []);
   }
-}, []);
 
+  loadPets();
+}, []);
+useEffect(() => {
+  async function loadTutors() {
+
+    const { data, error } =
+      await supabase
+        .from("tutors")
+        .select("*");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setTutors(data || []);
+  }
+
+  loadTutors();
+}, []);
+console.log("TUTORES:", tutors);
   return (
   <div className="flex">
     <Sidebar />
@@ -71,12 +90,43 @@ export default function PetsPage() {
       </div>
       <NewPetModal
   tutors={tutors}
-  onSave={(novoPet) =>
-    setPets([
-      ...pets,
-      novoPet,
-    ])
-  }
+  onSave={async (novoPet) => {
+
+    const { error } =
+      await supabase
+        .from("pets")
+        .insert([
+          {
+            nome: novoPet.nome,
+            especie: novoPet.especie,
+            raca: novoPet.raca,
+            tutor_id:
+              Number(
+                novoPet.tutorId
+              ),
+          },
+        ]);
+
+    if (error) {
+      console.error(error);
+      alert(
+        "Erro ao salvar pet"
+      );
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("pets")
+.select(`
+  *,
+  tutors (
+    nome
+  )
+`)
+
+    setPets(data || []);
+  }}
 />
       <PetTable
   pets={filteredPets}

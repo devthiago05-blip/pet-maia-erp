@@ -16,12 +16,17 @@ interface AppointmentTableProps {
   onDelete: (id: number) => void;
 
   onComplete: (id: number) => void;
+
+  onFinish: (
+    appointment: Appointment
+  ) => void;
 }
 
 export function AppointmentTable({
   appointments,
   onDelete,
   onComplete,
+  onFinish,
 }: AppointmentTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -90,15 +95,15 @@ export function AppointmentTable({
   <div className="flex gap-3">
 
     <button
-      onClick={() =>
-        onComplete(
-          appointment.id
-        )
-      }
-      className="text-green-600"
-    >
-      Concluir
-    </button>
+  onClick={() =>
+    onFinish(
+      appointment
+    )
+  }
+  className="text-green-600"
+>
+  Concluir
+</button>
 
     <button
       onClick={() => {

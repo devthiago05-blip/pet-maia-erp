@@ -1,4 +1,7 @@
 "use client";
+
+import { FinishAppointmentModal }
+from "@/components/agenda/FinishAppointmentModal";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -15,6 +18,16 @@ const [pets, setPets] =
 
 const [tutors, setTutors] =
   useState<any[]>([]);
+  const [
+  appointmentToFinish,
+  setAppointmentToFinish,
+] = useState<any>(null);
+
+const [
+  finishModalOpen,
+  setFinishModalOpen,
+] = useState(false);
+
 
 useEffect(() => {
   async function loadPets() {
@@ -163,8 +176,14 @@ setAppointments(data || []);
 
       </div>
 
-     <AppointmentTable
+   <AppointmentTable
   appointments={appointments}
+
+  onFinish={(appointment) => {
+    setAppointmentToFinish(
+      appointment
+    );
+  }}
 
   onComplete={async (id) => {
 
@@ -178,9 +197,6 @@ setAppointments(data || []);
 
     if (error) {
       console.error(error);
-      alert(
-        "Erro ao concluir agendamento"
-      );
       return;
     }
 
@@ -219,6 +235,88 @@ setAppointments(data || []);
 />
 
           </div>
+          {appointmentToFinish && (
+
+  <FinishAppointmentModal
+    pet={
+      appointmentToFinish
+        .pets?.nome || ""
+    }
+
+    onSave={async ({
+      valor,
+      formaPagamento,
+    }) => {
+
+      const { error } =
+        await supabase
+          .from(
+            "financial_entries"
+          )
+          .insert([
+            {
+              descricao:
+                `Consulta - ${
+                  appointmentToFinish
+                    .pets?.nome
+                }`,
+
+              valor,
+
+              tipo:
+                "Receita",
+
+              forma_pagamento:
+                formaPagamento,
+            },
+          ]);
+
+      if (error) {
+        console.error(error);
+        alert(
+          error.message
+        );
+        return;
+      }
+
+      await supabase
+        .from("appointments")
+        .update({
+          status:
+            "Concluído",
+        })
+        .eq(
+          "id",
+          appointmentToFinish.id
+        );
+
+      alert(
+        "Atendimento finalizado!"
+      );
+
+      setAppointmentToFinish(
+        null
+      );
+
+      const { data } =
+        await supabase
+          .from(
+            "appointments"
+          )
+          .select(`
+            *,
+            pets (
+              nome
+            )
+          `);
+
+      setAppointments(
+        data || []
+      );
+    }}
+  />
+
+)}
     </main>
   </div>
 );

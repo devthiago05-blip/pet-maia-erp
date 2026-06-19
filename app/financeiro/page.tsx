@@ -85,13 +85,51 @@ const lucro =
   </div>
 
   <NewFinancialModal
-    onSave={(novoLancamento) =>
-      setEntries([
-        ...entries,
-        novoLancamento,
-      ])
+  onSave={async (novoLancamento) => {
+
+    const { error } =
+      await supabase
+        .from("financial_entries")
+        .insert([
+          {
+            descricao:
+              novoLancamento.descricao,
+
+            valor:
+              novoLancamento.valor,
+
+            tipo:
+              novoLancamento.tipo,
+
+            forma_pagamento:
+              novoLancamento.formaPagamento,
+          },
+        ]);
+
+    if (error) {
+      console.error(error);
+      alert(
+        "Erro ao salvar lançamento"
+      );
+      return;
     }
-  />
+
+    alert(
+      "Lançamento salvo com sucesso!"
+    );
+
+    const { data } =
+      await supabase
+        .from("financial_entries")
+        .select("*")
+        .order(
+          "created_at",
+          { ascending: false }
+        );
+
+    setEntries(data || []);
+  }}
+/>
 
 </div>
 
@@ -133,14 +171,35 @@ const lucro =
       </div>
     <FinancialTable
   entries={entries}
-  onDelete={(id) =>
+
+  onDelete={async (id) => {
+
+    const confirmar =
+      window.confirm(
+        "Deseja excluir este lançamento?"
+      );
+
+    if (!confirmar) return;
+
+    const { error } =
+      await supabase
+        .from("financial_entries")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
     setEntries(
       entries.filter(
         (entry) =>
           entry.id !== id
       )
-    )
-  }
+    );
+  }}
 />
           </div>
     </main>

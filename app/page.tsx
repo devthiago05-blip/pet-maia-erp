@@ -44,16 +44,6 @@ const [
   async function loadData() {
 
     const {
-  data: recebimentosData,
-} = await supabase
-  .from("financial_entries")
-  .select("*")
-  .order("id", {
-    ascending: false,
-  })
-  .limit(5);
-
-    const {
       count: petsCount,
     } = await supabase
       .from("pets")
@@ -90,6 +80,16 @@ const {
       nome
     )
   `)
+  .order("id", {
+    ascending: false,
+  })
+  .limit(5);
+
+const {
+  data: recebimentosData,
+} = await supabase
+  .from("financial_entries")
+  .select("*")
   .order("id", {
     ascending: false,
   })
@@ -204,7 +204,7 @@ return ( <div className="flex"> <Sidebar />
 />
 
         <StatCard
-          title="Faturamento"
+          title="Recebido"
           value={`R$ ${recebido.toFixed(2)}`}
           icon={<Wallet size={24} />}
         />
@@ -231,8 +231,7 @@ return ( <div className="flex"> <Sidebar />
             <div>
 
               <p className="font-medium">
-                {appointment.pets?.nome ||
-                  "-"}
+                {appointment.pets?.nome || "-"}
               </p>
 
               <p className="text-sm text-slate-500">
@@ -240,7 +239,7 @@ return ( <div className="flex"> <Sidebar />
               </p>
 
             </div>
-                    
+
             <div className="text-right">
 
               <p>
@@ -252,75 +251,76 @@ return ( <div className="flex"> <Sidebar />
               </p>
 
             </div>
-                  
+
           </div>
-          
+
         )
       )}
-      
+
     </div>
-      
+
   </div>
-      <div className="bg-white rounded-2xl border p-6">
 
-  <h2 className="text-xl font-bold mb-4">
-    Últimos Recebimentos
-  </h2>
+  <div className="bg-white rounded-2xl border p-6">
 
-  <div className="space-y-3">
+    <h2 className="text-xl font-bold mb-4">
+      Últimos Recebimentos
+    </h2>
 
-    {ultimosRecebimentos.map(
-      (item) => (
+    <div className="space-y-3">
 
-        <div
-          key={item.id}
-          className="flex justify-between border-b pb-2"
-        >
+      {ultimosRecebimentos.map(
+        (item) => (
 
-          <div>
+          <div
+            key={item.id}
+            className="flex justify-between border-b pb-2"
+          >
 
-            <p className="font-medium">
-              {item.descricao}
-            </p>
+            <div>
 
-            <p className="text-sm text-slate-500">
-              {item.forma_pagamento}
-            </p>
+              <p className="font-medium">
+                {item.descricao}
+              </p>
+
+              <p className="text-sm text-slate-500">
+                {item.forma_pagamento}
+              </p>
+
+            </div>
+
+            <div className="text-right">
+
+              <p>
+                R$ {item.valor}
+              </p>
+
+              <p
+                className={`text-sm ${
+                  item.status_pagamento === "Pago"
+                    ? "text-green-600"
+                    : "text-yellow-600"
+                }`}
+              >
+                {item.status_pagamento}
+              </p>
+
+            </div>
 
           </div>
 
-          <div className="text-right">
+        )
+      )}
 
-            <p>
-              R$ {item.valor}
-            </p>
-
-            <p
-              className={`text-sm ${
-                item.status_pagamento ===
-                "Pago"
-                  ? "text-green-600"
-                  : "text-yellow-600"
-              }`}
-            >
-              {item.status_pagamento}
-            </p>
-
-          </div>
-
-        </div>
-
-      )
-    )}
+    </div>
 
   </div>
 
 </div>
-</div>
+
     </div>
   </main>
 </div>
-
 
 );
 }

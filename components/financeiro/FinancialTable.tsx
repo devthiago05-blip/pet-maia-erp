@@ -8,12 +8,16 @@ interface FinancialEntry {
 
 interface FinancialTableProps {
   entries: FinancialEntry[];
+
   onDelete: (id: number) => void;
+
+  onReceive: (id: number) => void;
 }
 
 export function FinancialTable({
   entries,
   onDelete,
+  onReceive,
 }: FinancialTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -33,6 +37,9 @@ export function FinancialTable({
 <th className="text-left p-4">
   Valor
 </th>
+<th className="text-left p-4">
+  Status
+</th>
             <th className="text-left p-4">
               Ações
             </th>
@@ -45,12 +52,11 @@ export function FinancialTable({
               key={entry.id}
               className="border-t"
             >
-              <td className="p-4">
+             <td className="p-4">
   {entry.descricao}
 </td>
 
 <td className="p-4">
-
   <span
     className={`px-3 py-1 rounded-full text-sm font-medium ${
       entry.tipo === "Despesa"
@@ -60,13 +66,39 @@ export function FinancialTable({
   >
     {entry.tipo || "Receita"}
   </span>
-
 </td>
 
 <td className="p-4">
   R$ {entry.valor}
 </td>
-              <td className="p-4">
+
+<td className="p-4">
+  {entry.status_pagamento === "Pago" ? (
+    <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+      Pago
+    </span>
+  ) : (
+    <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm">
+      Pendente
+    </span>
+  )}
+</td>
+
+<td className="p-4">
+
+  {entry.status_pagamento !==
+    "Pago" && (
+
+    <button
+      onClick={() =>
+        onReceive(entry.id)
+      }
+      className="text-green-600 mr-3"
+    >
+      Dar Baixa
+    </button>
+
+  )}
 
   <button
     onClick={() => {
@@ -85,7 +117,7 @@ export function FinancialTable({
   </button>
 
 </td>
-            </tr>
+</tr>
           ))}
         </tbody>
 

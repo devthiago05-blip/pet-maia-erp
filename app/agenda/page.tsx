@@ -268,6 +268,9 @@ setAppointments(data || []);
 
               forma_pagamento:
                 formaPagamento,
+                
+              status_pagamento:
+                  "Pendente",
             },
           ]);
 

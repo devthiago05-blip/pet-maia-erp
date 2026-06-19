@@ -84,7 +84,7 @@ const lucro =
     </p>
   </div>
 
-  <NewFinancialModal
+ <NewFinancialModal
   onSave={async (novoLancamento) => {
 
     const { error } =
@@ -103,6 +103,9 @@ const lucro =
 
             forma_pagamento:
               novoLancamento.formaPagamento,
+
+            status_pagamento:
+              "Pendente",
           },
         ]);
 
@@ -169,8 +172,37 @@ const lucro =
         </div>
 
       </div>
-    <FinancialTable
+   <FinancialTable
   entries={entries}
+
+  onReceive={async (id) => {
+
+    const { error } =
+      await supabase
+        .from("financial_entries")
+        .update({
+          status_pagamento:
+            "Pago",
+        })
+        .eq("id", id);
+
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
+    const { data } =
+      await supabase
+        .from("financial_entries")
+        .select("*")
+        .order(
+          "created_at",
+          { ascending: false }
+        );
+
+    setEntries(data || []);
+  }}
 
   onDelete={async (id) => {
 

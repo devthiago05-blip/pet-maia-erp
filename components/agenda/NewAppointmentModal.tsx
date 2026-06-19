@@ -35,7 +35,8 @@ export function NewAppointmentModal({
   const [pet, setPet] = useState("");
   const [tutorId, setTutorId] =
   useState("");
-  const [servico, setServico] = useState("");
+  const [servicos, setServicos] =
+  useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [status, setStatus] =
@@ -52,7 +53,7 @@ const petsFiltrados =
 function handleSave() {
     if (
       !pet ||
-      !servico ||
+      servicos.length === 0 ||
       !data ||
       !hora
     ) {
@@ -64,18 +65,19 @@ function handleSave() {
     }
 
     onSave({
-      id: Date.now(),
-      pet,
-      servico,
-      data,
-      hora,
-      status,
-    });
+  id: Date.now(),
+  pet,
+  servico:
+    servicos.join(" + "),
+  data,
+  hora,
+  status,
+});
 
     setOpen(false);
 
     setPet("");
-    setServico("");
+    setServicos([]);
     setData("");
     setHora("");
     setStatus("Agendado");
@@ -141,49 +143,69 @@ function handleSave() {
   ))}
 </select>
 
-              <select
-  value={servico}
-  onChange={(e) =>
-    setServico(e.target.value)
-  }
-  className="border rounded-xl p-3"
->
-  <option value="">
-    Selecione o Serviço
-  </option>
+              <div className="border rounded-xl p-3">
 
-  <option value="Consulta">
-    Consulta
-  </option>
+  <p className="font-medium mb-2">
+    Serviços
+  </p>
 
-  <option value="Retorno">
-    Retorno
-  </option>
+  {[
+    "Consulta",
+    "Retorno",
+    "Vacina",
+    "Banho",
+    "Tosa",
+    "Tosa Higienica",
+    "Hidratação",
+    "Corte de unhas",
+    "Limpeza de ouvido",
+    "Exame",
+    "Cirurgia",
+    "Internação",
+  ].map((servico) => (
 
-  <option value="Vacina">
-    Vacina
-  </option>
+    <label
+      key={servico}
+      className="flex items-center gap-2 mb-2"
+    >
 
-  <option value="Banho">
-    Banho
-  </option>
+      <input
+        type="checkbox"
+        checked={servicos.includes(
+          servico
+        )}
+        onChange={(e) => {
 
-  <option value="Tosa">
-    Tosa
-  </option>
+          if (
+            e.target.checked
+          ) {
 
-  <option value="Exame">
-    Exame
-  </option>
+            setServicos([
+              ...servicos,
+              servico,
+            ]);
 
-  <option value="Cirurgia">
-    Cirurgia
-  </option>
+          } else {
 
-  <option value="Internação">
-    Internação
-  </option>
-</select>
+            setServicos(
+              servicos.filter(
+                (s) =>
+                  s !== servico
+              )
+            );
+
+          }
+
+        }}
+      />
+
+      {servico}
+
+    </label>
+
+  ))}
+
+</div>
 
               <input
                 type="date"

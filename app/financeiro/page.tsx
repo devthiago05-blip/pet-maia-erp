@@ -9,15 +9,30 @@ import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 export default function FinanceiroPage() {
     const [entries, setEntries] =
   useState<any[]>([]);
-const totalReceitas = entries
+
+const totalRecebido = entries
   .filter(
     (entry) =>
-      (entry.tipo || "Receita") ===
-      "Receita"
+      entry.tipo === "Receita" &&
+      entry.status_pagamento ===
+        "Pago"
   )
   .reduce(
     (total, entry) =>
-      total + entry.valor,
+      total + Number(entry.valor),
+    0
+  );
+
+const totalReceber = entries
+  .filter(
+    (entry) =>
+      entry.tipo === "Receita" &&
+      entry.status_pagamento ===
+        "Pendente"
+  )
+  .reduce(
+    (total, entry) =>
+      total + Number(entry.valor),
     0
   );
 
@@ -28,12 +43,12 @@ const totalDespesas = entries
   )
   .reduce(
     (total, entry) =>
-      total + entry.valor,
+      total + Number(entry.valor),
     0
   );
 
 const lucro =
-  totalReceitas -
+  totalRecebido -
   totalDespesas;
   useEffect(() => {
   async function loadFinancial() {
@@ -143,21 +158,21 @@ const lucro =
 
         <div className="bg-white border rounded-2xl p-6">
           <p className="text-slate-500">
-            Receitas
+            Recebido
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ {totalReceitas.toFixed(2)}
+            R$ {totalRecebido.toFixed(2)}
           </h2>
         </div>
 
         <div className="bg-white border rounded-2xl p-6">
           <p className="text-slate-500">
-            Despesas
+            A Receber
           </p>
 
           <h2 className="text-3xl font-bold mt-2">
-            R$ {totalDespesas.toFixed(2)}
+            R$ {totalReceber.toFixed(2)}
           </h2>
         </div>
 

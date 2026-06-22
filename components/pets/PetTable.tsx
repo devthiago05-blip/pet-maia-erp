@@ -24,6 +24,7 @@ export function PetTable({
 }: PetTableProps) {
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
       <table className="w-full">
         <thead className="bg-slate-50">
           <tr>
@@ -83,6 +84,7 @@ export function PetTable({
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

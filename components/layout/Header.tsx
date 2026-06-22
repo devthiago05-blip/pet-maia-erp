@@ -1,9 +1,10 @@
 import { Bell, CalendarDays } from "lucide-react";
+import { useState } from "react";
 
 export function Header() {
 const today = new Date().toLocaleDateString("pt-BR");
 
-return ( <header className="bg-white border-b border-slate-200 px-8 py-3 flex items-center justify-between"> <div> <h1 className="text-2xl font-bold text-slate-800">
+return ( <header className="bg-white border-b border-slate-200 pl-16 md:pl-8 pr-4 py-3 flex items-center justify-between"> <div> <h1 className="text-2xl font-bold text-slate-800">
 Dashboard </h1>
 
 

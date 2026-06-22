@@ -92,7 +92,7 @@ const [editingPet, setEditingPet] =
       </div>
       <NewPetModal
   tutors={tutors}
-  onSave={async (novoPet) => {
+  onSave={async (novoPet: any) => {
 
     const { error } =
       await supabase

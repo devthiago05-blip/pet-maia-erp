@@ -4,6 +4,8 @@ interface Pet {
   nome: string;
   especie: string;
   raca: string;
+  porte?: string;
+
   tutors?: {
     nome: string;
   };

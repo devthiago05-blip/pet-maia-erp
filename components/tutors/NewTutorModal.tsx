@@ -14,10 +14,10 @@ interface NewTutorModalProps {
     id: number;
     nome: string;
     telefone: string;
+    email: string;
     pets: number;
   }) => void;
 }
-
 export function NewTutorModal({
   onSave,
 }: NewTutorModalProps) {
@@ -66,6 +66,7 @@ onSave({
   id: Date.now(),
   nome,
   telefone,
+  email,
   pets: 0,
 });
 alert("Tutor salvo com sucesso!");

@@ -2,7 +2,10 @@ interface FinancialEntry {
   id: number;
   descricao: string;
   valor: number;
-  tipo?: "Receita" | "Despesa";
+  tipo: string;
+
+  forma_pagamento?: string;
+  status_pagamento?: string;
 }
   
 

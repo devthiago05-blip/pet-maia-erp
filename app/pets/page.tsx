@@ -62,7 +62,6 @@ useEffect(() => {
 }, []);
 const [editingPet, setEditingPet] =
   useState<any | null>(null);
-console.log("TUTORES:", tutors);
   return (
   <div className="flex">
     <Sidebar />

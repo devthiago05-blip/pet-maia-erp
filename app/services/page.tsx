@@ -6,7 +6,6 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 
 export default function ServicesPage() {
-console.log("PÁGINA SERVICES CARREGOU");
 
   const [services, setServices] =
     useState<any[]>([]);

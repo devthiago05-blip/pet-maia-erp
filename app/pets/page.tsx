@@ -135,8 +135,8 @@ const [editingPet, setEditingPet] =
     pet={editingPet}
     tutors={tutors}
     onSave={async (
-      petAtualizado
-    ) => {
+  petAtualizado: any
+) => {
 
       const { error } =
         await supabase

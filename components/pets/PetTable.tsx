@@ -28,6 +28,7 @@ export function PetTable({
             <th className="text-left p-4">Nome</th>
             <th className="text-left p-4">Espécie</th>
             <th className="text-left p-4">Raça</th>
+            <th className="text-left p-4">Porte</th>
             <th className="text-left p-4">Tutor</th>
             <th className="text-left p-4">Ações</th>
           </tr>
@@ -49,17 +50,15 @@ export function PetTable({
 </td>
               <td className="p-4">{pet.especie}</td>
               <td className="p-4">{pet.raca}</td>
-              <td className="p-4">
-  {pet.tutors?.nome || "-"}
-</td>
-              <td className="p-4 flex gap-4">
-
-  <button
+              <td className="p-4">{pet.porte || "-"}</td>
+              <td className="p-4">{pet.tutors?.nome || "-"}</td>
+              <td className="p-4 flex gap-4"><button
     className="text-blue-600"
     onClick={() => onEdit(pet)}
   >
     Editar
   </button>
+
 
   <button
     className="text-red-600"

@@ -99,16 +99,16 @@ console.log("TUTORES:", tutors);
       await supabase
         .from("pets")
         .insert([
-          {
-            nome: novoPet.nome,
-            especie: novoPet.especie,
-            raca: novoPet.raca,
-            tutor_id:
-              Number(
-                novoPet.tutorId
-              ),
-          },
-        ]);
+  {
+    nome: novoPet.nome,
+    especie: novoPet.especie,
+    raca: novoPet.raca,
+    porte: novoPet.porte,
+    tutor_id: Number(
+      novoPet.tutorId
+    ),
+  },
+]);
 
     if (error) {
       console.error(error);

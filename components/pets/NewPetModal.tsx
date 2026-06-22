@@ -15,7 +15,10 @@ interface NewPetModalProps {
     nome: string;
     especie: string;
     raca: string;
-    tutor: string;
+    tutorId: string;
+    sexo: string;
+    peso: string;
+    porte: string;
   }) => void;
 }
 
@@ -30,6 +33,7 @@ export function NewPetModal({
   const [raca, setRaca] = useState("");
   const [sexo, setSexo] = useState("");
   const [peso, setPeso] = useState("");
+  const [porte, setPorte] =  useState("Pequeno");
   const [tutorId, setTutorId] = useState("");
 
   return (
@@ -117,14 +121,34 @@ export function NewPetModal({
                 </option>
               </select>
 
-              <input
-                placeholder="Peso (kg)"
-                value={peso}
-                onChange={(e) =>
-                  setPeso(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              />
+          <input
+  placeholder="Peso (kg)"
+  value={peso}
+  onChange={(e) =>
+    setPeso(e.target.value)
+  }
+  className="border p-2 rounded-lg"
+/>
+
+<select
+  value={porte}
+  onChange={(e) =>
+    setPorte(e.target.value)
+  }
+  className="border p-2 rounded-lg"
+>
+  <option value="Pequeno">
+    Porte Pequeno
+  </option>
+
+  <option value="Médio">
+    Porte Médio
+  </option>
+
+  <option value="Grande">
+    Porte Grande
+  </option>
+</select>
 
               <select
                 value={tutorId}
@@ -177,12 +201,15 @@ export function NewPetModal({
       return;
     }
 
-    onSave({
+   onSave({
   id: Date.now(),
   nome,
   especie,
   raca,
   tutorId,
+  sexo,
+  peso,
+  porte,
 });
 
     setOpen(false);

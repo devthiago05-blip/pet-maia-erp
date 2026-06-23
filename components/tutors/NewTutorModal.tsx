@@ -20,6 +20,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
+  const [endereco, setEndereco] = useState("");
 
   function handleSave() {
     if (!nome.trim()) {
@@ -49,6 +50,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
       nome,
       telefone,
       email,
+      endereco,
       pets: 0,
     });
 
@@ -56,6 +58,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
     setNome("");
     setTelefone("");
     setEmail("");
+    setEndereco("");
   }
 
   return (
@@ -110,6 +113,15 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
               <input
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
+                className="mt-1 w-full rounded-lg border p-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Endereço</label>
+              <input
+                value={endereco}
+                onChange={(event) => setEndereco(event.target.value)}
                 className="mt-1 w-full rounded-lg border p-2"
               />
             </div>

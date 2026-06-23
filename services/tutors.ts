@@ -11,6 +11,7 @@ export async function createTutor(tutor: NewTutorInput) {
       nome: tutor.nome,
       telefone: tutor.telefone,
       email: tutor.email,
+      endereco: tutor.endereco,
     },
   ]);
 }
@@ -22,6 +23,7 @@ export async function updateTutor(tutor: Tutor) {
       nome: tutor.nome,
       telefone: tutor.telefone,
       email: tutor.email,
+      endereco: tutor.endereco,
     })
     .eq("id", tutor.id);
 }

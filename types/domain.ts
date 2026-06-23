@@ -3,6 +3,7 @@ export interface Tutor {
   nome: string;
   telefone?: string;
   email?: string;
+  endereco?: string;
   pets?: number;
 }
 
@@ -65,6 +66,7 @@ export interface NewTutorInput {
   nome: string;
   telefone: string;
   email: string;
+  endereco: string;
 }
 
 export interface NewPetInput {

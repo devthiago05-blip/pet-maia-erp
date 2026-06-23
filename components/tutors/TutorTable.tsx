@@ -27,11 +27,12 @@ export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[680px]">
+          <table className="w-full min-w-[820px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Nome</th>
                 <th className="p-3 text-left sm:p-4">Telefone</th>
+                <th className="p-3 text-left sm:p-4">Endereço</th>
                 <th className="p-3 text-left sm:p-4">Pets</th>
                 <th className="p-3 text-left sm:p-4">Ações</th>
               </tr>
@@ -42,6 +43,9 @@ export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
                 <tr key={tutor.id} className="border-t border-slate-100">
                   <td className="p-3 sm:p-4">{tutor.nome}</td>
                   <td className="p-3 sm:p-4">{tutor.telefone}</td>
+                  <td className="max-w-64 truncate p-3 sm:p-4">
+                    {tutor.endereco || "-"}
+                  </td>
                   <td className="p-3 sm:p-4">{tutor.pets}</td>
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">

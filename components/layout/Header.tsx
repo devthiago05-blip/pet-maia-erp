@@ -1,7 +1,18 @@
-import { Bell, CalendarDays } from "lucide-react";
+"use client";
+
+import { Bell, CalendarDays, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import { supabase } from "@/lib/supabase";
 
 export function Header() {
+  const router = useRouter();
   const today = new Date().toLocaleDateString("pt-BR");
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
 
   return (
     <header className="border-b border-slate-200 bg-white py-3 pr-4 pl-16 sm:py-4 md:pl-8">
@@ -39,6 +50,15 @@ export function Header() {
               <p className="text-xs text-slate-500">Administrador</p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border text-slate-600 hover:bg-slate-50"
+            aria-label="Sair"
+          >
+            <LogOut size={18} />
+          </button>
         </div>
       </div>
     </header>

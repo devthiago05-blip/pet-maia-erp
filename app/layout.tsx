@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
 
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { cn } from "@/lib/utils";
 
 const figtree = Figtree({
@@ -42,7 +43,9 @@ export default function RootLayout({
         geistMono.variable,
       )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <AuthGuard>{children}</AuthGuard>
+      </body>
     </html>
   );
 }

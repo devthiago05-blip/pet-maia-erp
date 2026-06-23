@@ -1,9 +1,4 @@
-interface Tutor {
-id: number;
-nome: string;
-telefone: string;
-pets: number;
-}
+import type { Tutor } from "@/types/domain";
 
 interface TutorTableProps {
   tutors: Tutor[];
@@ -11,62 +6,56 @@ interface TutorTableProps {
   onEdit: (tutor: Tutor) => void;
 }
 
-export function TutorTable({
-  tutors,
-  onDelete,
-  onEdit,
-}: TutorTableProps) {
+export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="w-full overflow-x-auto">
+        <table className="min-w-[680px] w-full">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="p-3 text-left sm:p-4">Nome</th>
+              <th className="p-3 text-left sm:p-4">Telefone</th>
+              <th className="p-3 text-left sm:p-4">Pets</th>
+              <th className="p-3 text-left sm:p-4">Ações</th>
+            </tr>
+          </thead>
 
-return (
-  <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"><table className="w-full">
-  <thead className="bg-slate-50">
-    <tr>
-      <th className="text-left p-4">Nome</th>
-      <th className="text-left p-4">Telefone</th>
-      <th className="text-left p-4">Pets</th>
-      <th className="text-left p-4">Ações</th>
-    </tr>
-  </thead>
+          <tbody>
+            {tutors.map((tutor) => (
+              <tr key={tutor.id} className="border-t border-slate-100">
+                <td className="p-3 sm:p-4">{tutor.nome}</td>
+                <td className="p-3 sm:p-4">{tutor.telefone}</td>
+                <td className="p-3 sm:p-4">{tutor.pets}</td>
+                <td className="p-3 sm:p-4">
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => onEdit(tutor)}
+                      className="text-blue-600"
+                    >
+                      Editar
+                    </button>
 
-  <tbody>
-      {tutors.map((tutor) => (
-        <tr
-          key={tutor.id}
-          className="border-t border-slate-100"
-        >
-          <td className="p-4">{tutor.nome}</td>
-          <td className="p-4">{tutor.telefone}</td>
-          <td className="p-4">{tutor.pets}</td>
+                    <button
+                      onClick={() => {
+                        const confirmar = window.confirm(
+                          `Deseja excluir ${tutor.nome}?`,
+                        );
 
-          <td className="p-4">
-            <button
-  onClick={() => onEdit(tutor)}
-  className="text-blue-600 mr-4"
->
-  Editar
-</button>
-
-            <button
-  onClick={() => {
-  const confirmar = window.confirm(
-    `Deseja excluir ${tutor.nome}?`
+                        if (confirmar) {
+                          onDelete(tutor.id);
+                        }
+                      }}
+                      className="text-red-600"
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
-
-  if (confirmar) {
-    onDelete(tutor.id);
-  }
-}}
-  className="text-red-600"
->
-  Excluir
-</button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</div>
-
-
-);
 }

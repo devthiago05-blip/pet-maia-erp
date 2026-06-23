@@ -1,326 +1,177 @@
 "use client";
 
+import { CalendarDays, PawPrint, Users, Wallet } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { StatCard } from "@/components/dashboard/StatCard";
 
+import { StatCard } from "@/components/dashboard/StatCard";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
 import {
-PawPrint,
-Users,
-CalendarDays,
-Wallet,
-} from "lucide-react";
+  fetchDashboardCounts,
+  fetchRecentAppointments,
+} from "@/services/dashboard";
+import {
+  fetchPaidRevenueValues,
+  fetchPendingRevenueValues,
+  fetchRecentFinancialEntries,
+} from "@/services/financial";
+import type { Appointment, FinancialEntry } from "@/types/domain";
 
 export default function HomePage() {
+  const [pets, setPets] = useState(0);
+  const [tutors, setTutors] = useState(0);
+  const [appointments, setAppointments] = useState(0);
+  const [recebido, setRecebido] = useState(0);
+  const [receber, setReceber] = useState(0);
+  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<Appointment[]>(
+    [],
+  );
+  const [ultimosRecebimentos, setUltimosRecebimentos] = useState<
+    FinancialEntry[]
+  >([]);
 
-  const [pets, setPets] =
-    useState(0);
-
-  const [tutors, setTutors] =
-    useState(0);
-
-  const [
-    appointments,
-    setAppointments,
-  ] = useState(0);
-
-  const [recebido, setRecebido] =
-    useState(0);
-
-  const [receber, setReceber] =
-    useState(0);
-  const [
-  ultimosAgendamentos,
-  setUltimosAgendamentos,
-] = useState<any[]>([]);
-
-const [
-  ultimosRecebimentos,
-  setUltimosRecebimentos,
-] = useState<any[]>([]);
   useEffect(() => {
-  async function loadData() {
+    async function loadData() {
+      const [counts, appointmentsResponse, recebimentos, receitas, pendentes] =
+        await Promise.all([
+          fetchDashboardCounts(),
+          fetchRecentAppointments(),
+          fetchRecentFinancialEntries(),
+          fetchPaidRevenueValues(),
+          fetchPendingRevenueValues(),
+        ]);
 
-    const {
-      count: petsCount,
-    } = await supabase
-      .from("pets")
-      .select("*", {
-        count: "exact",
-        head: true,
-      });
+      const totalRecebido =
+        receitas.data?.reduce((total, item) => total + Number(item.valor), 0) ||
+        0;
 
-    const {
-      count: tutorsCount,
-    } = await supabase
-      .from("tutors")
-      .select("*", {
-        count: "exact",
-        head: true,
-      });
+      const totalReceber =
+        pendentes.data?.reduce(
+          (total, item) => total + Number(item.valor),
+          0,
+        ) || 0;
 
-   const {
-  count: appointmentsCount,
-} = await supabase
-  .from("appointments")
-  .select("*", {
-    count: "exact",
-    head: true,
-  });
+      setPets(counts.petsCount);
+      setTutors(counts.tutorsCount);
+      setAppointments(counts.appointmentsCount);
+      setUltimosAgendamentos(appointmentsResponse.data || []);
+      setUltimosRecebimentos(recebimentos.data || []);
+      setRecebido(totalRecebido);
+      setReceber(totalReceber);
+    }
 
-const {
-  data: appointmentsData,
-} = await supabase
-  .from("appointments")
-  .select(`
-    *,
-    pets (
-      nome
-    )
-  `)
-  .order("id", {
-    ascending: false,
-  })
-  .limit(5);
+    loadData();
+  }, []);
 
-const {
-  data: recebimentosData,
-} = await supabase
-  .from("financial_entries")
-  .select("*")
-  .order("id", {
-    ascending: false,
-  })
-  .limit(5);
+  return (
+    <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
+      <Sidebar />
 
-  const {
-  data: receitas,
-} = await supabase
-  .from("financial_entries")
-  .select("valor")
-  .eq(
-    "status_pagamento",
-    "Pago"
-  )
-  .eq(
-    "tipo",
-    "Receita"
-  );
+      <main className="min-w-0 flex-1 bg-slate-50">
+        <Header />
 
-const {
-  data: pendentes,
-} = await supabase
-  .from("financial_entries")
-  .select("valor")
-  .eq(
-    "status_pagamento",
-    "Pendente"
-  )
-  .eq(
-    "tipo",
-    "Receita"
-  );
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-5">
+            <StatCard
+              title="Pets"
+              value={String(pets)}
+              icon={<PawPrint size={24} />}
+            />
 
-const totalRecebido =
-  receitas?.reduce(
-    (total, item) =>
-      total + Number(item.valor),
-    0
-  ) || 0;
+            <StatCard
+              title="Tutores"
+              value={String(tutors)}
+              icon={<Users size={24} />}
+            />
 
-const totalReceber =
-  pendentes?.reduce(
-    (total, item) =>
-      total + Number(item.valor),
-    0
-  ) || 0;
+            <StatCard
+              title="Agendamentos"
+              value={String(appointments)}
+              icon={<CalendarDays size={24} />}
+            />
 
-setPets(
-  petsCount || 0
-);
+            <StatCard
+              title="A Receber"
+              value={`R$ ${receber.toFixed(2)}`}
+              icon={<Wallet size={24} />}
+            />
 
-setTutors(
-  tutorsCount || 0
-);
-
-setAppointments(
-  appointmentsCount || 0
-);
-
-  setUltimosAgendamentos(
-  appointmentsData || []
-);
-
-setUltimosRecebimentos(
-  recebimentosData || []
-);
-
-setRecebido(
-  totalRecebido
-);
-
-setReceber(
-  totalReceber
-);
-  }
-
-  loadData();
-}, []);
-return ( <div className="flex"> <Sidebar />
-
-
-  <main className="flex-1 bg-slate-50 min-h-screen">
-    <Header />
-
-    <div className="p-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-6">
-
-        
-
-        <StatCard
-          title="Pets"
-          value={String(pets)}
-          icon={<PawPrint size={24} />}
-        />
-
-        <StatCard
-          title="Tutores"
-          value={String(tutors)}
-          icon={<Users size={24} />}
-        />
-
-        <StatCard
-          title="Agendamentos"
-          value={String(appointments)}
-          icon={<CalendarDays size={24} />}
-        />
-
-        <StatCard
-        title="A Receber"
-        value={`R$ ${receber.toFixed(2)}`}
-        icon={<Wallet size={24} />}
-/>
-
-        <StatCard
-          title="Recebido"
-          value={`R$ ${recebido.toFixed(2)}`}
-          icon={<Wallet size={24} />}
-        />
-
-      </div>
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mt-8">
-
-  <div className="bg-white rounded-2xl border p-6">
-
-    <h2 className="text-xl font-bold mb-4">
-      Últimos Agendamentos
-    </h2>
-
-    <div className="space-y-3">
-
-      {ultimosAgendamentos.map(
-        (appointment) => (
-
-          <div
-            key={appointment.id}
-            className="flex justify-between border-b pb-2"
-          >
-
-            <div>
-
-              <p className="font-medium">
-                {appointment.pets?.nome || "-"}
-              </p>
-
-              <p className="text-sm text-slate-500">
-                {appointment.servico}
-              </p>
-
-            </div>
-
-            <div className="text-right">
-
-              <p>
-                {appointment.hora}
-              </p>
-
-              <p className="text-sm text-slate-500">
-                {appointment.status}
-              </p>
-
-            </div>
-
+            <StatCard
+              title="Recebido"
+              value={`R$ ${recebido.toFixed(2)}`}
+              icon={<Wallet size={24} />}
+            />
           </div>
 
-        )
-      )}
+          <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
+            <div className="rounded-2xl border bg-white p-4 sm:p-6">
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">
+                Últimos Agendamentos
+              </h2>
 
-    </div>
+              <div className="space-y-3">
+                {ultimosAgendamentos.map((appointment) => (
+                  <div
+                    key={appointment.id}
+                    className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {appointment.pets?.nome || "-"}
+                      </p>
+                      <p className="break-words text-sm text-slate-500">
+                        {appointment.servico}
+                      </p>
+                    </div>
 
-  </div>
-
-  <div className="bg-white rounded-2xl border p-6">
-
-    <h2 className="text-xl font-bold mb-4">
-      Últimos Recebimentos
-    </h2>
-
-    <div className="space-y-3">
-
-      {ultimosRecebimentos.map(
-        (item) => (
-
-          <div
-            key={item.id}
-            className="flex justify-between border-b pb-2"
-          >
-
-            <div>
-
-              <p className="font-medium">
-                {item.descricao}
-              </p>
-
-              <p className="text-sm text-slate-500">
-                {item.forma_pagamento}
-              </p>
-
+                    <div className="shrink-0 text-left sm:text-right">
+                      <p>{appointment.hora}</p>
+                      <p className="text-sm text-slate-500">
+                        {appointment.status}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <div className="text-right">
+            <div className="rounded-2xl border bg-white p-4 sm:p-6">
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">
+                Últimos Recebimentos
+              </h2>
 
-              <p>
-                R$ {item.valor}
-              </p>
+              <div className="space-y-3">
+                {ultimosRecebimentos.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{item.descricao}</p>
+                      <p className="text-sm text-slate-500">
+                        {item.forma_pagamento}
+                      </p>
+                    </div>
 
-              <p
-                className={`text-sm ${
-                  item.status_pagamento === "Pago"
-                    ? "text-green-600"
-                    : "text-yellow-600"
-                }`}
-              >
-                {item.status_pagamento}
-              </p>
-
+                    <div className="shrink-0 text-left sm:text-right">
+                      <p>R$ {item.valor}</p>
+                      <p
+                        className={`text-sm ${
+                          item.status_pagamento === "Pago"
+                            ? "text-green-600"
+                            : "text-yellow-600"
+                        }`}
+                      >
+                        {item.status_pagamento}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
           </div>
-
-        )
-      )}
-
+        </div>
+      </main>
     </div>
-
-  </div>
-
-</div>
-
-    </div>
-  </main>
-</div>
-
-);
+  );
 }

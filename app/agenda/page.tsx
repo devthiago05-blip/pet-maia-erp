@@ -1,45 +1,38 @@
 "use client";
 
-import { FinishAppointmentModal }
-from "@/components/agenda/FinishAppointmentModal";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
+import { useState } from "react";
+
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
+import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { useMountEffect } from "@/hooks/useMountEffect";
+import {
+  createAppointment,
+  deleteAppointment,
+  fetchAppointments,
+  updateAppointmentStatus,
+} from "@/services/appointments";
+import { createAppointmentFinancialEntry } from "@/services/financial";
+import { fetchPets } from "@/services/pets";
+import { fetchTutors } from "@/services/tutors";
+import type {
+  Appointment,
+  NewAppointmentInput,
+  Pet,
+  Tutor,
+} from "@/types/domain";
 
 export default function AgendaPage() {
-const [appointments, setAppointments] =
-  useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [appointmentToFinish, setAppointmentToFinish] =
+    useState<Appointment | null>(null);
 
-const [pets, setPets] =
-  useState<any[]>([]);
-
-const [tutors, setTutors] =
-  useState<any[]>([]);
-  const [
-  appointmentToFinish,
-  setAppointmentToFinish,
-] = useState<any>(null);
-
-const [
-  finishModalOpen,
-  setFinishModalOpen,
-] = useState(false);
-
-
-useEffect(() => {
   async function loadPets() {
-    const { data, error } =
-      await supabase
-        .from("pets")
-        .select(`
-          *,
-          tutors (
-            nome
-          )
-        `);
+    const { data, error } = await fetchPets();
 
     if (error) {
       console.error(error);
@@ -49,16 +42,8 @@ useEffect(() => {
     setPets(data || []);
   }
 
-  loadPets();
-}, []);
-
-useEffect(() => {
   async function loadTutors() {
-    const { data, error } =
-      await supabase
-        .from("tutors")
-        .select("*")
-        .order("nome");
+    const { data, error } = await fetchTutors();
 
     if (error) {
       console.error(error);
@@ -68,20 +53,8 @@ useEffect(() => {
     setTutors(data || []);
   }
 
-  loadTutors();
-}, []);
-
-useEffect(() => {
   async function loadAppointments() {
-    const { data, error } =
-      await supabase
-        .from("appointments")
-        .select(`
-          *,
-          pets (
-            nome
-          )
-        `);
+    const { data, error } = await fetchAppointments();
 
     if (error) {
       console.error(error);
@@ -91,135 +64,37 @@ useEffect(() => {
     setAppointments(data || []);
   }
 
-  loadAppointments();
-}, []);
-  return (
-  <div className="flex">
-    <Sidebar />
+  useMountEffect(() => {
+    loadPets();
+    loadTutors();
+    loadAppointments();
+  });
 
-    <main className="flex-1 bg-slate-50 min-h-screen">
-      <Header />
-
-      <div className="p-8 space-y-6">
-
-      <div className="flex items-center justify-between">
-
-        <div>
-          <h1 className="text-3xl font-bold text-[#8A0EEA]">
-            Agenda
-          </h1>
-
-          <p className="text-slate-500">
-            Gerencie os agendamentos
-          </p>
-        </div>
-
-        <NewAppointmentModal
-          tutors={tutors}
-          pets={pets}
-          onSave={async (novoAgendamento) => {
-
-    const petSelecionado =
-      pets.find(
-        (p) =>
-          p.nome ===
-          novoAgendamento.pet
-      );
+  async function handleCreateAppointment(novoAgendamento: NewAppointmentInput) {
+    const petSelecionado = pets.find((pet) => pet.nome === novoAgendamento.pet);
 
     if (!petSelecionado) {
       alert("Pet não encontrado");
       return;
     }
 
-    const { error } =
-      await supabase
-        .from("appointments")
-        .insert([
-          {
-            pet_id:
-              petSelecionado.id,
-            servico:
-              novoAgendamento.servico,
-            data:
-              novoAgendamento.data,
-            hora:
-              novoAgendamento.hora,
-            status:
-              novoAgendamento.status,
-          },
-        ]);
+    const { error } = await createAppointment(
+      novoAgendamento,
+      petSelecionado.id,
+    );
 
     if (error) {
       console.error(error);
-      alert(
-        error.message
-      );
+      alert(error.message);
       return;
     }
 
-    alert(
-      "Agendamento criado com sucesso!"
-    );
-    const { data } =
-  await supabase
-    .from("appointments")
-    .select(`
-      *,
-      pets (
-        nome
-      )
-    `);
+    alert("Agendamento criado com sucesso!");
+    await loadAppointments();
+  }
 
-setAppointments(data || []);
-  }}
-/>
-
-      </div>
-
-   <AppointmentTable
-  appointments={appointments}
-
-  onFinish={(appointment) => {
-    setAppointmentToFinish(
-      appointment
-    );
-  }}
-
-  onComplete={async (id) => {
-
-    const { error } =
-      await supabase
-        .from("appointments")
-        .update({
-          status: "Concluído",
-        })
-        .eq("id", id);
-
-    if (error) {
-      console.error(error);
-      return;
-    }
-
-    const { data } =
-      await supabase
-        .from("appointments")
-        .select(`
-          *,
-          pets (
-            nome
-          )
-        `);
-
-    setAppointments(data || []);
-  }}
-
-  onDelete={async (id) => {
-
-    const { error } =
-      await supabase
-        .from("appointments")
-        .delete()
-        .eq("id", id);
+  async function handleDeleteAppointment(id: number) {
+    const { error } = await deleteAppointment(id);
 
     if (error) {
       console.error(error);
@@ -227,100 +102,77 @@ setAppointments(data || []);
     }
 
     setAppointments(
-      appointments.filter(
-        (a) => a.id !== id
-      )
+      appointments.filter((appointment) => appointment.id !== id),
     );
-  }}
-/>
+  }
 
-          </div>
-          {appointmentToFinish && (
-
-  <FinishAppointmentModal
-    pet={
-      appointmentToFinish
-        .pets?.nome || ""
+  async function handleFinishAppointment({
+    valor,
+    formaPagamento,
+  }: {
+    valor: number;
+    formaPagamento: string;
+  }) {
+    if (!appointmentToFinish) {
+      return;
     }
 
-    onSave={async ({
+    const petName = appointmentToFinish.pets?.nome || "";
+    const { error } = await createAppointmentFinancialEntry(
+      petName,
       valor,
       formaPagamento,
-    }) => {
+    );
 
-      const { error } =
-        await supabase
-          .from(
-            "financial_entries"
-          )
-          .insert([
-            {
-              descricao:
-                `Consulta - ${
-                  appointmentToFinish
-                    .pets?.nome
-                }`,
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
 
-              valor,
+    await updateAppointmentStatus(appointmentToFinish.id, "Concluído");
+    alert("Atendimento finalizado!");
+    setAppointmentToFinish(null);
+    await loadAppointments();
+  }
 
-              tipo:
-                "Receita",
+  return (
+    <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
+      <Sidebar />
 
-              forma_pagamento:
-                formaPagamento,
-                
-              status_pagamento:
-                  "Pendente",
-            },
-          ]);
+      <main className="min-w-0 flex-1 bg-slate-50">
+        <Header />
 
-      if (error) {
-        console.error(error);
-        alert(
-          error.message
-        );
-        return;
-      }
+        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+                Agenda
+              </h1>
+              <p className="text-slate-500">Gerencie os agendamentos</p>
+            </div>
 
-      await supabase
-        .from("appointments")
-        .update({
-          status:
-            "Concluído",
-        })
-        .eq(
-          "id",
-          appointmentToFinish.id
-        );
+            <NewAppointmentModal
+              tutors={tutors}
+              pets={pets}
+              onSave={handleCreateAppointment}
+            />
+          </div>
 
-      alert(
-        "Atendimento finalizado!"
-      );
+          <AppointmentTable
+            appointments={appointments}
+            onFinish={setAppointmentToFinish}
+            onDelete={handleDeleteAppointment}
+          />
+        </div>
 
-      setAppointmentToFinish(
-        null
-      );
-
-      const { data } =
-        await supabase
-          .from(
-            "appointments"
-          )
-          .select(`
-            *,
-            pets (
-              nome
-            )
-          `);
-
-      setAppointments(
-        data || []
-      );
-    }}
-  />
-
-)}
-    </main>
-  </div>
-);
+        {appointmentToFinish && (
+          <FinishAppointmentModal
+            pet={appointmentToFinish.pets?.nome || ""}
+            onSave={handleFinishAppointment}
+          />
+        )}
+      </main>
+    </div>
+  );
 }

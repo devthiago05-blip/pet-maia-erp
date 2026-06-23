@@ -2,233 +2,154 @@
 
 import { useState } from "react";
 
-interface Tutor {
-  id: number;
-  nome: string;
-}
+import type { NewPetInput, Tutor } from "@/types/domain";
 
 interface NewPetModalProps {
   tutors: Tutor[];
-
-  onSave: (pet: {
-    id: number;
-    nome: string;
-    especie: string;
-    raca: string;
-    tutorId: string;
-    sexo: string;
-    peso: string;
-    porte: string;
-  }) => void;
+  onSave: (pet: NewPetInput & { id: number }) => void;
 }
 
-export function NewPetModal({
-  tutors,
-  onSave,
-}: NewPetModalProps) {
+export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
   const [open, setOpen] = useState(false);
-
   const [nome, setNome] = useState("");
   const [especie, setEspecie] = useState("");
   const [raca, setRaca] = useState("");
   const [sexo, setSexo] = useState("");
   const [peso, setPeso] = useState("");
-  const [porte, setPorte] =  useState("Pequeno");
+  const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState("");
 
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="bg-[#8A0EEA] text-white px-4 py-2 rounded-xl"
-      >
-        Novo Pet
-      </button>
+  function handleSave() {
+    const tutorSelecionado = tutors.find(
+      (tutor) => tutor.id === Number(tutorId),
+    );
 
-      {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-2xl w-full max-w-xl">
-
-            <h2 className="text-2xl font-bold mb-4">
-              Novo Pet
-            </h2>
-
-            <div className="grid gap-4">
-
-              <input
-                placeholder="Nome"
-                value={nome}
-                onChange={(e) =>
-                  setNome(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              />
-
-              <select
-                value={especie}
-                onChange={(e) =>
-                  setEspecie(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              >
-                <option value="">
-                  Espécie
-                </option>
-
-                <option value="Cachorro">
-                  Cachorro
-                </option>
-
-                <option value="Gato">
-                  Gato
-                </option>
-
-                <option value="Ave">
-                  Ave
-                </option>
-
-                <option value="Outro">
-                  Outro
-                </option>
-              </select>
-
-              <input
-                placeholder="Raça"
-                value={raca}
-                onChange={(e) =>
-                  setRaca(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              />
-
-              <select
-                value={sexo}
-                onChange={(e) =>
-                  setSexo(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              >
-                <option value="">
-                  Sexo
-                </option>
-
-                <option value="Macho">
-                  Macho
-                </option>
-
-                <option value="Fêmea">
-                  Fêmea
-                </option>
-              </select>
-
-          <input
-  placeholder="Peso (kg)"
-  value={peso}
-  onChange={(e) =>
-    setPeso(e.target.value)
-  }
-  className="border p-2 rounded-lg"
-/>
-
-<select
-  value={porte}
-  onChange={(e) =>
-    setPorte(e.target.value)
-  }
-  className="border p-2 rounded-lg"
->
-  <option value="Pequeno">
-    Porte Pequeno
-  </option>
-
-  <option value="Médio">
-    Porte Médio
-  </option>
-
-  <option value="Grande">
-    Porte Grande
-  </option>
-</select>
-
-              <select
-                value={tutorId}
-                onChange={(e) =>
-                  setTutorId(e.target.value)
-                }
-                className="border p-2 rounded-lg"
-              >
-                <option value="">
-                  Selecione o Tutor
-                </option>
-
-                {tutors.map((tutor) => (
-                  <option
-                    key={tutor.id}
-                    value={tutor.id}
-                  >
-                    {tutor.nome}
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() =>
-                    setOpen(false)
-                  }
-                  className="flex-1 border rounded-xl py-2"
-                >
-                  Cancelar
-                </button>
-
-                <button
-  onClick={() => {
-
-    const tutorSelecionado =
-      tutors.find(
-        (t) =>
-          t.id === Number(tutorId)
-      );
-
-    if (
-      !nome ||
-      !especie ||
-      !tutorSelecionado
-    ) {
-      alert(
-        "Preencha os campos obrigatórios"
-      );
+    if (!nome || !especie || !tutorSelecionado) {
+      alert("Preencha os campos obrigatórios");
       return;
     }
 
-   onSave({
-  id: Date.now(),
-  nome,
-  especie,
-  raca,
-  tutorId,
-  sexo,
-  peso,
-  porte,
-});
+    onSave({
+      id: Date.now(),
+      nome,
+      especie,
+      raca,
+      tutorId,
+      sexo,
+      peso,
+      porte,
+    });
 
     setOpen(false);
-
     setNome("");
     setEspecie("");
     setRaca("");
     setSexo("");
     setPeso("");
     setTutorId("");
-  }}
-  className="flex-1 bg-[#8A0EEA] text-white rounded-xl py-2"
->
-  Salvar
-</button>
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+      >
+        Novo Pet
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
+            <h2 className="mb-4 text-xl font-bold sm:text-2xl">Novo Pet</h2>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <input
+                placeholder="Nome"
+                value={nome}
+                onChange={(event) => setNome(event.target.value)}
+                className="w-full rounded-lg border p-2 sm:col-span-2"
+              />
+
+              <select
+                value={especie}
+                onChange={(event) => setEspecie(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              >
+                <option value="">Espécie</option>
+                <option value="Cachorro">Cachorro</option>
+                <option value="Gato">Gato</option>
+                <option value="Ave">Ave</option>
+                <option value="Outro">Outro</option>
+              </select>
+
+              <input
+                placeholder="Raça"
+                value={raca}
+                onChange={(event) => setRaca(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              />
+
+              <select
+                value={sexo}
+                onChange={(event) => setSexo(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              >
+                <option value="">Sexo</option>
+                <option value="Macho">Macho</option>
+                <option value="Fêmea">Fêmea</option>
+              </select>
+
+              <input
+                placeholder="Peso (kg)"
+                value={peso}
+                onChange={(event) => setPeso(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              />
+
+              <select
+                value={porte}
+                onChange={(event) => setPorte(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              >
+                <option value="Pequeno">Porte Pequeno</option>
+                <option value="Médio">Porte Médio</option>
+                <option value="Grande">Porte Grande</option>
+              </select>
+
+              <select
+                value={tutorId}
+                onChange={(event) => setTutorId(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              >
+                <option value="">Selecione o Tutor</option>
+
+                {tutors.map((tutor) => (
+                  <option key={tutor.id} value={tutor.id}>
+                    {tutor.nome}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="w-full rounded-xl border py-2 sm:flex-1"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
+                >
+                  Salvar
+                </button>
               </div>
-
             </div>
-
           </div>
         </div>
       )}

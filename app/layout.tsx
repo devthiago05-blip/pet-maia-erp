@@ -5,6 +5,7 @@ import { Figtree, Geist, Geist_Mono } from "next/font/google";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { cn } from "@/lib/utils";
+import { Toaster } from "sonner";
 
 const figtree = Figtree({
   subsets: ["latin"],
@@ -44,8 +45,15 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-full flex flex-col">
-        <AuthGuard>{children}</AuthGuard>
-      </body>
+  <AuthGuard>{children}</AuthGuard>
+
+  <Toaster
+    richColors
+    position="top-right"
+    closeButton
+    duration={3000}
+  />
+</body>
     </html>
   );
 }

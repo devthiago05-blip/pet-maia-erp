@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
+import { toast } from "sonner";
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
 import { KanbanBoard } from "@/components/agenda/KanbanBoard";
 import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
@@ -76,7 +76,7 @@ export default function AgendaPage() {
     const petSelecionado = pets.find((pet) => pet.nome === novoAgendamento.pet);
 
     if (!petSelecionado) {
-      alert("Pet não encontrado");
+      toast.error("Pet não encontrado");
       return;
     }
 
@@ -87,11 +87,11 @@ export default function AgendaPage() {
 
     if (error) {
       console.error(error);
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
-    alert("Agendamento criado com sucesso!");
+    toast.success("Agendamento criado com sucesso!");
     await loadAppointments();
   }
 
@@ -128,12 +128,12 @@ export default function AgendaPage() {
 
     if (error) {
       console.error(error);
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
     await updateAppointmentStatus(appointmentToFinish.id,"Finalizado",);
-    alert("Atendimento finalizado!");
+    toast.success("Atendimento finalizado!");
     setAppointmentToFinish(null);
     await loadAppointments();
   }

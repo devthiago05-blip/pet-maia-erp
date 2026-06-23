@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -38,20 +38,6 @@ export default function TutorsPage() {
 
   useMountEffect(() => {
     loadTutors();
-  });
-
-  useEffect(() => {
-    if (tutors.length > 0) {
-      localStorage.setItem("tutors", JSON.stringify(tutors));
-    }
-  }, [tutors]);
-
-  useMountEffect(() => {
-    const savedTutors = localStorage.getItem("tutors");
-
-    if (savedTutors) {
-      setTutors(JSON.parse(savedTutors));
-    }
   });
 
   async function handleCreateTutor(novoTutor: NewTutorInput) {

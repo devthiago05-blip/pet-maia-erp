@@ -1,4 +1,9 @@
+
+import { useState } from "react";
+
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import type { Appointment } from "@/types/domain";
+
 
 interface AppointmentTableProps {
   appointments: Appointment[];
@@ -11,6 +16,9 @@ export function AppointmentTable({
   onDelete,
   onFinish,
 }: AppointmentTableProps) {
+  const [appointmentToDelete, setAppointmentToDelete] =
+    useState<Appointment | null>(null);
+
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="w-full overflow-x-auto">
@@ -54,19 +62,12 @@ export function AppointmentTable({
                     </button>
 
                     <button
-                      onClick={() => {
-                        const confirmar = window.confirm(
-                          "Excluir agendamento?",
-                        );
-
-                        if (confirmar) {
-                          onDelete(appointment.id);
-                        }
-                      }}
-                      className="text-red-600"
-                    >
-                      Excluir
-                    </button>
+  type="button"
+  onClick={() => setAppointmentToDelete(appointment)}
+  className="text-red-600"
+>
+  Excluir
+</button>
                   </div>
                 </td>
               </tr>
@@ -74,6 +75,25 @@ export function AppointmentTable({
           </tbody>
         </table>
       </div>
+
+      <ConfirmationDialog
+        isOpen={!!appointmentToDelete}
+        title="Excluir agendamento"
+        description={`Deseja realmente excluir o agendamento de ${
+          appointmentToDelete?.pets?.nome || "este pet"
+        }? Essa ação não poderá ser desfeita.`}
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        onCancel={() => setAppointmentToDelete(null)}
+        onConfirm={() => {
+          if (!appointmentToDelete) {
+            return;
+          }
+
+          onDelete(appointmentToDelete.id);
+          setAppointmentToDelete(null);
+        }}
+      />
     </div>
   );
 }

@@ -6,7 +6,8 @@ export async function fetchAppointments() {
     `
       *,
       pets (
-        nome
+        nome,
+        porte
       )
     `,
   );

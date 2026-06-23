@@ -24,10 +24,7 @@ export interface Pet {
   };
 }
 
-export type AppointmentStatus =
-  | "Agendado"
-  | "Finalizado"
-  | "Cancelado";
+export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {
   id: number;
@@ -38,6 +35,7 @@ export interface Appointment {
   status: AppointmentStatus;
   pets?: {
     nome: string;
+    porte?: string;
   };
 }
 

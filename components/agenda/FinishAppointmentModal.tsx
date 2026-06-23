@@ -5,15 +5,23 @@ import { toast } from "sonner";
 
 interface FinishAppointmentModalProps {
   pet: string;
+  porte?: string;
+  servico: string;
+  valorSugerido: number | null;
   onSave: (dados: { valor: number; formaPagamento: string }) => void;
 }
 
 export function FinishAppointmentModal({
   pet,
+  porte,
+  servico,
+  valorSugerido,
   onSave,
 }: FinishAppointmentModalProps) {
   const [open, setOpen] = useState(false);
-  const [valor, setValor] = useState("");
+  const [valor, setValor] = useState(
+    valorSugerido === null ? "" : String(valorSugerido),
+  );
   const [formaPagamento, setFormaPagamento] = useState("PIX");
 
   function handleSave() {
@@ -49,11 +57,21 @@ export function FinishAppointmentModal({
 
             <div className="space-y-4">
               <div className="rounded-xl bg-slate-100 p-3">
-                <strong>Pet:</strong> {pet}
+                <p>
+                  <strong>Pet:</strong> {pet}
+                </p>
+                <p>
+                  <strong>Porte:</strong> {porte || "Não informado"}
+                </p>
+                <p>
+                  <strong>Serviços:</strong> {servico}
+                </p>
               </div>
 
               <input
                 type="number"
+                min="0"
+                step="0.01"
                 placeholder="Valor"
                 value={valor}
                 onChange={(event) => setValor(event.target.value)}

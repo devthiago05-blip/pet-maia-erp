@@ -28,6 +28,54 @@ import type {
   Tutor,
 } from "@/types/domain";
 
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function calculateAppointmentValue(
+  appointment: Appointment,
+  services: Service[],
+) {
+  const porte = normalizeText(appointment.pets?.porte || "");
+  const priceField =
+    porte === "pequeno"
+      ? "preco_pequeno"
+      : porte === "medio"
+        ? "preco_medio"
+        : porte === "grande"
+          ? "preco_grande"
+          : null;
+
+  if (!priceField) {
+    return null;
+  }
+
+  const selectedServiceNames = appointment.servico
+    .split(" + ")
+    .map(normalizeText)
+    .filter(Boolean);
+
+  const selectedServices = selectedServiceNames.map((serviceName) =>
+    services.find((service) => normalizeText(service.nome) === serviceName),
+  );
+
+  if (
+    selectedServices.length === 0 ||
+    selectedServices.some((service) => !service)
+  ) {
+    return null;
+  }
+
+  return selectedServices.reduce(
+    (total, service) => total + Number(service?.[priceField] || 0),
+    0,
+  );
+}
+
 export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -237,6 +285,12 @@ export default function AgendaPage() {
         {appointmentToFinish && (
           <FinishAppointmentModal
             pet={appointmentToFinish.pets?.nome || ""}
+            porte={appointmentToFinish.pets?.porte}
+            servico={appointmentToFinish.servico}
+            valorSugerido={calculateAppointmentValue(
+              appointmentToFinish,
+              services,
+            )}
             onSave={handleFinishAppointment}
           />
         )}

@@ -34,7 +34,7 @@ export function AppointmentTable({
                 <td className="p-3 sm:p-4">
                   <span
                     className={`rounded-full px-3 py-1 text-sm font-medium ${
-                      appointment.status === "Concluído"
+                      appointment.status === "Finalizado"
                         ? "bg-green-100 text-green-700"
                         : appointment.status === "Cancelado"
                           ? "bg-red-100 text-red-700"
@@ -50,7 +50,7 @@ export function AppointmentTable({
                       onClick={() => onFinish(appointment)}
                       className="text-green-600"
                     >
-                      Concluir
+                      Finalizar
                     </button>
 
                     <button

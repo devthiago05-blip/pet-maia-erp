@@ -24,13 +24,18 @@ export interface Pet {
   };
 }
 
+export type AppointmentStatus =
+  | "Agendado"
+  | "Finalizado"
+  | "Cancelado";
+
 export interface Appointment {
   id: number;
   pet_id?: number;
   servico: string;
   data: string;
   hora: string;
-  status: string;
+  status: AppointmentStatus;
   pets?: {
     nome: string;
   };
@@ -79,7 +84,7 @@ export interface NewAppointmentInput {
   servico: string;
   data: string;
   hora: string;
-  status: string;
+  status: AppointmentStatus;
 }
 
 export interface NewFinancialEntryInput {

@@ -36,7 +36,9 @@ export function NewAppointmentModal({
   const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  const [status, setStatus] = useState("Agendado");
+  const [status, setStatus] = useState<
+  "Agendado" | "Finalizado" | "Cancelado"
+>("Agendado");
 
   const petsFiltrados = pets.filter(
     (petItem) => String(petItem.tutor_id) === tutorId,
@@ -153,11 +155,18 @@ export function NewAppointmentModal({
 
               <select
                 value={status}
-                onChange={(event) => setStatus(event.target.value)}
+                onChange={(event) =>
+                  setStatus(
+                    event.target.value as
+                      | "Agendado"
+                      | "Finalizado"
+                      | "Cancelado",
+                  )
+                }
                 className="w-full rounded-xl border p-3"
               >
                 <option>Agendado</option>
-                <option>Concluído</option>
+                <option>Finalizado</option>
                 <option>Cancelado</option>
               </select>
 

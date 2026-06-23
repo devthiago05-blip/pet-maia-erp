@@ -130,7 +130,7 @@ export default function AgendaPage() {
       return;
     }
 
-    await updateAppointmentStatus(appointmentToFinish.id, "Concluído");
+    await updateAppointmentStatus(appointmentToFinish.id,"Finalizado",);
     alert("Atendimento finalizado!");
     setAppointmentToFinish(null);
     await loadAppointments();

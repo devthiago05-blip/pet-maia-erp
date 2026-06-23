@@ -62,6 +62,13 @@ export interface Service {
   preco_grande: number;
 }
 
+export interface NewServiceInput {
+  nome: string;
+  preco_pequeno: number;
+  preco_medio: number;
+  preco_grande: number;
+}
+
 export interface NewTutorInput {
   nome: string;
   telefone: string;

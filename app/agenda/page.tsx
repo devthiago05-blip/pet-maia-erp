@@ -18,17 +18,20 @@ import {
 } from "@/services/appointments";
 import { createAppointmentFinancialEntry } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
+import { fetchServices } from "@/services/services";
 import { fetchTutors } from "@/services/tutors";
 import type {
   Appointment,
   NewAppointmentInput,
   Pet,
+  Service,
   Tutor,
 } from "@/types/domain";
 
 export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
@@ -56,6 +59,18 @@ export default function AgendaPage() {
     setTutors(data || []);
   }
 
+  async function loadServices() {
+    const { data, error } = await fetchServices();
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar serviços");
+      return;
+    }
+
+    setServices(data || []);
+  }
+
   async function loadAppointments() {
     const { data, error } = await fetchAppointments();
 
@@ -69,6 +84,7 @@ export default function AgendaPage() {
 
   useMountEffect(() => {
     loadPets();
+    loadServices();
     loadTutors();
     loadAppointments();
   });
@@ -172,6 +188,7 @@ export default function AgendaPage() {
             <NewAppointmentModal
               tutors={tutors}
               pets={pets}
+              services={services}
               onSave={handleCreateAppointment}
             />
           </div>

@@ -3,32 +3,25 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { AppointmentStatus, NewAppointmentInput, Pet, Tutor } from "@/types/domain";
+import type {
+  AppointmentStatus,
+  NewAppointmentInput,
+  Pet,
+  Service,
+  Tutor,
+} from "@/types/domain";
 
 interface NewAppointmentModalProps {
   tutors: Tutor[];
   pets: Pet[];
-  onSave: (appointment: NewAppointmentInput & { id: number }) => void;
+  services: Service[];
+  onSave: (appointment: NewAppointmentInput) => void;
 }
-
-const serviceOptions = [
-  "Consulta",
-  "Retorno",
-  "Vacina",
-  "Banho",
-  "Tosa",
-  "Tosa Higiênica",
-  "Hidratação",
-  "Corte de unhas",
-  "Limpeza de ouvido",
-  "Exame",
-  "Cirurgia",
-  "Internação",
-];
 
 export function NewAppointmentModal({
   tutors,
   pets,
+  services,
   onSave,
 }: NewAppointmentModalProps) {
   const [open, setOpen] = useState(false);
@@ -55,7 +48,6 @@ export function NewAppointmentModal({
     }
 
     onSave({
-      id: Date.now(),
       petId,
       servico: servicos.join(" + "),
       data,
@@ -121,27 +113,40 @@ export function NewAppointmentModal({
               <div className="rounded-xl border p-3">
                 <p className="mb-2 font-medium">Serviços</p>
 
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {serviceOptions.map((servico) => (
-                    <label key={servico} className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={servicos.includes(servico)}
-                        onChange={(event) => {
-                          if (event.target.checked) {
-                            setServicos([...servicos, servico]);
-                          } else {
-                            setServicos(
-                              servicos.filter((item) => item !== servico),
-                            );
-                          }
-                        }}
-                      />
+                {services.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    Nenhum serviço cadastrado.
+                  </p>
+                ) : (
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {services.map((service) => (
+                      <label
+                        key={service.id}
+                        className="flex items-center gap-2"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={servicos.includes(service.nome)}
+                          onChange={(event) => {
+                            if (event.target.checked) {
+                              setServicos([...servicos, service.nome]);
+                            } else {
+                              setServicos(
+                                servicos.filter(
+                                  (item) => item !== service.nome,
+                                ),
+                              );
+                            }
+                          }}
+                        />
 
-                      <span className="text-sm sm:text-base">{servico}</span>
-                    </label>
-                  ))}
-                </div>
+                        <span className="text-sm sm:text-base">
+                          {service.nome}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <input

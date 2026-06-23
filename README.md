@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Supabase
+
+Execute os scripts da pasta `supabase/sql` no SQL Editor do Supabase, em ordem.
+
+Para o cadastro administrativo de usuários, configure somente no servidor:
+
+```text
+SUPABASE_SERVICE_ROLE_KEY
+```
+
+Essa chave não pode usar o prefixo `NEXT_PUBLIC_` e deve ser cadastrada também
+nas variáveis de ambiente do projeto na Vercel.

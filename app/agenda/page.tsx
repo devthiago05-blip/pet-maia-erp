@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
+import { KanbanBoard } from "@/components/agenda/KanbanBoard";
 import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
@@ -30,6 +31,7 @@ export default function AgendaPage() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
+  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -159,11 +161,45 @@ export default function AgendaPage() {
             />
           </div>
 
-          <AppointmentTable
-            appointments={appointments}
-            onFinish={setAppointmentToFinish}
-            onDelete={handleDeleteAppointment}
-          />
+          <div className="flex rounded-2xl bg-white p-1 shadow-sm">
+  <button
+    type="button"
+    onClick={() => setViewMode("kanban")}
+    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+      viewMode === "kanban"
+        ? "bg-[#8A0EEA] text-white"
+        : "text-slate-500 hover:bg-slate-100"
+    }`}
+  >
+    Kanban
+  </button>
+
+  <button
+    type="button"
+    onClick={() => setViewMode("list")}
+    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+      viewMode === "list"
+        ? "bg-[#8A0EEA] text-white"
+        : "text-slate-500 hover:bg-slate-100"
+    }`}
+  >
+    Lista
+  </button>
+</div>
+
+{viewMode === "kanban" ? (
+  <KanbanBoard
+    appointments={appointments}
+    onFinish={setAppointmentToFinish}
+    onCancel={handleDeleteAppointment}
+  />
+) : (
+  <AppointmentTable
+    appointments={appointments}
+    onFinish={setAppointmentToFinish}
+    onDelete={handleDeleteAppointment}
+  />
+)}
         </div>
 
         {appointmentToFinish && (

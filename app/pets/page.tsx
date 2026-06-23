@@ -1,36 +1,29 @@
 "use client";
-import { EditPetModal } from "@/components/pets/EditPetModal";
-import { supabase } from "@/lib/supabase";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Header } from "@/components/layout/Header";
-import { useEffect, useState } from "react";
 
-import { PetTable } from "@/components/pets/PetTable";
+import { useState } from "react";
+
+import { Header } from "@/components/layout/Header";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { EditPetModal } from "@/components/pets/EditPetModal";
 import { NewPetModal } from "@/components/pets/NewPetModal";
+import { PetTable } from "@/components/pets/PetTable";
+import { useMountEffect } from "@/hooks/useMountEffect";
+import { createPet, deletePet, fetchPets, updatePet } from "@/services/pets";
+import { fetchTutors } from "@/services/tutors";
+import type { NewPetInput, Pet, Tutor } from "@/types/domain";
 
 export default function PetsPage() {
   const [search, setSearch] = useState("");
-  const [pets, setPets] = useState<any[]>([]);
-  const [tutors, setTutors] = useState<any[]>([]);
+  const [pets, setPets] = useState<Pet[]>([]);
+  const [tutors, setTutors] = useState<Tutor[]>([]);
+  const [editingPet, setEditingPet] = useState<Pet | null>(null);
+
   const filteredPets = pets.filter((pet) =>
-  pet.nome
-    .toLowerCase()
-    .includes(search.toLowerCase())
-);
-useEffect(() => {
+    pet.nome.toLowerCase().includes(search.toLowerCase()),
+  );
+
   async function loadPets() {
-
-    const { data, error } =
-  await supabase
-    .from("pets")
-    .select(`
-      *,
-      tutors (
-        nome
-      )
-    `);
-
-    console.log("PETS:", data);
+    const { data, error } = await fetchPets();
 
     if (error) {
       console.error(error);
@@ -40,15 +33,8 @@ useEffect(() => {
     setPets(data || []);
   }
 
-  loadPets();
-}, []);
-useEffect(() => {
   async function loadTutors() {
-
-    const { data, error } =
-      await supabase
-        .from("tutors")
-        .select("*");
+    const { data, error } = await fetchTutors();
 
     if (error) {
       console.error(error);
@@ -58,148 +44,45 @@ useEffect(() => {
     setTutors(data || []);
   }
 
-  loadTutors();
-}, []);
-const [editingPet, setEditingPet] =
-  useState<any | null>(null);
-  return (
-  <div className="flex">
-    <Sidebar />
+  useMountEffect(() => {
+    loadPets();
+    loadTutors();
+  });
 
-    <main className="flex-1 bg-slate-50 min-h-screen">
-      <Header />
-
-      <div className="p-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-[#8A0EEA]">
-          Pets
-        </h1>
-
-        <p className="text-slate-500 mt-2">
-          Gerencie os pets cadastrados
-        </p>
-        <div className="mt-4">
-  <input
-    type="text"
-    placeholder="🔍 Buscar pet..."
-    value={search}
-    onChange={(e) =>
-      setSearch(e.target.value)
-    }
-    className="w-full max-w-md border border-slate-300 rounded-xl px-4 py-2"
-  />
-</div>
-      </div>
-      <NewPetModal
-  tutors={tutors}
-  onSave={async (novoPet: any) => {
-
-    const { error } =
-      await supabase
-        .from("pets")
-        .insert([
-  {
-    nome: novoPet.nome,
-    especie: novoPet.especie,
-    raca: novoPet.raca,
-    porte: novoPet.porte,
-    tutor_id: Number(
-      novoPet.tutorId
-    ),
-  },
-]);
+  async function handleCreatePet(novoPet: NewPetInput) {
+    const { error } = await createPet(novoPet);
 
     if (error) {
       console.error(error);
-      alert(
-        "Erro ao salvar pet"
-      );
+      alert("Erro ao salvar pet");
       return;
     }
 
-    const { data } =
-      await supabase
-        .from("pets")
-.select(`
-  *,
-  tutors (
-    nome
-  )
-`)
+    await loadPets();
+  }
 
-    setPets(data || []);
-  }}
-/>
-{editingPet && (
-  <EditPetModal
-    pet={editingPet}
-    tutors={tutors}
-    onSave={async (
-  petAtualizado: any
-) => {
+  async function handleUpdatePet(petAtualizado: Pet & { tutorId: string }) {
+    const { error } = await updatePet(petAtualizado);
 
-      const { error } =
-        await supabase
-          .from("pets")
-          .update({
-            nome:
-              petAtualizado.nome,
-            especie:
-              petAtualizado.especie,
-            raca:
-              petAtualizado.raca,
-            tutor_id:
-              Number(
-                petAtualizado.tutorId
-              ),
-          })
-          .eq(
-            "id",
-            petAtualizado.id
-          );
+    if (error) {
+      console.error(error);
+      alert("Erro ao atualizar pet");
+      return;
+    }
 
-      if (error) {
-        console.error(error);
-        alert(
-          "Erro ao atualizar pet"
-        );
-        return;
-      }
+    await loadPets();
+    setEditingPet(null);
+    alert("Pet atualizado com sucesso!");
+  }
 
-      const { data } =
-        await supabase
-          .from("pets")
-          .select(`
-            *,
-            tutors (
-              nome
-            )
-          `);
+  async function handleDeletePet(id: number) {
+    const confirmar = window.confirm("Deseja realmente excluir este pet?");
 
-      setPets(data || []);
-      setEditingPet(null);
+    if (!confirmar) {
+      return;
+    }
 
-      alert(
-        "Pet atualizado com sucesso!"
-      );
-    }}
-  />
-)}
-      <PetTable
-  pets={filteredPets}
-  onDelete={async (id) => {
-
-    const confirmar = window.confirm(
-      "Deseja realmente excluir este pet?"
-    );
-
-    if (!confirmar) return;
-
-    const { error } =
-      await supabase
-        .from("pets")
-        .delete()
-        .eq("id", id);
+    const { error } = await deletePet(id);
 
     if (error) {
       console.error(error);
@@ -207,19 +90,55 @@ const [editingPet, setEditingPet] =
       return;
     }
 
-    setPets(
-      pets.filter(
-        (pet) => pet.id !== id
-      )
-    );
-  }}
-
-  onEdit={(pet) =>
-    setEditingPet(pet)
+    setPets(pets.filter((pet) => pet.id !== id));
   }
-/>
+
+  return (
+    <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
+      <Sidebar />
+
+      <main className="min-w-0 flex-1 bg-slate-50">
+        <Header />
+
+        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+                Pets
+              </h1>
+              <p className="mt-2 text-slate-500">
+                Gerencie os pets cadastrados
+              </p>
+            </div>
+
+            <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:items-center">
+              <input
+                type="text"
+                placeholder="Buscar pet..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 px-4 py-2 sm:min-w-72 lg:w-80"
+              />
+
+              <NewPetModal tutors={tutors} onSave={handleCreatePet} />
+            </div>
           </div>
-    </main>
-  </div>
-);
+
+          {editingPet && (
+            <EditPetModal
+              pet={editingPet}
+              tutors={tutors}
+              onSave={handleUpdatePet}
+            />
+          )}
+
+          <PetTable
+            pets={filteredPets}
+            onDelete={handleDeletePet}
+            onEdit={setEditingPet}
+          />
+        </div>
+      </main>
+    </div>
+  );
 }

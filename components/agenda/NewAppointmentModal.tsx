@@ -2,28 +2,28 @@
 
 import { useState } from "react";
 
+import type { NewAppointmentInput, Pet, Tutor } from "@/types/domain";
+
 interface NewAppointmentModalProps {
-
-  tutors: {
-    id: number;
-    nome: string;
-  }[];
-
-  pets: {
-    id: number;
-    nome: string;
-    tutor_id: number;
-  }[];
-
-  onSave: (appointment: {
-    id: number;
-    pet: string;
-    servico: string;
-    data: string;
-    hora: string;
-    status: string;
-  }) => void;
+  tutors: Tutor[];
+  pets: Pet[];
+  onSave: (appointment: NewAppointmentInput & { id: number }) => void;
 }
+
+const serviceOptions = [
+  "Consulta",
+  "Retorno",
+  "Vacina",
+  "Banho",
+  "Tosa",
+  "Tosa Higienica",
+  "Hidratação",
+  "Corte de unhas",
+  "Limpeza de ouvido",
+  "Exame",
+  "Cirurgia",
+  "Internação",
+];
 
 export function NewAppointmentModal({
   tutors,
@@ -31,51 +31,33 @@ export function NewAppointmentModal({
   onSave,
 }: NewAppointmentModalProps) {
   const [open, setOpen] = useState(false);
-
   const [pet, setPet] = useState("");
-  const [tutorId, setTutorId] =
-  useState("");
-  const [servicos, setServicos] =
-  useState<string[]>([]);
+  const [tutorId, setTutorId] = useState("");
+  const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  const [status, setStatus] =
-  useState("Agendado");
+  const [status, setStatus] = useState("Agendado");
 
-const petsFiltrados =
-  pets.filter(
-    (petItem) =>
-      String(
-        petItem.tutor_id
-      ) === tutorId
+  const petsFiltrados = pets.filter(
+    (petItem) => String(petItem.tutor_id) === tutorId,
   );
 
-function handleSave() {
-    if (
-      !pet ||
-      servicos.length === 0 ||
-      !data ||
-      !hora
-    ) {
-      alert(
-        "Preencha todos os campos obrigatórios"
-      );
-      
+  function handleSave() {
+    if (!pet || servicos.length === 0 || !data || !hora) {
+      alert("Preencha todos os campos obrigatórios");
       return;
     }
 
     onSave({
-  id: Date.now(),
-  pet,
-  servico:
-    servicos.join(" + "),
-  data,
-  hora,
-  status,
-});
+      id: Date.now(),
+      pet,
+      servico: servicos.join(" + "),
+      data,
+      hora,
+      status,
+    });
 
     setOpen(false);
-
     setPet("");
     setServicos([]);
     setData("");
@@ -86,189 +68,118 @@ function handleSave() {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="bg-[#8A0EEA] text-white px-4 py-2 rounded-xl"
+        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
       >
         Novo Agendamento
       </button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-
-          <div className="bg-white rounded-2xl p-6 w-full max-w-xl">
-
-            <h2 className="text-2xl font-bold mb-6">
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
+            <h2 className="mb-6 text-xl font-bold sm:text-2xl">
               Novo Agendamento
             </h2>
 
             <div className="grid gap-4">
-            <select
-  value={tutorId}
-  onChange={(e) =>
-    setTutorId(e.target.value)
-  }
-  className="border rounded-xl p-3"
->
-  <option value="">
-    Selecione um Tutor
-  </option>
-
-  {tutors.map((tutor) => (
-    <option
-      key={tutor.id}
-      value={tutor.id}
-    >
-      {tutor.nome}
-    </option>
-  ))}
-</select>
               <select
-  value={pet}
-  onChange={(e) =>
-    setPet(e.target.value)
-  }
-  className="border rounded-xl p-3"
->
-  <option value="">
-    Selecione um Pet
-  </option>
+                value={tutorId}
+                onChange={(event) => setTutorId(event.target.value)}
+                className="w-full rounded-xl border p-3"
+              >
+                <option value="">Selecione um Tutor</option>
 
-  {petsFiltrados.map((petItem) => (
-    <option
-      key={petItem.id}
-      value={petItem.nome}
-    >
-      {petItem.nome}
-    </option>
-  ))}
-</select>
+                {tutors.map((tutor) => (
+                  <option key={tutor.id} value={tutor.id}>
+                    {tutor.nome}
+                  </option>
+                ))}
+              </select>
 
-              <div className="border rounded-xl p-3">
+              <select
+                value={pet}
+                onChange={(event) => setPet(event.target.value)}
+                className="w-full rounded-xl border p-3"
+              >
+                <option value="">Selecione um Pet</option>
 
-  <p className="font-medium mb-2">
-    Serviços
-  </p>
+                {petsFiltrados.map((petItem) => (
+                  <option key={petItem.id} value={petItem.nome}>
+                    {petItem.nome}
+                  </option>
+                ))}
+              </select>
 
-  {[
-    "Consulta",
-    "Retorno",
-    "Vacina",
-    "Banho",
-    "Tosa",
-    "Tosa Higienica",
-    "Hidratação",
-    "Corte de unhas",
-    "Limpeza de ouvido",
-    "Exame",
-    "Cirurgia",
-    "Internação",
-  ].map((servico) => (
+              <div className="rounded-xl border p-3">
+                <p className="mb-2 font-medium">Serviços</p>
 
-    <label
-      key={servico}
-      className="flex items-center gap-2 mb-2"
-    >
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {serviceOptions.map((servico) => (
+                    <label key={servico} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={servicos.includes(servico)}
+                        onChange={(event) => {
+                          if (event.target.checked) {
+                            setServicos([...servicos, servico]);
+                          } else {
+                            setServicos(
+                              servicos.filter((item) => item !== servico),
+                            );
+                          }
+                        }}
+                      />
 
-      <input
-        type="checkbox"
-        checked={servicos.includes(
-          servico
-        )}
-        onChange={(e) => {
-
-          if (
-            e.target.checked
-          ) {
-
-            setServicos([
-              ...servicos,
-              servico,
-            ]);
-
-          } else {
-
-            setServicos(
-              servicos.filter(
-                (s) =>
-                  s !== servico
-              )
-            );
-
-          }
-
-        }}
-      />
-
-      {servico}
-
-    </label>
-
-  ))}
-
-</div>
+                      <span className="text-sm sm:text-base">{servico}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               <input
                 type="date"
                 value={data}
-                onChange={(e) =>
-                  setData(e.target.value)
-                }
-                className="border rounded-xl p-3"
+                onChange={(event) => setData(event.target.value)}
+                className="w-full rounded-xl border p-3"
               />
 
               <input
                 type="time"
                 value={hora}
-                onChange={(e) =>
-                  setHora(e.target.value)
-                }
-                className="border rounded-xl p-3"
+                onChange={(event) => setHora(event.target.value)}
+                className="w-full rounded-xl border p-3"
               />
 
               <select
                 value={status}
-                onChange={(e) =>
-                  setStatus(e.target.value)
-                }
-                className="border rounded-xl p-3"
+                onChange={(event) => setStatus(event.target.value)}
+                className="w-full rounded-xl border p-3"
               >
-                <option>
-                  Agendado
-                </option>
-
-                <option>
-                  Concluído
-                </option>
-
-                <option>
-                  Cancelado
-                </option>
+                <option>Agendado</option>
+                <option>Concluído</option>
+                <option>Cancelado</option>
               </select>
 
-              <div className="flex gap-3">
-
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <button
-                  onClick={() =>
-                    setOpen(false)
-                  }
-                  className="flex-1 border rounded-xl py-2"
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="w-full rounded-xl border py-2 sm:flex-1"
                 >
                   Cancelar
                 </button>
 
                 <button
+                  type="button"
                   onClick={handleSave}
-                  className="flex-1 bg-[#8A0EEA] text-white rounded-xl py-2"
+                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
                 >
                   Salvar
                 </button>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
       )}
     </>

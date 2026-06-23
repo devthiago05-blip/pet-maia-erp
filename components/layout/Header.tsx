@@ -1,50 +1,46 @@
 import { Bell, CalendarDays } from "lucide-react";
-import { useState } from "react";
 
 export function Header() {
-const today = new Date().toLocaleDateString("pt-BR");
+  const today = new Date().toLocaleDateString("pt-BR");
 
-return ( <header className="bg-white border-b border-slate-200 pl-16 md:pl-8 pr-4 py-3 flex items-center justify-between"> <div> <h1 className="text-2xl font-bold text-slate-800">
-Dashboard </h1>
+  return (
+    <header className="border-b border-slate-200 bg-white py-3 pr-4 pl-16 sm:py-4 md:pl-8">
+      <div className="flex min-w-0 items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
+            Dashboard
+          </h1>
+          <p className="truncate text-xs text-slate-500 sm:text-sm">
+            Bem-vindo ao PET MAIA ERP
+          </p>
+        </div>
 
+        <div className="flex shrink-0 items-center gap-3 sm:gap-6">
+          <div className="hidden items-center gap-2 text-slate-500 sm:flex">
+            <CalendarDays size={18} />
+            <span>{today}</span>
+          </div>
 
-    <p className="text-sm text-slate-500">
-      Bem-vindo ao PET MAIA ERP
-    </p>
-  </div>
+          <button type="button" className="relative">
+            <Bell size={20} />
 
-  <div className="flex items-center gap-6">
-    <div className="flex items-center gap-2 text-slate-500">
-      <CalendarDays size={18} />
-      <span>{today}</span>
-    </div>
+            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF7A00] text-xs text-white">
+              3
+            </span>
+          </button>
 
-    <button className="relative">
-      <Bell size={20} />
+          <div className="hidden items-center gap-3 sm:flex">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8A0EEA] font-bold text-white">
+              T
+            </div>
 
-      <span className="absolute -top-2 -right-2 bg-[#FF7A00] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-        3
-      </span>
-    </button>
-
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-full bg-[#8A0EEA] text-white flex items-center justify-center font-bold">
-        T
+            <div className="hidden lg:block">
+              <p className="font-medium">Thiago</p>
+              <p className="text-xs text-slate-500">Administrador</p>
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div>
-        <p className="font-medium">
-          Thiago
-        </p>
-
-        <p className="text-xs text-slate-500">
-          Administrador
-        </p>
-      </div>
-    </div>
-  </div>
-</header>
-
-
-);
+    </header>
+  );
 }

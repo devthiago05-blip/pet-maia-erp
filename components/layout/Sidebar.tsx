@@ -1,28 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import {
-  LayoutDashboard,
-  Users,
-  PawPrint,
-  Scissors,
   CalendarDays,
-  Wallet,
-  Receipt,
-  Settings,
+  LayoutDashboard,
   Menu,
+  PawPrint,
+  Receipt,
+  Scissors,
+  Settings,
+  Users,
+  Wallet,
   X,
 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
-export function Sidebar() {
-  const [open, setOpen] = useState(false);
-
-  const MenuItems = () => (
+function MenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  return (
     <nav className="flex flex-col gap-2">
       <Link
         href="/"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl bg-purple-50 text-[#8A0EEA] font-medium"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl bg-purple-50 px-4 py-3 font-medium text-[#8A0EEA]"
       >
         <LayoutDashboard size={20} />
         Dashboard
@@ -30,7 +29,8 @@ export function Sidebar() {
 
       <Link
         href="/tutors"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <Users size={20} />
         Tutores
@@ -38,7 +38,8 @@ export function Sidebar() {
 
       <Link
         href="/pets"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <PawPrint size={20} />
         Pets
@@ -46,7 +47,8 @@ export function Sidebar() {
 
       <Link
         href="/services"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <Scissors size={20} />
         Serviços
@@ -54,7 +56,8 @@ export function Sidebar() {
 
       <Link
         href="/agenda"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <CalendarDays size={20} />
         Agenda
@@ -62,7 +65,8 @@ export function Sidebar() {
 
       <Link
         href="/financeiro"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <Wallet size={20} />
         Financeiro
@@ -70,7 +74,8 @@ export function Sidebar() {
 
       <Link
         href="/receipts"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <Receipt size={20} />
         Recibos
@@ -78,63 +83,61 @@ export function Sidebar() {
 
       <Link
         href="/settings"
-        className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-100"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
       >
         <Settings size={20} />
         Configurações
       </Link>
     </nav>
   );
+}
+
+export function Sidebar() {
+  const [open, setOpen] = useState(false);
 
   return (
     <>
-      {/* BOTÃO MOBILE */}
       <button
+        type="button"
+        aria-label="Abrir menu"
         onClick={() => setOpen(true)}
-        className="md:hidden fixed top-4 left-4 z-50 bg-white p-2 rounded-xl shadow"
+        className="fixed top-4 left-4 z-50 rounded-xl bg-white p-2 shadow md:hidden"
       >
         <Menu size={24} />
       </button>
 
-      {/* OVERLAY */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
           onClick={() => setOpen(false)}
         />
       )}
 
-      {/* SIDEBAR MOBILE */}
       {open && (
-        <aside className="fixed left-0 top-0 z-50 w-72 h-screen bg-white border-r border-slate-200 p-6 shadow-xl md:hidden">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="text-2xl font-bold text-[#8A0EEA]">
-              PET MAIA ERP
-            </h2>
+        <aside className="fixed top-0 left-0 z-50 h-dvh w-[min(18rem,calc(100vw-2rem))] overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-xl md:hidden">
+          <div className="mb-8 flex items-center justify-between gap-4">
+            <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
 
-            <button onClick={() => setOpen(false)}>
+            <button
+              type="button"
+              aria-label="Fechar menu"
+              onClick={() => setOpen(false)}
+            >
               <X size={24} />
             </button>
           </div>
 
-          <p className="text-sm text-gray-500 mb-8">
-            Gestão Veterinária
-          </p>
+          <p className="mb-8 text-sm text-gray-500">Gestão Veterinária</p>
 
-          <MenuItems />
+          <MenuItems onNavigate={() => setOpen(false)} />
         </aside>
       )}
 
-      {/* SIDEBAR DESKTOP */}
-      <aside className="hidden md:block w-72 bg-white border-r border-slate-200 h-screen sticky top-0 p-6 shadow-sm">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-sm md:block lg:w-72 lg:p-6">
         <div className="mb-10">
-          <h2 className="text-2xl font-bold text-[#8A0EEA]">
-            PET MAIA ERP
-          </h2>
-
-          <p className="text-sm text-gray-500">
-            Gestão Veterinária
-          </p>
+          <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
+          <p className="text-sm text-gray-500">Gestão Veterinária</p>
         </div>
 
         <MenuItems />

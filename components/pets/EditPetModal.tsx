@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { Pet, Tutor } from "@/types/domain";
 
@@ -15,18 +16,29 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
   const [nome, setNome] = useState(pet.nome || "");
   const [especie, setEspecie] = useState(pet.especie || "");
   const [raca, setRaca] = useState(pet.raca || "");
+  const [sexo, setSexo] = useState(pet.sexo || "");
+  const [idade, setIdade] = useState(pet.idade || "");
+  const [porte, setPorte] = useState(pet.porte || "Pequeno");
   const [tutorId, setTutorId] = useState(String(pet.tutor_id || ""));
-  const [sexo, setSexo] = useState("");
-  const [peso, setPeso] = useState("");
 
   function handleSave() {
+    if (!nome || !especie || !tutorId) {
+      toast.error("Preencha os campos obrigatórios");
+      return;
+    }
+
     onSave({
       ...pet,
       nome,
       especie,
       raca,
+      sexo,
+      idade,
+      porte,
       tutorId,
     });
+
+    setOpen(false);
   }
 
   return (
@@ -42,7 +54,7 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-xl font-bold sm:text-2xl">Editar</h2>
+            <h2 className="mb-4 text-xl font-bold sm:text-2xl">Editar Pet</h2>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <input
@@ -82,16 +94,26 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
               </select>
 
               <input
-                placeholder="Peso (kg)"
-                value={peso}
-                onChange={(event) => setPeso(event.target.value)}
+                placeholder="Idade"
+                value={idade}
+                onChange={(event) => setIdade(event.target.value)}
                 className="w-full rounded-lg border p-2"
               />
 
               <select
+                value={porte}
+                onChange={(event) => setPorte(event.target.value)}
+                className="w-full rounded-lg border p-2"
+              >
+                <option value="Pequeno">Porte Pequeno</option>
+                <option value="Médio">Porte Médio</option>
+                <option value="Grande">Porte Grande</option>
+              </select>
+
+              <select
                 value={tutorId}
                 onChange={(event) => setTutorId(event.target.value)}
-                className="w-full rounded-lg border p-2 sm:col-span-2"
+                className="w-full rounded-lg border p-2"
               >
                 <option value="">Selecione o Tutor</option>
 

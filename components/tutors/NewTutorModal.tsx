@@ -18,7 +18,6 @@ interface NewTutorModalProps {
 export function NewTutorModal({ onSave }: NewTutorModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
-  const [endereco, setEndereco] = useState("");
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
 
@@ -55,7 +54,6 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
 
     setOpen(false);
     setNome("");
-    setEndereco("");
     setTelefone("");
     setEmail("");
   }
@@ -84,15 +82,6 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
                 onChange={(event) =>
                   setNome(event.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, ""))
                 }
-                className="mt-1 w-full rounded-lg border p-2"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium">Endereço</label>
-              <input
-                value={endereco}
-                onChange={(event) => setEndereco(event.target.value)}
                 className="mt-1 w-full rounded-lg border p-2"
               />
             </div>

@@ -16,7 +16,7 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
   const [especie, setEspecie] = useState("");
   const [raca, setRaca] = useState("");
   const [sexo, setSexo] = useState("");
-  const [peso, setPeso] = useState("");
+  const [idade, setIdade] = useState("");
   const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState("");
 
@@ -37,7 +37,7 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
       raca,
       tutorId,
       sexo,
-      peso,
+      idade,
       porte,
     });
 
@@ -46,7 +46,7 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
     setEspecie("");
     setRaca("");
     setSexo("");
-    setPeso("");
+    setIdade("");
     setTutorId("");
   }
 
@@ -103,9 +103,9 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
               </select>
 
               <input
-                placeholder="Peso (kg)"
-                value={peso}
-                onChange={(event) => setPeso(event.target.value)}
+                placeholder="Idade"
+                value={idade}
+                onChange={(event) => setIdade(event.target.value)}
                 className="w-full rounded-lg border p-2"
               />
 

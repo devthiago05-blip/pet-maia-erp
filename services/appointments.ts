@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabase";
-import type { NewAppointmentInput } from "@/types/domain";
+import type { AppointmentStatus, NewAppointmentInput } from "@/types/domain";
 
 export async function fetchAppointments() {
   return supabase.from("appointments").select(
@@ -27,7 +27,10 @@ export async function createAppointment(
   ]);
 }
 
-export async function updateAppointmentStatus(id: number, status: string) {
+export async function updateAppointmentStatus(
+  id: number,
+  status: AppointmentStatus,
+) {
   return supabase.from("appointments").update({ status }).eq("id", id);
 }
 

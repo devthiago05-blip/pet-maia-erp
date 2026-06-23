@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewAppointmentInput, Pet, Tutor } from "@/types/domain";
+import type { AppointmentStatus, NewAppointmentInput, Pet, Tutor } from "@/types/domain";
 
 interface NewAppointmentModalProps {
   tutors: Tutor[];
@@ -32,28 +32,31 @@ export function NewAppointmentModal({
   onSave,
 }: NewAppointmentModalProps) {
   const [open, setOpen] = useState(false);
-  const [pet, setPet] = useState("");
+  const [petId, setPetId] = useState("");
   const [tutorId, setTutorId] = useState("");
   const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
-  const [status, setStatus] = useState<
-    "Agendado" | "Finalizado" | "Cancelado"
-  >("Agendado");
+  const [status, setStatus] = useState<AppointmentStatus>("Agendado");
 
   const petsFiltrados = pets.filter(
     (petItem) => String(petItem.tutor_id) === tutorId,
   );
 
+  function handleTutorChange(nextTutorId: string) {
+    setTutorId(nextTutorId);
+    setPetId("");
+  }
+
   function handleSave() {
-    if (!pet || servicos.length === 0 || !data || !hora) {
+    if (!petId || servicos.length === 0 || !data || !hora) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
     onSave({
       id: Date.now(),
-      pet,
+      petId,
       servico: servicos.join(" + "),
       data,
       hora,
@@ -61,7 +64,8 @@ export function NewAppointmentModal({
     });
 
     setOpen(false);
-    setPet("");
+    setPetId("");
+    setTutorId("");
     setServicos([]);
     setData("");
     setHora("");
@@ -88,7 +92,7 @@ export function NewAppointmentModal({
             <div className="grid gap-4">
               <select
                 value={tutorId}
-                onChange={(event) => setTutorId(event.target.value)}
+                onChange={(event) => handleTutorChange(event.target.value)}
                 className="w-full rounded-xl border p-3"
               >
                 <option value="">Selecione um Tutor</option>
@@ -101,14 +105,14 @@ export function NewAppointmentModal({
               </select>
 
               <select
-                value={pet}
-                onChange={(event) => setPet(event.target.value)}
+                value={petId}
+                onChange={(event) => setPetId(event.target.value)}
                 className="w-full rounded-xl border p-3"
               >
                 <option value="">Selecione um Pet</option>
 
                 {petsFiltrados.map((petItem) => (
-                  <option key={petItem.id} value={petItem.nome}>
+                  <option key={petItem.id} value={petItem.id}>
                     {petItem.nome}
                   </option>
                 ))}
@@ -157,12 +161,7 @@ export function NewAppointmentModal({
               <select
                 value={status}
                 onChange={(event) =>
-                  setStatus(
-                    event.target.value as
-                      | "Agendado"
-                      | "Finalizado"
-                      | "Cancelado",
-                  )
+                  setStatus(event.target.value as AppointmentStatus)
                 }
                 className="w-full rounded-xl border p-3"
               >

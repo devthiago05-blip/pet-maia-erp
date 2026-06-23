@@ -3,7 +3,6 @@ export interface Tutor {
   nome: string;
   telefone?: string;
   email?: string;
-  endereco?: string;
   pets?: number;
 }
 
@@ -74,13 +73,12 @@ export interface NewPetInput {
   raca: string;
   tutorId: string;
   sexo: string;
-  peso?: string;
   idade?: string;
   porte: string;
 }
 
 export interface NewAppointmentInput {
-  pet: string;
+  petId: string;
   servico: string;
   data: string;
   hora: string;

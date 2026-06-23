@@ -74,17 +74,15 @@ export default function AgendaPage() {
   });
 
   async function handleCreateAppointment(novoAgendamento: NewAppointmentInput) {
-    const petSelecionado = pets.find((pet) => pet.nome === novoAgendamento.pet);
+    const petId = Number(novoAgendamento.petId);
+    const petSelecionado = pets.find((pet) => pet.id === petId);
 
     if (!petSelecionado) {
       toast.error("Pet não encontrado");
       return;
     }
 
-    const { error } = await createAppointment(
-      novoAgendamento,
-      petSelecionado.id,
-    );
+    const { error } = await createAppointment(novoAgendamento, petId);
 
     if (error) {
       console.error(error);

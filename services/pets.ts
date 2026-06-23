@@ -36,6 +36,8 @@ export async function createPet(pet: NewPetInput) {
       especie: pet.especie,
       raca: pet.raca,
       porte: pet.porte,
+      sexo: pet.sexo,
+      idade: pet.idade,
       tutor_id: Number(pet.tutorId),
     },
   ]);
@@ -48,6 +50,9 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
       nome: pet.nome,
       especie: pet.especie,
       raca: pet.raca,
+      porte: pet.porte,
+      sexo: pet.sexo,
+      idade: pet.idade,
       tutor_id: Number(pet.tutorId),
     })
     .eq("id", pet.id);

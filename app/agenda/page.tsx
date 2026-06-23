@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
-import { KanbanBoard } from "@/components/agenda/KanbanBoard";
 import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
+import { KanbanBoard } from "@/components/agenda/KanbanBoard";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -100,12 +101,28 @@ export default function AgendaPage() {
 
     if (error) {
       console.error(error);
+      toast.error("Erro ao excluir agendamento");
       return;
     }
 
-    setAppointments(
-      appointments.filter((appointment) => appointment.id !== id),
+    setAppointments((currentAppointments) =>
+      currentAppointments.filter((appointment) => appointment.id !== id),
     );
+
+    toast.success("Agendamento excluído!");
+  }
+
+  async function handleCancelAppointment(id: number) {
+    const { error } = await updateAppointmentStatus(id, "Cancelado");
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao cancelar agendamento");
+      return;
+    }
+
+    toast.success("Agendamento cancelado!");
+    await loadAppointments();
   }
 
   async function handleFinishAppointment({
@@ -132,7 +149,7 @@ export default function AgendaPage() {
       return;
     }
 
-    await updateAppointmentStatus(appointmentToFinish.id,"Finalizado",);
+    await updateAppointmentStatus(appointmentToFinish.id, "Finalizado");
     toast.success("Atendimento finalizado!");
     setAppointmentToFinish(null);
     await loadAppointments();
@@ -161,45 +178,45 @@ export default function AgendaPage() {
             />
           </div>
 
-          <div className="flex rounded-2xl bg-white p-1 shadow-sm">
-  <button
-    type="button"
-    onClick={() => setViewMode("kanban")}
-    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-      viewMode === "kanban"
-        ? "bg-[#8A0EEA] text-white"
-        : "text-slate-500 hover:bg-slate-100"
-    }`}
-  >
-    Kanban
-  </button>
+          <div className="flex w-full rounded-2xl bg-white p-1 shadow-sm sm:w-fit">
+            <button
+              type="button"
+              onClick={() => setViewMode("kanban")}
+              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition sm:flex-none ${
+                viewMode === "kanban"
+                  ? "bg-[#8A0EEA] text-white"
+                  : "text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              Kanban
+            </button>
 
-  <button
-    type="button"
-    onClick={() => setViewMode("list")}
-    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-      viewMode === "list"
-        ? "bg-[#8A0EEA] text-white"
-        : "text-slate-500 hover:bg-slate-100"
-    }`}
-  >
-    Lista
-  </button>
-</div>
+            <button
+              type="button"
+              onClick={() => setViewMode("list")}
+              className={`flex-1 rounded-xl px-4 py-2 text-sm font-semibold transition sm:flex-none ${
+                viewMode === "list"
+                  ? "bg-[#8A0EEA] text-white"
+                  : "text-slate-500 hover:bg-slate-100"
+              }`}
+            >
+              Lista
+            </button>
+          </div>
 
-{viewMode === "kanban" ? (
-  <KanbanBoard
-    appointments={appointments}
-    onFinish={setAppointmentToFinish}
-    onCancel={handleDeleteAppointment}
-  />
-) : (
-  <AppointmentTable
-    appointments={appointments}
-    onFinish={setAppointmentToFinish}
-    onDelete={handleDeleteAppointment}
-  />
-)}
+          {viewMode === "kanban" ? (
+            <KanbanBoard
+              appointments={appointments}
+              onFinish={setAppointmentToFinish}
+              onCancel={handleCancelAppointment}
+            />
+          ) : (
+            <AppointmentTable
+              appointments={appointments}
+              onFinish={setAppointmentToFinish}
+              onDelete={handleDeleteAppointment}
+            />
+          )}
         </div>
 
         {appointmentToFinish && (

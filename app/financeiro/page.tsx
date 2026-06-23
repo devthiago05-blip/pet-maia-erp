@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
 import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
@@ -57,12 +58,12 @@ export default function FinanceiroPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao salvar lançamento");
+      toast.error("Erro ao salvar lançamento");
       return;
     }
 
-    alert("Lançamento salvo com sucesso!");
     await loadFinancial();
+    toast.success("Lançamento salvo com sucesso!");
   }
 
   async function handleReceiveEntry(id: number) {
@@ -70,29 +71,25 @@ export default function FinanceiroPage() {
 
     if (error) {
       console.error(error);
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
     await loadFinancial();
+    toast.success("Lançamento marcado como pago!");
   }
 
   async function handleDeleteEntry(id: number) {
-    const confirmar = window.confirm("Deseja excluir este lançamento?");
-
-    if (!confirmar) {
-      return;
-    }
-
     const { error } = await deleteFinancialEntry(id);
 
     if (error) {
       console.error(error);
-      alert(error.message);
+      toast.error(error.message);
       return;
     }
 
     setEntries(entries.filter((entry) => entry.id !== id));
+    toast.success("Lançamento excluído com sucesso!");
   }
 
   return (

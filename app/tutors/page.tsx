@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -45,11 +46,12 @@ export default function TutorsPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao salvar tutor");
+      toast.error("Erro ao salvar tutor");
       return;
     }
 
     await loadTutors();
+    toast.success("Tutor salvo com sucesso!");
   }
 
   async function handleUpdateTutor(tutorAtualizado: Tutor) {
@@ -57,12 +59,13 @@ export default function TutorsPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao atualizar tutor");
+      toast.error("Erro ao atualizar tutor");
       return;
     }
 
     await loadTutors();
     setEditingTutor(null);
+    toast.success("Tutor atualizado com sucesso!");
   }
 
   async function handleDeleteTutor(id: number) {
@@ -70,11 +73,12 @@ export default function TutorsPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao excluir tutor");
+      toast.error("Erro ao excluir tutor");
       return;
     }
 
     await loadTutors();
+    toast.success("Tutor excluído com sucesso!");
   }
 
   return (

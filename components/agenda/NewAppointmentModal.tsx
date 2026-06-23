@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { NewAppointmentInput, Pet, Tutor } from "@/types/domain";
 
@@ -16,7 +17,7 @@ const serviceOptions = [
   "Vacina",
   "Banho",
   "Tosa",
-  "Tosa Higienica",
+  "Tosa Higiênica",
   "Hidratação",
   "Corte de unhas",
   "Limpeza de ouvido",
@@ -37,8 +38,8 @@ export function NewAppointmentModal({
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [status, setStatus] = useState<
-  "Agendado" | "Finalizado" | "Cancelado"
->("Agendado");
+    "Agendado" | "Finalizado" | "Cancelado"
+  >("Agendado");
 
   const petsFiltrados = pets.filter(
     (petItem) => String(petItem.tutor_id) === tutorId,
@@ -46,7 +47,7 @@ export function NewAppointmentModal({
 
   function handleSave() {
     if (!pet || servicos.length === 0 || !data || !hora) {
-      alert("Preencha todos os campos obrigatórios");
+      toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 

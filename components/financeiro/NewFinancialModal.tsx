@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { NewFinancialEntryInput } from "@/types/domain";
 
@@ -17,7 +18,7 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
 
   function handleSave() {
     if (!descricao.trim() || !valor.trim()) {
-      alert("Preencha todos os campos");
+      toast.error("Preencha todos os campos");
       return;
     }
 

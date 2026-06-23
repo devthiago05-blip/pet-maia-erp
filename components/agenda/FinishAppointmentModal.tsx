@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface FinishAppointmentModalProps {
   pet: string;
@@ -17,7 +18,7 @@ export function FinishAppointmentModal({
 
   function handleSave() {
     if (!valor.trim()) {
-      alert("Preencha todos os campos");
+      toast.error("Preencha todos os campos");
       return;
     }
 

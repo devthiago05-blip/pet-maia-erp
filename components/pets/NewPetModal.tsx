@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import type { NewPetInput, Tutor } from "@/types/domain";
 
@@ -25,7 +26,7 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
     );
 
     if (!nome || !especie || !tutorSelecionado) {
-      alert("Preencha os campos obrigatórios");
+      toast.error("Preencha os campos obrigatórios");
       return;
     }
 

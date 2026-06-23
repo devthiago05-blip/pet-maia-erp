@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -54,11 +55,12 @@ export default function PetsPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao salvar pet");
+      toast.error("Erro ao salvar pet");
       return;
     }
 
     await loadPets();
+    toast.success("Pet salvo com sucesso!");
   }
 
   async function handleUpdatePet(petAtualizado: Pet & { tutorId: string }) {
@@ -66,31 +68,26 @@ export default function PetsPage() {
 
     if (error) {
       console.error(error);
-      alert("Erro ao atualizar pet");
+      toast.error("Erro ao atualizar pet");
       return;
     }
 
     await loadPets();
     setEditingPet(null);
-    alert("Pet atualizado com sucesso!");
+    toast.success("Pet atualizado com sucesso!");
   }
 
   async function handleDeletePet(id: number) {
-    const confirmar = window.confirm("Deseja realmente excluir este pet?");
-
-    if (!confirmar) {
-      return;
-    }
-
     const { error } = await deletePet(id);
 
     if (error) {
       console.error(error);
-      alert("Erro ao excluir pet");
+      toast.error("Erro ao excluir pet");
       return;
     }
 
     setPets(pets.filter((pet) => pet.id !== id));
+    toast.success("Pet excluído com sucesso!");
   }
 
   return (

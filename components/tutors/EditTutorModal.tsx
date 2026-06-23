@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -23,24 +24,24 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
 
   function handleSave() {
     if (!nome.trim()) {
-      alert("Informe o nome do tutor");
+      toast.error("Informe o nome do tutor");
       return;
     }
 
     if (!telefone.trim()) {
-      alert("Informe o telefone");
+      toast.error("Informe o telefone");
       return;
     }
 
     const telefoneLimpo = telefone.replace(/\D/g, "");
 
     if (telefoneLimpo.length !== 11) {
-      alert("Telefone deve estar no formato (85) 99999-9999");
+      toast.error("Telefone deve estar no formato (85) 99999-9999");
       return;
     }
 
     if (email && !email.includes("@")) {
-      alert("Digite um email válido");
+      toast.error("Digite um email válido");
       return;
     }
 
@@ -51,7 +52,6 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
       email,
     });
 
-    alert("Tutor salvo com sucesso!");
     setOpen(false);
     setNome("");
     setTelefone("");

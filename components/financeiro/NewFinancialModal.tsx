@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewFinancialEntryInput } from "@/types/domain";
+import type { FinancialEntryType, NewFinancialEntryInput } from "@/types/domain";
 
 interface NewFinancialModalProps {
   onSave: (entry: NewFinancialEntryInput & { id: number }) => void;
@@ -13,19 +13,26 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
   const [open, setOpen] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
-  const [tipo, setTipo] = useState<"Receita" | "Despesa">("Receita");
+  const [tipo, setTipo] = useState<FinancialEntryType>("Receita");
   const [formaPagamento, setFormaPagamento] = useState("PIX");
 
   function handleSave() {
+    const numericValue = Number(valor);
+
     if (!descricao.trim() || !valor.trim()) {
       toast.error("Preencha todos os campos");
+      return;
+    }
+
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      toast.error("Informe um valor válido");
       return;
     }
 
     onSave({
       id: Date.now(),
       descricao,
-      valor: Number(valor),
+      valor: numericValue,
       formaPagamento,
       tipo,
     });
@@ -33,6 +40,7 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
     setDescricao("");
     setValor("");
     setFormaPagamento("PIX");
+    setTipo("Receita");
     setOpen(false);
   }
 
@@ -61,6 +69,8 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
 
               <input
                 type="number"
+                min="0"
+                step="0.01"
                 placeholder="Valor"
                 value={valor}
                 onChange={(event) => setValor(event.target.value)}
@@ -70,7 +80,7 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
               <select
                 value={tipo}
                 onChange={(event) =>
-                  setTipo(event.target.value as "Receita" | "Despesa")
+                  setTipo(event.target.value as FinancialEntryType)
                 }
                 className="w-full rounded-xl border p-3"
               >

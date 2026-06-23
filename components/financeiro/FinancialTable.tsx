@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { formatCurrency } from "@/lib/formatters";
 import type { FinancialEntry } from "@/types/domain";
 
 interface FinancialTableProps {
@@ -45,53 +46,66 @@ export function FinancialTable({
             </thead>
 
             <tbody>
-              {entries.map((entry) => (
-                <tr key={entry.id} className="border-t">
-                  <td className="p-3 sm:p-4">{entry.descricao}</td>
-                  <td className="p-3 sm:p-4">
-                    <span
-                      className={`rounded-full px-3 py-1 text-sm font-medium ${
-                        entry.tipo === "Despesa"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-green-100 text-green-700"
-                      }`}
-                    >
-                      {entry.tipo || "Receita"}
-                    </span>
-                  </td>
-                  <td className="p-3 sm:p-4">R$ {entry.valor}</td>
-                  <td className="p-3 sm:p-4">
-                    {entry.status_pagamento === "Pago" ? (
-                      <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
-                        Pago
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-700">
-                        Pendente
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-3 sm:p-4">
-                    <div className="flex flex-wrap gap-3">
-                      {entry.status_pagamento !== "Pago" && (
-                        <button
-                          onClick={() => onReceive(entry.id)}
-                          className="text-green-600"
-                        >
-                          Dar Baixa
-                        </button>
-                      )}
-
-                      <button
-                        onClick={() => setEntryToDelete(entry)}
-                        className="text-red-600"
-                      >
-                        Excluir
-                      </button>
-                    </div>
+              {entries.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="p-6 text-center text-sm text-slate-500"
+                  >
+                    Nenhum lançamento financeiro encontrado.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                entries.map((entry) => (
+                  <tr key={entry.id} className="border-t">
+                    <td className="p-3 sm:p-4">{entry.descricao}</td>
+                    <td className="p-3 sm:p-4">
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-medium ${
+                          entry.tipo === "Despesa"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {entry.tipo || "Receita"}
+                      </span>
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      {formatCurrency(entry.valor)}
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      {entry.status_pagamento === "Pago" ? (
+                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
+                          Pago
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-700">
+                          Pendente
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      <div className="flex flex-wrap gap-3">
+                        {entry.status_pagamento !== "Pago" && (
+                          <button
+                            onClick={() => onReceive(entry.id)}
+                            className="text-green-600"
+                          >
+                            Dar Baixa
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => setEntryToDelete(entry)}
+                          className="text-red-600"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

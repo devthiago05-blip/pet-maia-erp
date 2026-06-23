@@ -8,6 +8,7 @@ import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { formatCurrency } from "@/lib/formatters";
 import {
   createFinancialEntry,
   deleteFinancialEntry,
@@ -18,6 +19,8 @@ import type { FinancialEntry, NewFinancialEntryInput } from "@/types/domain";
 
 export default function FinanceiroPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
   const totalRecebido = entries
     .filter(
@@ -39,14 +42,21 @@ export default function FinanceiroPage() {
   const lucro = totalRecebido - totalDespesas;
 
   async function loadFinancial() {
+    setLoading(true);
+    setLoadError("");
+
     const { data, error } = await fetchFinancialEntries();
 
     if (error) {
       console.error(error);
+      setLoadError("Não foi possível carregar os lançamentos financeiros.");
+      setEntries([]);
+      setLoading(false);
       return;
     }
 
     setEntries(data || []);
+    setLoading(false);
   }
 
   useMountEffect(() => {
@@ -113,35 +123,39 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
-            <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <p className="text-slate-500">Recebido</p>
-              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                R$ {totalRecebido.toFixed(2)}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <p className="text-slate-500">A Receber</p>
-              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                R$ {totalReceber.toFixed(2)}
-              </h2>
-            </div>
-
-            <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <p className="text-slate-500">Lucro</p>
-              <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
-                R$ {lucro.toFixed(2)}
-              </h2>
-            </div>
+            <SummaryCard title="Recebido" value={formatCurrency(totalRecebido)} />
+            <SummaryCard title="A Receber" value={formatCurrency(totalReceber)} />
+            <SummaryCard title="Lucro" value={formatCurrency(lucro)} />
           </div>
 
-          <FinancialTable
-            entries={entries}
-            onReceive={handleReceiveEntry}
-            onDelete={handleDeleteEntry}
-          />
+          {loadError && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {loadError}
+            </div>
+          )}
+
+          {loading ? (
+            <div className="rounded-2xl border bg-white p-6 text-sm text-slate-500">
+              Carregando lançamentos financeiros...
+            </div>
+          ) : (
+            <FinancialTable
+              entries={entries}
+              onReceive={handleReceiveEntry}
+              onDelete={handleDeleteEntry}
+            />
+          )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function SummaryCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-2xl border bg-white p-4 sm:p-6">
+      <p className="text-slate-500">{title}</p>
+      <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{value}</h2>
     </div>
   );
 }

@@ -1,9 +1,9 @@
+"use client";
 
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import type { Appointment } from "@/types/domain";
-
 
 interface AppointmentTableProps {
   appointments: Appointment[];
@@ -22,7 +22,7 @@ export function AppointmentTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="w-full overflow-x-auto">
-        <table className="min-w-[760px] w-full">
+        <table className="w-full min-w-[760px]">
           <thead className="bg-slate-50">
             <tr>
               <th className="p-3 text-left sm:p-4">Hora</th>
@@ -62,12 +62,12 @@ export function AppointmentTable({
                     </button>
 
                     <button
-  type="button"
-  onClick={() => setAppointmentToDelete(appointment)}
-  className="text-red-600"
->
-  Excluir
-</button>
+                      type="button"
+                      onClick={() => setAppointmentToDelete(appointment)}
+                      className="text-red-600"
+                    >
+                      Excluir
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -77,7 +77,7 @@ export function AppointmentTable({
       </div>
 
       <ConfirmationDialog
-        isOpen={!!appointmentToDelete}
+        isOpen={Boolean(appointmentToDelete)}
         title="Excluir agendamento"
         description={`Deseja realmente excluir o agendamento de ${
           appointmentToDelete?.pets?.nome || "este pet"

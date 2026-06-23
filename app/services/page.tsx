@@ -40,7 +40,7 @@ export default function ServicesPage() {
 
           <div className="overflow-hidden rounded-2xl border bg-white">
             <div className="w-full overflow-x-auto">
-              <table className="min-w-[640px] w-full">
+              <table className="w-full min-w-[640px]">
                 <thead className="bg-slate-50">
                   <tr>
                     <th className="p-3 text-left sm:p-4">Serviço</th>

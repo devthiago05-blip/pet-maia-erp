@@ -12,6 +12,23 @@ export async function fetchPets() {
   );
 }
 
+export async function fetchPetById(id: number) {
+  return supabase
+    .from("pets")
+    .select(
+      `
+      *,
+      tutors (
+        nome,
+        telefone,
+        email
+      )
+    `,
+    )
+    .eq("id", id)
+    .single();
+}
+
 export async function createPet(pet: NewPetInput) {
   return supabase.from("pets").insert([
     {

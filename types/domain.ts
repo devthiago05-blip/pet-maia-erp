@@ -14,10 +14,13 @@ export interface Pet {
   raca: string;
   porte?: string;
   sexo?: string;
-  peso?: string;
+  idade?: string;
   tutor_id?: number;
+  created_at?: string;
   tutors?: {
     nome: string;
+    telefone?: string;
+    email?: string;
   };
 }
 
@@ -66,7 +69,8 @@ export interface NewPetInput {
   raca: string;
   tutorId: string;
   sexo: string;
-  peso: string;
+  peso?: string;
+  idade?: string;
   porte: string;
 }
 

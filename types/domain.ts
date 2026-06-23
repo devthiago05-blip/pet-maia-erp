@@ -36,6 +36,9 @@ export interface Appointment {
   pets?: {
     nome: string;
     porte?: string;
+    tutors?: {
+      nome: string;
+    };
   };
 }
 

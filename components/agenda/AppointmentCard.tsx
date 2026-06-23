@@ -12,7 +12,7 @@ export function AppointmentCard({
   onCancel,
 }: AppointmentCardProps) {
   const petName = appointment.pets?.nome || "Pet não informado";
-  const tutorName = "Tutor não informado";
+  const tutorName = appointment.pets?.tutors?.nome || "Tutor não informado";
 
   return (
     <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md">

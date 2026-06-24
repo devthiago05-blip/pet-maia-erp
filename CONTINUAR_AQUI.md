@@ -20,6 +20,10 @@
 - Fundação da Clínica na ficha do pet.
 - Prontuário com consulta, profissional, peso, temperatura, queixa, diagnóstico,
   conduta e retorno.
+- Produtos agrupados no PDV com seleção de variação e quantidade.
+- Histórico detalhado de vendas com itens e impressão.
+- Orçamentos com detalhes, impressão e conversão em venda.
+- Compras integradas ao Financeiro como contas a pagar.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -30,6 +34,8 @@
 - `app/pdv/page.tsx`
 - `app/pets/[id]/page.tsx`
 - `components/pos/CategoryModal.tsx`
+- `components/pos/ProductSelectionModal.tsx`
+- `components/pos/PosDocumentModal.tsx`
 - `components/agenda/AppointmentReceiptModal.tsx`
 - `components/clinic/NewClinicalRecordModal.tsx`
 - `components/branding/BrandLogo.tsx`
@@ -45,6 +51,7 @@
 - `supabase/sql/004_pos_purchases.sql`
 - `supabase/sql/005_product_categories_variations.sql`
 - `supabase/sql/006_clinical_records.sql`
+- `supabase/sql/007_pos_operations.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -66,20 +73,21 @@ Arquivos padrão removidos:
 6. Testar WhatsApp e colar o PIX como uma segunda mensagem.
 7. Executar `supabase/sql/006_clinical_records.sql`.
 8. Testar nova consulta na aba Clínica da ficha de um pet.
-9. Testar fornecedor e entrada de compra com aumento do estoque.
-10. Aplicar RLS por módulo nas tabelas antigas do ERP.
-11. Criar testes automatizados para vendas, compras e estoque.
-12. Integrar compras do PDV às contas a pagar do Financeiro.
-13. Continuar Clínica com anamnese, prescrições, vacinas e exames.
+9. Executar `supabase/sql/007_pos_operations.sql`.
+10. Testar produto com sabores/tamanhos, selecionando variação e quantidade.
+11. Testar impressão e conversão de orçamento em venda.
+12. Testar compra e confirmar a conta a pagar no Financeiro.
+13. Aplicar RLS por módulo nas tabelas antigas do ERP.
+14. Criar testes automatizados para vendas, compras e estoque.
+15. Continuar Clínica com anamnese, prescrições, vacinas e exames.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. PDV: detalhes/impressão de orçamento, conversão e histórico de vendas.
-3. Financeiro: contas a pagar originadas por compras.
-4. Clínica: anamnese e prescrição como próximo bloco.
-5. Clínica: vacinas, exames e internação em blocos posteriores.
-6. Qualidade: testes de integração com Supabase.
+2. Clínica: anamnese e prescrição como próximo bloco.
+3. Clínica: vacinas, exames e internação em blocos posteriores.
+4. PDV: cancelamento de vendas e devoluções em etapa futura.
+5. Qualidade: testes de integração com Supabase.
 
 ## Comandos necessários
 

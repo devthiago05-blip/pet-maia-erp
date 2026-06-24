@@ -9,6 +9,7 @@ import type { Product, Supplier } from "@/types/domain";
 
 interface PurchaseLine {
   id: number;
+  productName: string;
   productId: string;
   quantity: string;
   unitCost: string;
@@ -18,6 +19,8 @@ export interface PurchaseInput {
   supplierId: number;
   documentNumber: string;
   purchaseDate: string;
+  dueDate: string;
+  paymentMethod: string;
   notes: string;
   items: Array<{
     product_id: number;
@@ -41,9 +44,19 @@ export function PurchaseModal({
   const [purchaseDate, setPurchaseDate] = useState(
     new Date().toLocaleDateString("en-CA"),
   );
+  const [dueDate, setDueDate] = useState(
+    new Date().toLocaleDateString("en-CA"),
+  );
+  const [paymentMethod, setPaymentMethod] = useState("Boleto");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PurchaseLine[]>([
-    { id: 1, productId: "", quantity: "1", unitCost: "" },
+    {
+      id: 1,
+      productName: "",
+      productId: "",
+      quantity: "1",
+      unitCost: "",
+    },
   ]);
   const [saving, setSaving] = useState(false);
 
@@ -74,6 +87,7 @@ export function PurchaseModal({
       ...current,
       {
         id: Math.max(...current.map((line) => line.id), 0) + 1,
+        productName: "",
         productId: "",
         quantity: "1",
         unitCost: "",
@@ -114,6 +128,8 @@ export function PurchaseModal({
         supplierId: Number(supplierId),
         documentNumber,
         purchaseDate,
+        dueDate,
+        paymentMethod,
         notes,
         items: parsedItems,
       });
@@ -121,7 +137,15 @@ export function PurchaseModal({
       setSupplierId("");
       setDocumentNumber("");
       setNotes("");
-      setLines([{ id: 1, productId: "", quantity: "1", unitCost: "" }]);
+      setLines([
+        {
+          id: 1,
+          productName: "",
+          productId: "",
+          quantity: "1",
+          unitCost: "",
+        },
+      ]);
     } catch {
       return;
     } finally {
@@ -143,7 +167,7 @@ export function PurchaseModal({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
             <h2 className="mb-5 text-xl font-bold">Entrada de produtos</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               <label className="grid gap-2 text-sm font-medium">
                 Fornecedor
                 <select
@@ -159,6 +183,29 @@ export function PurchaseModal({
                         {supplier.nome}
                       </option>
                     ))}
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm font-medium">
+                Vencimento
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(event) => setDueDate(event.target.value)}
+                  className="rounded-xl border p-3 font-normal"
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium">
+                Forma de pagamento
+                <select
+                  value={paymentMethod}
+                  onChange={(event) => setPaymentMethod(event.target.value)}
+                  className="rounded-xl border p-3 font-normal"
+                >
+                  <option>Boleto</option>
+                  <option>PIX</option>
+                  <option>Transferência</option>
+                  <option>Cartão</option>
+                  <option>Dinheiro</option>
                 </select>
               </label>
               <label className="grid gap-2 text-sm font-medium">
@@ -184,8 +231,29 @@ export function PurchaseModal({
               {lines.map((line) => (
                 <div
                   key={line.id}
-                  className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[minmax(0,1fr)_120px_160px_40px]"
+                  className="grid gap-3 rounded-xl border p-3 lg:grid-cols-[minmax(150px,1fr)_minmax(180px,1.4fr)_100px_150px_40px]"
                 >
+                  <select
+                    value={line.productName}
+                    onChange={(event) => {
+                      updateLine(line.id, "productName", event.target.value);
+                      updateLine(line.id, "productId", "");
+                    }}
+                    className="rounded-xl border p-3"
+                  >
+                    <option value="">Produto</option>
+                    {Array.from(
+                      new Set(
+                        products
+                          .filter((product) => product.ativo)
+                          .map((product) => product.nome),
+                      ),
+                    ).map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
                   <select
                     value={line.productId}
                     onChange={(event) =>
@@ -193,9 +261,12 @@ export function PurchaseModal({
                     }
                     className="rounded-xl border p-3"
                   >
-                    <option value="">Produto</option>
+                    <option value="">Variação</option>
                     {products
-                      .filter((product) => product.ativo)
+                      .filter(
+                        (product) =>
+                          product.ativo && product.nome === line.productName,
+                      )
                       .map((product) => (
                         <option key={product.id} value={product.id}>
                           {product.sku} · {formatProductName(product)}

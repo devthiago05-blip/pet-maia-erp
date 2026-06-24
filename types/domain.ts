@@ -110,6 +110,9 @@ export interface FinancialEntry {
   tipo: FinancialEntryType;
   forma_pagamento?: string;
   status_pagamento?: PaymentStatus;
+  data_vencimento?: string;
+  origem?: string;
+  referencia_id?: number;
   created_at?: string;
 }
 
@@ -159,6 +162,28 @@ export interface PosQuote {
   tutors?: {
     nome: string;
   };
+  pos_quote_items?: PosItem[];
+}
+
+export interface PosItem {
+  id: number;
+  product_id?: number;
+  descricao: string;
+  quantidade: number;
+  valor_unitario: number;
+  subtotal: number;
+}
+
+export interface PosSale {
+  id: number;
+  cliente_nome?: string;
+  total: number;
+  forma_pagamento: string;
+  created_at: string;
+  tutors?: {
+    nome: string;
+  };
+  pos_sale_items?: PosItem[];
 }
 
 export interface Supplier {
@@ -180,6 +205,8 @@ export interface ProductPurchase {
   data_compra: string;
   total: number;
   observacao?: string;
+  data_vencimento?: string;
+  forma_pagamento?: string;
   created_at: string;
   suppliers?: {
     nome: string;

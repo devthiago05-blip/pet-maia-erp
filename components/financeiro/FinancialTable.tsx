@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FinancialEntry } from "@/types/domain";
 
 interface FinancialTableProps {
@@ -40,6 +40,7 @@ export function FinancialTable({
                 <th className="p-3 text-left sm:p-4">Descrição</th>
                 <th className="p-3 text-left sm:p-4">Tipo</th>
                 <th className="p-3 text-left sm:p-4">Valor</th>
+                <th className="p-3 text-left sm:p-4">Vencimento</th>
                 <th className="p-3 text-left sm:p-4">Status</th>
                 <th className="p-3 text-left sm:p-4">Ações</th>
               </tr>
@@ -49,7 +50,7 @@ export function FinancialTable({
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
+                    colSpan={6}
                     className="p-6 text-center text-sm text-slate-500"
                   >
                     Nenhum lançamento financeiro encontrado.
@@ -74,6 +75,9 @@ export function FinancialTable({
                       {formatCurrency(entry.valor)}
                     </td>
                     <td className="p-3 sm:p-4">
+                      {formatDate(entry.data_vencimento)}
+                    </td>
+                    <td className="p-3 sm:p-4">
                       {entry.status_pagamento === "Pago" ? (
                         <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
                           Pago
@@ -91,7 +95,7 @@ export function FinancialTable({
                             onClick={() => onReceive(entry.id)}
                             className="text-green-600"
                           >
-                            Dar Baixa
+                            {entry.tipo === "Despesa" ? "Pagar" : "Receber"}
                           </button>
                         )}
 

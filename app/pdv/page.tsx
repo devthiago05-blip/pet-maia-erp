@@ -1,20 +1,15 @@
 "use client";
 
-import {
-  Minus,
-  Package,
-  Plus,
-  Search,
-  ShoppingCart,
-  Trash2,
-} from "lucide-react";
+import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CategoryModal } from "@/components/pos/CategoryModal";
+import { PosDocumentModal } from "@/components/pos/PosDocumentModal";
 import { ProductModal } from "@/components/pos/ProductModal";
+import { ProductSelectionModal } from "@/components/pos/ProductSelectionModal";
 import {
   type PurchaseInput,
   PurchaseModal,
@@ -29,6 +24,7 @@ import {
 } from "@/lib/formatters";
 import {
   archiveProduct,
+  convertPosQuote,
   createPosQuote,
   createPosSale,
   createProductCategory,
@@ -36,6 +32,7 @@ import {
   createProducts,
   createSupplier,
   fetchPosQuotes,
+  fetchPosSales,
   fetchProductCategories,
   fetchProductPurchases,
   fetchProducts,
@@ -48,6 +45,7 @@ import type {
   NewProductInput,
   NewSupplierInput,
   PosQuote,
+  PosSale,
   Product,
   ProductCategory,
   ProductPurchase,
@@ -60,16 +58,24 @@ interface CartItem {
   quantity: number;
 }
 
+interface ProductGroup {
+  key: string;
+  name: string;
+  category?: string;
+  products: Product[];
+}
+
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [quotes, setQuotes] = useState<PosQuote[]>([]);
+  const [sales, setSales] = useState<PosSale[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [view, setView] = useState<
-    "sale" | "products" | "purchases" | "quotes"
+    "sale" | "products" | "purchases" | "quotes" | "sales"
   >("sale");
   const [search, setSearch] = useState("");
   const [tutorId, setTutorId] = useState("");
@@ -95,6 +101,28 @@ export default function PosPage() {
     );
   }, [products, search]);
 
+  const productGroups = useMemo(() => {
+    const groups = new Map<string, ProductGroup>();
+
+    filteredProducts.forEach((product) => {
+      const key = `${product.category_id || product.categoria || ""}:${product.nome.trim().toLowerCase()}`;
+      const current = groups.get(key);
+
+      if (current) {
+        current.products.push(product);
+      } else {
+        groups.set(key, {
+          key,
+          name: product.nome,
+          category: product.categoria,
+          products: [product],
+        });
+      }
+    });
+
+    return Array.from(groups.values());
+  }, [filteredProducts]);
+
   const cartTotal = cart.reduce(
     (total, item) => total + Number(item.product.preco_venda) * item.quantity,
     0,
@@ -110,6 +138,7 @@ export default function PosPage() {
       productsResponse,
       categoriesResponse,
       quotesResponse,
+      salesResponse,
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
@@ -117,6 +146,7 @@ export default function PosPage() {
       fetchProducts(),
       fetchProductCategories(),
       fetchPosQuotes(),
+      fetchPosSales(),
       fetchTutors(),
       fetchSuppliers(),
       fetchProductPurchases(),
@@ -126,6 +156,7 @@ export default function PosPage() {
       productsResponse.error ||
       categoriesResponse.error ||
       quotesResponse.error ||
+      salesResponse.error ||
       tutorsResponse.error ||
       suppliersResponse.error ||
       purchasesResponse.error;
@@ -133,7 +164,7 @@ export default function PosPage() {
     if (error) {
       console.error(error);
       setLoadError(
-        "Não foi possível carregar o PDV. Verifique se os scripts SQL 003, 004 e 005 foram executados.",
+        "Não foi possível carregar o PDV. Verifique se os scripts SQL 003 a 007 foram executados.",
       );
       setLoading(false);
       return;
@@ -142,6 +173,7 @@ export default function PosPage() {
     setProducts(productsResponse.data || []);
     setCategories(categoriesResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
+    setSales((salesResponse.data || []) as PosSale[]);
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
@@ -152,7 +184,7 @@ export default function PosPage() {
     loadData();
   });
 
-  function addToCart(product: Product) {
+  function addToCart(product: Product, quantity = 1) {
     if (product.estoque <= 0) {
       toast.error("Produto sem estoque");
       return;
@@ -162,17 +194,17 @@ export default function PosPage() {
       const existing = current.find((item) => item.product.id === product.id);
 
       if (!existing) {
-        return [...current, { product, quantity: 1 }];
+        return [...current, { product, quantity }];
       }
 
-      if (existing.quantity >= product.estoque) {
+      if (existing.quantity + quantity > product.estoque) {
         toast.error("Quantidade máxima disponível em estoque");
         return current;
       }
 
       return current.map((item) =>
         item.product.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
+          ? { ...item, quantity: item.quantity + quantity }
           : item,
       );
     });
@@ -345,6 +377,19 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleQuoteConvert(quoteId: number, paymentMethod: string) {
+    const { error } = await convertPosQuote(quoteId, paymentMethod);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Orçamento convertido em venda!");
+    await loadData();
+    setView("sales");
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -393,18 +438,19 @@ export default function PosPage() {
             />
           </div>
 
-          <div className="flex w-full rounded-xl bg-white p-1 shadow-sm sm:w-fit">
+          <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:w-fit">
             {[
               ["sale", "Venda"],
               ["products", "Produtos"],
               ["purchases", "Compras"],
               ["quotes", "Orçamentos"],
+              ["sales", "Vendas"],
             ].map(([id, label]) => (
               <button
                 key={id}
                 type="button"
                 onClick={() => setView(id as typeof view)}
-                className={`flex-1 rounded-lg px-4 py-2 text-sm font-semibold sm:flex-none ${
+                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold ${
                   view === id
                     ? "bg-[#8A0EEA] text-white"
                     : "text-slate-600 hover:bg-slate-100"
@@ -427,7 +473,7 @@ export default function PosPage() {
             </div>
           ) : view === "sale" ? (
             <SaleView
-              products={filteredProducts}
+              groups={productGroups}
               cart={cart}
               search={search}
               tutorId={tutorId}
@@ -457,8 +503,10 @@ export default function PosPage() {
             />
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />
+          ) : view === "quotes" ? (
+            <QuotesView quotes={quotes} onConvert={handleQuoteConvert} />
           ) : (
-            <QuotesView quotes={quotes} />
+            <SalesView sales={sales} />
           )}
         </div>
       </main>
@@ -536,7 +584,7 @@ function PurchasesView({
 }
 
 function SaleView({
-  products,
+  groups,
   cart,
   search,
   tutorId,
@@ -557,7 +605,7 @@ function SaleView({
   onSale,
   onClear,
 }: {
-  products: Product[];
+  groups: ProductGroup[];
   cart: CartItem[];
   search: string;
   tutorId: string;
@@ -568,7 +616,7 @@ function SaleView({
   total: number;
   processing: boolean;
   onSearch: (value: string) => void;
-  onAdd: (product: Product) => void;
+  onAdd: (product: Product, quantity?: number) => void;
   onQuantity: (id: number, delta: number) => void;
   onTutor: (value: string) => void;
   onCustomerName: (value: string) => void;
@@ -591,29 +639,14 @@ function SaleView({
           />
         </label>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <button
-              key={product.id}
-              type="button"
-              onClick={() => onAdd(product)}
-              className="text-left rounded-xl border bg-white p-4 transition hover:border-[#8A0EEA]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <Package className="text-[#8A0EEA]" size={22} />
-                <span
-                  className={`text-xs font-medium ${product.estoque <= product.estoque_minimo ? "text-red-600" : "text-slate-500"}`}
-                >
-                  {product.estoque} un.
-                </span>
-              </div>
-              <p className="mt-3 font-bold">{formatProductName(product)}</p>
-              <p className="text-sm text-slate-500">
-                {product.categoria || "Sem categoria"}
-              </p>
-              <p className="mt-2 text-lg font-bold text-[#8A0EEA]">
-                {formatCurrency(product.preco_venda)}
-              </p>
-            </button>
+          {groups.map((group) => (
+            <ProductSelectionModal
+              key={group.key}
+              name={group.name}
+              category={group.category}
+              products={group.products}
+              onAdd={onAdd}
+            />
           ))}
         </div>
       </section>
@@ -872,7 +905,13 @@ function ProductsView({
   );
 }
 
-function QuotesView({ quotes }: { quotes: PosQuote[] }) {
+function QuotesView({
+  quotes,
+  onConvert,
+}: {
+  quotes: PosQuote[];
+  onConvert: (quoteId: number, paymentMethod: string) => Promise<void>;
+}) {
   return (
     <div className="overflow-hidden rounded-xl border bg-white">
       <div className="overflow-x-auto">
@@ -885,12 +924,13 @@ function QuotesView({ quotes }: { quotes: PosQuote[] }) {
               <th className="p-4 text-left">Validade</th>
               <th className="p-4 text-left">Total</th>
               <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Ações</th>
             </tr>
           </thead>
           <tbody>
             {quotes.length === 0 ? (
               <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
+                <td colSpan={7} className="p-6 text-center text-slate-500">
                   Nenhum orçamento salvo.
                 </td>
               </tr>
@@ -905,6 +945,81 @@ function QuotesView({ quotes }: { quotes: PosQuote[] }) {
                   <td className="p-4">{formatDate(quote.validade)}</td>
                   <td className="p-4">{formatCurrency(quote.total)}</td>
                   <td className="p-4">{quote.status}</td>
+                  <td className="p-4">
+                    <PosDocumentModal
+                      type="Orçamento"
+                      number={quote.id}
+                      customer={
+                        quote.tutors?.nome || quote.cliente_nome || "Consumidor"
+                      }
+                      date={quote.created_at}
+                      expirationDate={quote.validade}
+                      status={quote.status}
+                      total={quote.total}
+                      items={quote.pos_quote_items || []}
+                      onConvert={
+                        quote.status === "Aberto"
+                          ? (paymentMethod) =>
+                              onConvert(quote.id, paymentMethod)
+                          : undefined
+                      }
+                    />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function SalesView({ sales }: { sales: PosSale[] }) {
+  return (
+    <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px]">
+          <thead className="bg-slate-50">
+            <tr>
+              <th className="p-4 text-left">Número</th>
+              <th className="p-4 text-left">Cliente</th>
+              <th className="p-4 text-left">Data</th>
+              <th className="p-4 text-left">Pagamento</th>
+              <th className="p-4 text-left">Total</th>
+              <th className="p-4 text-left">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sales.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-slate-500">
+                  Nenhuma venda registrada.
+                </td>
+              </tr>
+            ) : (
+              sales.map((sale) => (
+                <tr key={sale.id} className="border-t">
+                  <td className="p-4">#{String(sale.id).padStart(6, "0")}</td>
+                  <td className="p-4">
+                    {sale.tutors?.nome || sale.cliente_nome || "Consumidor"}
+                  </td>
+                  <td className="p-4">{formatDate(sale.created_at)}</td>
+                  <td className="p-4">{sale.forma_pagamento}</td>
+                  <td className="p-4">{formatCurrency(sale.total)}</td>
+                  <td className="p-4">
+                    <PosDocumentModal
+                      type="Venda"
+                      number={sale.id}
+                      customer={
+                        sale.tutors?.nome || sale.cliente_nome || "Consumidor"
+                      }
+                      date={sale.created_at}
+                      paymentMethod={sale.forma_pagamento}
+                      total={sale.total}
+                      items={sale.pos_sale_items || []}
+                    />
+                  </td>
                 </tr>
               ))
             )}

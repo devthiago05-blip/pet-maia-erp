@@ -94,12 +94,16 @@ export async function createProductPurchase({
   supplierId,
   documentNumber,
   purchaseDate,
+  dueDate,
+  paymentMethod,
   notes,
   items,
 }: {
   supplierId: number;
   documentNumber: string;
   purchaseDate: string;
+  dueDate: string;
+  paymentMethod: string;
   notes: string;
   items: Array<{
     product_id: number;
@@ -111,6 +115,8 @@ export async function createProductPurchase({
     selected_supplier_id: supplierId,
     document_number: documentNumber,
     purchase_date: purchaseDate,
+    due_date: dueDate,
+    payment_method: paymentMethod,
     notes,
     items,
   });
@@ -124,11 +130,49 @@ export async function fetchPosQuotes() {
         *,
         tutors (
           nome
+        ),
+        pos_quote_items (
+          id,
+          product_id,
+          descricao,
+          quantidade,
+          valor_unitario,
+          subtotal
         )
       `,
     )
     .order("created_at", { ascending: false })
     .limit(30);
+}
+
+export async function fetchPosSales() {
+  return supabase
+    .from("pos_sales")
+    .select(
+      `
+        *,
+        tutors (
+          nome
+        ),
+        pos_sale_items (
+          id,
+          product_id,
+          descricao,
+          quantidade,
+          valor_unitario,
+          subtotal
+        )
+      `,
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+}
+
+export async function convertPosQuote(quoteId: number, paymentMethod: string) {
+  return supabase.rpc("convert_pos_quote", {
+    selected_quote_id: quoteId,
+    payment_method: paymentMethod,
+  });
 }
 
 export async function createPosQuote({

@@ -6,12 +6,14 @@ import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
+import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { fetchAppointmentsByPet } from "@/services/appointments";
 import {
+  createClinicalPrescription,
   createClinicalRecord,
   fetchClinicalRecordsByPet,
 } from "@/services/clinical";
@@ -21,6 +23,7 @@ import type {
   Appointment,
   ClinicalRecord,
   FinancialEntry,
+  NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
   Pet,
 } from "@/types/domain";
@@ -92,7 +95,7 @@ export default function PetPage() {
       if (clinicalResponse.error) {
         console.error(clinicalResponse.error);
         setClinicalError(
-          "Execute o script 006_clinical_records.sql para habilitar o prontuário.",
+          "Execute os scripts 006 e 008 do módulo clínico para habilitar o prontuário.",
         );
       } else {
         setClinicalRecords(clinicalResponse.data || []);
@@ -137,6 +140,34 @@ export default function PetPage() {
     setClinicalRecords(data || []);
     setClinicalError("");
     toast.success("Consulta adicionada ao prontuário!");
+  }
+
+  async function handleCreatePrescription(
+    prescription: NewClinicalPrescriptionInput,
+  ) {
+    const { error: createError } =
+      await createClinicalPrescription(prescription);
+
+    if (createError) {
+      toast.error(createError.message);
+      throw createError;
+    }
+
+    if (!pet) {
+      return;
+    }
+
+    const { data, error: reloadError } = await fetchClinicalRecordsByPet(
+      pet.id,
+    );
+
+    if (reloadError) {
+      toast.error("Prescrição salva, mas o prontuário não foi atualizado");
+      return;
+    }
+
+    setClinicalRecords(data || []);
+    toast.success("Prescrição adicionada!");
   }
 
   return (
@@ -204,6 +235,7 @@ export default function PetPage() {
                       error={clinicalError}
                       professionalName={profile?.nome || ""}
                       onSave={handleCreateClinicalRecord}
+                      onPrescriptionSave={handleCreatePrescription}
                     />
                   )}
                   {tab === "vacinas" && (
@@ -237,12 +269,16 @@ function ClinicalHistory({
   error,
   professionalName,
   onSave,
+  onPrescriptionSave,
 }: {
   pet: Pet;
   records: ClinicalRecord[];
   error: string;
   professionalName: string;
   onSave: (record: NewClinicalRecordInput) => Promise<void>;
+  onPrescriptionSave: (
+    prescription: NewClinicalPrescriptionInput,
+  ) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -303,11 +339,52 @@ function ClinicalHistory({
                 label="Queixa principal"
                 value={record.main_complaint}
               />
+              <ClinicalText label="Anamnese" value={record.anamnesis} />
+              <ClinicalText label="Alergias" value={record.allergies} />
+              <ClinicalText
+                label="Medicamentos em uso"
+                value={record.current_medications}
+              />
               <ClinicalText label="Diagnóstico" value={record.diagnosis} />
               <ClinicalText
                 label="Conduta e orientações"
                 value={record.conduct}
               />
+              <div className="rounded-xl border bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h4 className="font-semibold">Prescrições</h4>
+                  <PrescriptionModal
+                    clinicalRecordId={record.id}
+                    onSave={onPrescriptionSave}
+                  />
+                </div>
+                {record.clinical_prescriptions?.length ? (
+                  <div className="mt-3 divide-y rounded-xl border bg-white">
+                    {record.clinical_prescriptions.map((prescription) => (
+                      <div key={prescription.id} className="p-3 text-sm">
+                        <p className="font-semibold">
+                          {prescription.medication}
+                        </p>
+                        <p className="text-slate-600">
+                          {prescription.dosage} · {prescription.frequency}
+                          {prescription.duration
+                            ? ` · ${prescription.duration}`
+                            : ""}
+                        </p>
+                        {prescription.instructions && (
+                          <p className="mt-1 whitespace-pre-wrap text-slate-500">
+                            {prescription.instructions}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-sm text-slate-500">
+                    Nenhuma prescrição registrada.
+                  </p>
+                )}
+              </div>
             </article>
           ))}
         </div>

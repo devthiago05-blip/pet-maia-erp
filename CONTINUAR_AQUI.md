@@ -24,6 +24,8 @@
 - Histórico detalhado de vendas com itens e impressão.
 - Orçamentos com detalhes, impressão e conversão em venda.
 - Compras integradas ao Financeiro como contas a pagar.
+- Consulta clínica com anamnese, alergias e medicamentos em uso.
+- Prescrições vinculadas ao atendimento clínico.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -38,6 +40,7 @@
 - `components/pos/PosDocumentModal.tsx`
 - `components/agenda/AppointmentReceiptModal.tsx`
 - `components/clinic/NewClinicalRecordModal.tsx`
+- `components/clinic/PrescriptionModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -52,6 +55,7 @@
 - `supabase/sql/005_product_categories_variations.sql`
 - `supabase/sql/006_clinical_records.sql`
 - `supabase/sql/007_pos_operations.sql`
+- `supabase/sql/008_clinical_anamnesis_prescriptions.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -77,17 +81,20 @@ Arquivos padrão removidos:
 10. Testar produto com sabores/tamanhos, selecionando variação e quantidade.
 11. Testar impressão e conversão de orçamento em venda.
 12. Testar compra e confirmar a conta a pagar no Financeiro.
-13. Aplicar RLS por módulo nas tabelas antigas do ERP.
-14. Criar testes automatizados para vendas, compras e estoque.
-15. Continuar Clínica com anamnese, prescrições, vacinas e exames.
+13. Executar `supabase/sql/008_clinical_anamnesis_prescriptions.sql`.
+14. Testar anamnese e prescrição em uma consulta clínica.
+15. Aplicar RLS por módulo nas tabelas antigas do ERP.
+16. Criar testes automatizados para vendas, compras e estoque.
+17. Continuar Clínica com vacinas, exames e documentos de prescrição.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. Clínica: anamnese e prescrição como próximo bloco.
-3. Clínica: vacinas, exames e internação em blocos posteriores.
-4. PDV: cancelamento de vendas e devoluções em etapa futura.
-5. Qualidade: testes de integração com Supabase.
+2. Clínica: impressão/compartilhamento de prescrição.
+3. Clínica: vacinas e exames no próximo bloco.
+4. Clínica: internação em bloco posterior.
+5. PDV: cancelamento de vendas e devoluções em etapa futura.
+6. Qualidade: testes de integração com Supabase.
 
 ## Comandos necessários
 

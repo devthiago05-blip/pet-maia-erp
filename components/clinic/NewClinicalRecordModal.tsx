@@ -24,6 +24,9 @@ export function NewClinicalRecordModal({
   const [weightKg, setWeightKg] = useState("");
   const [temperatureC, setTemperatureC] = useState("");
   const [mainComplaint, setMainComplaint] = useState("");
+  const [anamnesis, setAnamnesis] = useState("");
+  const [allergies, setAllergies] = useState("");
+  const [currentMedications, setCurrentMedications] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [conduct, setConduct] = useState("");
   const [returnDate, setReturnDate] = useState("");
@@ -63,6 +66,9 @@ export function NewClinicalRecordModal({
         weightKg: parsedWeight,
         temperatureC: parsedTemperature,
         mainComplaint: mainComplaint.trim(),
+        anamnesis: anamnesis.trim(),
+        allergies: allergies.trim(),
+        currentMedications: currentMedications.trim(),
         diagnosis: diagnosis.trim(),
         conduct: conduct.trim(),
         returnDate,
@@ -71,6 +77,9 @@ export function NewClinicalRecordModal({
       setWeightKg("");
       setTemperatureC("");
       setMainComplaint("");
+      setAnamnesis("");
+      setAllergies("");
+      setCurrentMedications("");
       setDiagnosis("");
       setConduct("");
       setReturnDate("");
@@ -123,6 +132,21 @@ export function NewClinicalRecordModal({
                 label="Queixa principal"
                 value={mainComplaint}
                 onChange={setMainComplaint}
+              />
+              <ClinicalTextarea
+                label="Anamnese"
+                value={anamnesis}
+                onChange={setAnamnesis}
+              />
+              <ClinicalTextarea
+                label="Alergias"
+                value={allergies}
+                onChange={setAllergies}
+              />
+              <ClinicalTextarea
+                label="Medicamentos em uso"
+                value={currentMedications}
+                onChange={setCurrentMedications}
               />
               <ClinicalTextarea
                 label="Diagnóstico"

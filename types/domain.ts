@@ -63,9 +63,24 @@ export interface ClinicalRecord {
   weight_kg?: number;
   temperature_c?: number;
   main_complaint: string;
+  anamnesis?: string;
+  allergies?: string;
+  current_medications?: string;
   diagnosis?: string;
   conduct?: string;
   return_date?: string;
+  created_at: string;
+  clinical_prescriptions?: ClinicalPrescription[];
+}
+
+export interface ClinicalPrescription {
+  id: number;
+  clinical_record_id: number;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
   created_at: string;
 }
 
@@ -76,9 +91,21 @@ export interface NewClinicalRecordInput {
   weightKg?: number;
   temperatureC?: number;
   mainComplaint: string;
+  anamnesis?: string;
+  allergies?: string;
+  currentMedications?: string;
   diagnosis?: string;
   conduct?: string;
   returnDate?: string;
+}
+
+export interface NewClinicalPrescriptionInput {
+  clinicalRecordId: number;
+  medication: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
 }
 
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";

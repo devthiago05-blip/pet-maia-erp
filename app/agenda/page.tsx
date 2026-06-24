@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
 import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
 import { KanbanBoard } from "@/components/agenda/KanbanBoard";
@@ -19,9 +20,11 @@ import {
 import { createAppointmentFinancialEntry } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
 import { fetchServices } from "@/services/services";
+import { fetchClinicSettings } from "@/services/settings";
 import { fetchTutors } from "@/services/tutors";
 import type {
   Appointment,
+  ClinicSettings,
   NewAppointmentInput,
   Pet,
   Service,
@@ -80,9 +83,17 @@ export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(
+    null,
+  );
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
+  const [completedReceipt, setCompletedReceipt] = useState<{
+    appointment: Appointment;
+    valor: number;
+    formaPagamento: string;
+  } | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
 
   async function loadPets() {
@@ -119,6 +130,17 @@ export default function AgendaPage() {
     setServices(data || []);
   }
 
+  async function loadClinicSettings() {
+    const { data, error } = await fetchClinicSettings();
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    setClinicSettings(data as ClinicSettings);
+  }
+
   async function loadAppointments() {
     const { data, error } = await fetchAppointments();
 
@@ -133,6 +155,7 @@ export default function AgendaPage() {
   useMountEffect(() => {
     loadPets();
     loadServices();
+    loadClinicSettings();
     loadTutors();
     loadAppointments();
   });
@@ -198,7 +221,8 @@ export default function AgendaPage() {
       return;
     }
 
-    const petName = appointmentToFinish.pets?.nome || "";
+    const completedAppointment = appointmentToFinish;
+    const petName = completedAppointment.pets?.nome || "";
     const { error } = await createAppointmentFinancialEntry(
       petName,
       valor,
@@ -211,8 +235,23 @@ export default function AgendaPage() {
       return;
     }
 
-    await updateAppointmentStatus(appointmentToFinish.id, "Finalizado");
+    const { error: statusError } = await updateAppointmentStatus(
+      completedAppointment.id,
+      "Finalizado",
+    );
+
+    if (statusError) {
+      console.error(statusError);
+      toast.error(statusError.message);
+      return;
+    }
+
     toast.success("Atendimento finalizado!");
+    setCompletedReceipt({
+      appointment: completedAppointment,
+      valor,
+      formaPagamento,
+    });
     setAppointmentToFinish(null);
     await loadAppointments();
   }
@@ -292,6 +331,16 @@ export default function AgendaPage() {
               services,
             )}
             onSave={handleFinishAppointment}
+          />
+        )}
+
+        {completedReceipt && (
+          <AppointmentReceiptModal
+            appointment={completedReceipt.appointment}
+            clinicSettings={clinicSettings}
+            valor={completedReceipt.valor}
+            formaPagamento={completedReceipt.formaPagamento}
+            onClose={() => setCompletedReceipt(null)}
           />
         )}
       </main>

@@ -9,7 +9,8 @@ export async function fetchAppointments() {
         nome,
         porte,
         tutors (
-          nome
+          nome,
+          telefone
         )
       )
     `,

@@ -15,6 +15,19 @@ export interface UserProfile {
   user_permissions?: UserPermission[];
 }
 
+export interface ClinicSettings {
+  id: number;
+  nome: string;
+  razao_social?: string;
+  cnpj?: string;
+  telefone?: string;
+  endereco?: string;
+  pix_key?: string;
+  pix_recipient_name?: string;
+  pix_city?: string;
+  updated_at?: string;
+}
+
 export interface Tutor {
   id: number;
   nome: string;
@@ -55,6 +68,7 @@ export interface Appointment {
     porte?: string;
     tutors?: {
       nome: string;
+      telefone?: string;
     };
   };
 }

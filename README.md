@@ -35,6 +35,11 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 
+Produção pública: https://pet-maia-erp.vercel.app
+
+Os links longos e únicos de cada deployment podem exigir autenticação da Vercel.
+Para acesso em celulares e computadores externos, use sempre o domínio público.
+
 ## Supabase
 
 Execute os scripts da pasta `supabase/sql` no SQL Editor do Supabase, em ordem.

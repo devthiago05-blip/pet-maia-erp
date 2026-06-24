@@ -18,7 +18,7 @@ export function ServiceModal({
   title,
   onSave,
 }: ServiceModalProps) {
-  const [open, setOpen] = useState(Boolean(service));
+  const [open, setOpen] = useState(false);
   const [nome, setNome] = useState(service?.nome || "");
   const [precoPequeno, setPrecoPequeno] = useState(
     String(service?.preco_pequeno || ""),

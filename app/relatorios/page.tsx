@@ -30,6 +30,8 @@ export default function ReportsPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [tutorFilter, setTutorFilter] = useState("Todos");
+  const [petFilter, setPetFilter] = useState("Todos");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -56,12 +58,45 @@ export default function ReportsPage() {
     loadReports();
   });
 
+  const tutorOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          appointments
+            .map((appointment) => appointment.pets?.tutors?.nome)
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ).sort(),
+    [appointments],
+  );
+
+  const petOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          appointments
+            .filter(
+              (appointment) =>
+                tutorFilter === "Todos" ||
+                appointment.pets?.tutors?.nome === tutorFilter,
+            )
+            .map((appointment) => appointment.pets?.nome)
+            .filter((name): name is string => Boolean(name)),
+        ),
+      ).sort(),
+    [appointments, tutorFilter],
+  );
+
   const filteredAppointments = useMemo(
     () =>
-      appointments.filter((appointment) =>
-        isWithinPeriod(appointment.data, startDate, endDate),
+      appointments.filter(
+        (appointment) =>
+          isWithinPeriod(appointment.data, startDate, endDate) &&
+          (tutorFilter === "Todos" ||
+            appointment.pets?.tutors?.nome === tutorFilter) &&
+          (petFilter === "Todos" || appointment.pets?.nome === petFilter),
       ),
-    [appointments, endDate, startDate],
+    [appointments, endDate, petFilter, startDate, tutorFilter],
   );
 
   const filteredEntries = useMemo(
@@ -136,7 +171,7 @@ export default function ReportsPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 rounded-xl border bg-white p-4 sm:grid-cols-3">
+          <div className="grid gap-4 rounded-xl border bg-white p-4 md:grid-cols-2 xl:grid-cols-5">
             <label className="grid gap-2 text-sm font-medium">
               Data inicial
               <input
@@ -155,11 +190,42 @@ export default function ReportsPage() {
                 className="rounded-xl border p-3 font-normal"
               />
             </label>
+            <label className="grid gap-2 text-sm font-medium">
+              Tutor
+              <select
+                value={tutorFilter}
+                onChange={(event) => {
+                  setTutorFilter(event.target.value);
+                  setPetFilter("Todos");
+                }}
+                className="rounded-xl border p-3 font-normal"
+              >
+                <option>Todos</option>
+                {tutorOptions.map((tutor) => (
+                  <option key={tutor}>{tutor}</option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-2 text-sm font-medium">
+              Pet
+              <select
+                value={petFilter}
+                onChange={(event) => setPetFilter(event.target.value)}
+                className="rounded-xl border p-3 font-normal"
+              >
+                <option>Todos</option>
+                {petOptions.map((pet) => (
+                  <option key={pet}>{pet}</option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               onClick={() => {
                 setStartDate("");
                 setEndDate("");
+                setTutorFilter("Todos");
+                setPetFilter("Todos");
               }}
               className="self-end rounded-xl border px-4 py-3"
             >
@@ -240,6 +306,53 @@ export default function ReportsPage() {
                   ]}
                 />
               </div>
+
+              <section className="overflow-hidden rounded-xl border bg-white">
+                <div className="border-b p-4 sm:p-6">
+                  <h2 className="text-lg font-bold">
+                    Atendimentos por tutor e pet
+                  </h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[760px]">
+                    <thead className="bg-slate-50">
+                      <tr>
+                        <th className="p-4 text-left">Data</th>
+                        <th className="p-4 text-left">Tutor</th>
+                        <th className="p-4 text-left">Pet</th>
+                        <th className="p-4 text-left">Serviços</th>
+                        <th className="p-4 text-left">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAppointments.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="p-6 text-center text-sm text-slate-500"
+                          >
+                            Nenhum atendimento encontrado.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredAppointments.map((appointment) => (
+                          <tr key={appointment.id} className="border-t">
+                            <td className="p-4">{appointment.data}</td>
+                            <td className="p-4">
+                              {appointment.pets?.tutors?.nome || "-"}
+                            </td>
+                            <td className="p-4">
+                              {appointment.pets?.nome || "-"}
+                            </td>
+                            <td className="p-4">{appointment.servico}</td>
+                            <td className="p-4">{appointment.status}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </>
           )}
         </div>

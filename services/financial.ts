@@ -46,12 +46,13 @@ export async function createFinancialEntry(entry: NewFinancialEntryInput) {
 
 export async function createAppointmentFinancialEntry(
   petName: string,
+  serviceDescription: string,
   valor: number,
   formaPagamento: string,
 ) {
   return supabase.from("financial_entries").insert([
     {
-      descricao: `Consulta - ${petName}`,
+      descricao: `${serviceDescription} - ${petName}`,
       valor,
       tipo: "Receita",
       forma_pagamento: formaPagamento,

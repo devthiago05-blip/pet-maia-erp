@@ -97,7 +97,8 @@ export default function AgendaPage() {
   } | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
-  const [filterDate, setFilterDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("Todos");
 
   const filteredAppointments = useMemo(() => {
@@ -109,13 +110,15 @@ export default function AgendaPage() {
         normalizeText(appointment.pets?.nome || "").includes(term) ||
         normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
         normalizeText(appointment.servico).includes(term);
-      const matchesDate = !filterDate || appointment.data === filterDate;
+      const matchesDate =
+        (!startDate || appointment.data >= startDate) &&
+        (!endDate || appointment.data <= endDate);
       const matchesStatus =
         filterStatus === "Todos" || appointment.status === filterStatus;
 
       return matchesSearch && matchesDate && matchesStatus;
     });
-  }, [appointments, filterDate, filterStatus, search]);
+  }, [appointments, endDate, filterStatus, search, startDate]);
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -246,6 +249,7 @@ export default function AgendaPage() {
     const petName = completedAppointment.pets?.nome || "";
     const { error } = await createAppointmentFinancialEntry(
       petName,
+      completedAppointment.servico,
       valor,
       formaPagamento,
     );
@@ -327,7 +331,7 @@ export default function AgendaPage() {
             </button>
           </div>
 
-          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
+          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
             <label className="flex items-center gap-3 rounded-xl border px-3">
               <Search size={18} className="text-slate-400" />
               <input
@@ -339,8 +343,16 @@ export default function AgendaPage() {
             </label>
             <input
               type="date"
-              value={filterDate}
-              onChange={(event) => setFilterDate(event.target.value)}
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              aria-label="Data inicial"
+              className="rounded-xl border p-3"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              aria-label="Data final"
               className="rounded-xl border p-3"
             />
             <select

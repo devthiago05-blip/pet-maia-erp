@@ -147,7 +147,9 @@ export default function HomePage() {
                     className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-start sm:justify-between"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{item.descricao}</p>
+                      <p className="truncate font-medium">
+                        {item.descricao.replace(/^Consulta\b/i, "Atendimento")}
+                      </p>
                       <p className="text-sm text-slate-500">
                         {item.forma_pagamento}
                       </p>

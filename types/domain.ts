@@ -94,6 +94,33 @@ export interface Service {
   preco_grande: number;
 }
 
+export interface Product {
+  id: number;
+  nome: string;
+  sku?: string;
+  categoria?: string;
+  preco_custo: number;
+  preco_venda: number;
+  estoque: number;
+  estoque_minimo: number;
+  ativo: boolean;
+  created_at?: string;
+}
+
+export type NewProductInput = Omit<Product, "id" | "created_at">;
+
+export interface PosQuote {
+  id: number;
+  cliente_nome?: string;
+  total: number;
+  validade?: string;
+  status: "Aberto" | "Convertido" | "Cancelado";
+  created_at: string;
+  tutors?: {
+    nome: string;
+  };
+}
+
 export interface NewServiceInput {
   nome: string;
   preco_pequeno: number;

@@ -9,6 +9,7 @@ import {
   Receipt,
   Scissors,
   Settings,
+  ShoppingCart,
   UserCog,
   Users,
   Wallet,
@@ -46,6 +47,7 @@ const menuItems: Array<{
     module: "relatorios",
     icon: BarChart3,
   },
+  { href: "/pdv", label: "PDV", module: "pdv", icon: ShoppingCart },
   {
     href: "/settings",
     label: "Configurações",

@@ -7,6 +7,7 @@ interface KanbanColumnProps {
   appointments: Appointment[];
   onFinish: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
 export function KanbanColumn({
@@ -15,6 +16,7 @@ export function KanbanColumn({
   appointments,
   onFinish,
   onCancel,
+  onDelete,
 }: KanbanColumnProps) {
   const filteredAppointments = appointments.filter(
     (appointment) => appointment.status === status,
@@ -38,6 +40,7 @@ export function KanbanColumn({
               appointment={appointment}
               onFinish={onFinish}
               onCancel={onCancel}
+              onDelete={onDelete}
             />
           ))
         ) : (

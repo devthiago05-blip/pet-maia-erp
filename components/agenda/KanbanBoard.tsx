@@ -5,12 +5,14 @@ interface KanbanBoardProps {
   appointments: Appointment[];
   onFinish: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
 export function KanbanBoard({
   appointments,
   onFinish,
   onCancel,
+  onDelete,
 }: KanbanBoardProps) {
   return (
     <div className="overflow-x-auto pb-2">
@@ -21,6 +23,7 @@ export function KanbanBoard({
           appointments={appointments}
           onFinish={onFinish}
           onCancel={onCancel}
+          onDelete={onDelete}
         />
 
         <KanbanColumn
@@ -29,6 +32,7 @@ export function KanbanBoard({
           appointments={appointments}
           onFinish={onFinish}
           onCancel={onCancel}
+          onDelete={onDelete}
         />
 
         <KanbanColumn
@@ -37,6 +41,7 @@ export function KanbanBoard({
           appointments={appointments}
           onFinish={onFinish}
           onCancel={onCancel}
+          onDelete={onDelete}
         />
       </div>
     </div>

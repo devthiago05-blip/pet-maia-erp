@@ -52,3 +52,10 @@ SUPABASE_SERVICE_ROLE_KEY
 
 Essa chave não pode usar o prefixo `NEXT_PUBLIC_` e deve ser cadastrada também
 nas variáveis de ambiente do projeto na Vercel.
+
+## Roadmap
+
+1. Estabilizar o PDV, estoque, vendas e orçamentos.
+2. Evoluir relatórios e conciliação financeira.
+3. Implementar o módulo Clínica por último, com prontuário, anamnese,
+   prescrições, exames, vacinas, internação e documentos clínicos.

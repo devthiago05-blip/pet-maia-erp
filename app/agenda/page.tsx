@@ -376,6 +376,7 @@ export default function AgendaPage() {
               appointments={filteredAppointments}
               onFinish={setAppointmentToFinish}
               onCancel={handleCancelAppointment}
+              onDelete={handleDeleteAppointment}
             />
           ) : (
             <AppointmentTable

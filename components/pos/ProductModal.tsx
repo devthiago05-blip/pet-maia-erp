@@ -3,17 +3,27 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewProductInput, Product } from "@/types/domain";
+import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface ProductModalProps {
   product?: Product;
+  categories: ProductCategory[];
   onSave: (product: NewProductInput | Product) => Promise<void>;
 }
 
-export function ProductModal({ product, onSave }: ProductModalProps) {
+export function ProductModal({
+  product,
+  categories,
+  onSave,
+}: ProductModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState(product?.nome || "");
-  const [categoria, setCategoria] = useState(product?.categoria || "");
+  const [categoryId, setCategoryId] = useState(
+    String(product?.category_id || ""),
+  );
+  const [tamanho, setTamanho] = useState(product?.tamanho || "");
+  const [cor, setCor] = useState(product?.cor || "");
+  const [sabor, setSabor] = useState(product?.sabor || "");
   const [precoCusto, setPrecoCusto] = useState(
     String(product?.preco_custo || ""),
   );
@@ -40,6 +50,11 @@ export function ProductModal({ product, onSave }: ProductModalProps) {
       return;
     }
 
+    if (!categoryId) {
+      toast.error("Selecione uma categoria");
+      return;
+    }
+
     if (
       Object.values(values).some(
         (value) => !Number.isFinite(value) || value < 0,
@@ -51,11 +66,19 @@ export function ProductModal({ product, onSave }: ProductModalProps) {
 
     setSaving(true);
     try {
+      const selectedCategory = categories.find(
+        (category) => String(category.id) === categoryId,
+      );
+
       await onSave({
         ...(product ? { id: product.id } : {}),
         nome: nome.trim(),
         sku: product?.sku,
-        categoria: categoria.trim() || undefined,
+        category_id: Number(categoryId),
+        categoria: selectedCategory?.nome,
+        tamanho: tamanho.trim() || undefined,
+        cor: cor.trim() || undefined,
+        sabor: sabor.trim() || undefined,
         ...values,
         ativo,
       } as NewProductInput | Product);
@@ -97,10 +120,35 @@ export function ProductModal({ product, onSave }: ProductModalProps) {
                   className="rounded-xl border bg-slate-50 p-3 font-normal text-slate-500"
                 />
               </label>
+              <label className="grid gap-2 text-sm font-medium">
+                Categoria
+                <select
+                  value={categoryId}
+                  onChange={(event) => setCategoryId(event.target.value)}
+                  className="rounded-xl border p-3 font-normal"
+                >
+                  <option value="">Selecione</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <ProductInput
-                label="Categoria"
-                value={categoria}
-                onChange={setCategoria}
+                label="Tamanho (opcional)"
+                value={tamanho}
+                onChange={setTamanho}
+              />
+              <ProductInput
+                label="Cor (opcional)"
+                value={cor}
+                onChange={setCor}
+              />
+              <ProductInput
+                label="Sabor (opcional)"
+                value={sabor}
+                onChange={setSabor}
               />
               <ProductInput
                 label="Preço de custo"

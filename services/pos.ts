@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type {
+  NewProductCategoryInput,
   NewProductInput,
   NewSupplierInput,
   Product,
@@ -12,6 +13,18 @@ export interface PosCartItem {
 
 export async function fetchProducts() {
   return supabase.from("products").select("*").order("nome");
+}
+
+export async function fetchProductCategories() {
+  return supabase
+    .from("product_categories")
+    .select("*")
+    .eq("ativo", true)
+    .order("nome");
+}
+
+export async function createProductCategory(category: NewProductCategoryInput) {
+  return supabase.from("product_categories").insert([category]);
 }
 
 export async function createProduct(product: NewProductInput) {
@@ -30,6 +43,10 @@ export async function updateProduct(product: Product) {
       nome: product.nome,
       sku: product.sku || null,
       categoria: product.categoria || null,
+      category_id: product.category_id || null,
+      tamanho: product.tamanho || null,
+      cor: product.cor || null,
+      sabor: product.sabor || null,
       preco_custo: product.preco_custo,
       preco_venda: product.preco_venda,
       estoque: product.estoque,

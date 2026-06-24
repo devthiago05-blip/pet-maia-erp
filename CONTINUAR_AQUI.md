@@ -10,6 +10,9 @@
 - Cadastro de fornecedores.
 - Entrada de compras com múltiplos itens.
 - Atualização transacional de custo e estoque.
+- Categorias administráveis no PDV, sem categoria digitada livremente.
+- Variações opcionais de tamanho, cor e sabor por código de produto.
+- Busca, compras, vendas e orçamentos identificam a variação completa.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -18,6 +21,7 @@
 - `app/layout.tsx`
 - `app/login/page.tsx`
 - `app/pdv/page.tsx`
+- `components/pos/CategoryModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -25,8 +29,10 @@
 - `components/pos/SupplierModal.tsx`
 - `components/receipts/ReceiptModal.tsx`
 - `public/pet-maia-logo-web.png`
+- `lib/formatters.ts`
 - `services/pos.ts`
 - `supabase/sql/004_pos_purchases.sql`
+- `supabase/sql/005_product_categories_variations.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -41,12 +47,14 @@ Arquivos padrão removidos:
 ## Pendências
 
 1. Executar `supabase/sql/004_pos_purchases.sql` no SQL Editor do Supabase.
-2. Testar cadastro de produto e confirmar código no formato `PM000001`.
-3. Testar fornecedor e entrada de compra com aumento do estoque.
-4. Aplicar RLS por módulo nas tabelas antigas do ERP.
-5. Criar testes automatizados para vendas, compras e estoque.
-6. Integrar compras do PDV às contas a pagar do Financeiro.
-7. Implementar o módulo Clínica por último.
+2. Executar `supabase/sql/005_product_categories_variations.sql` depois do 004.
+3. Testar um produto simples e produtos com tamanho, cor ou sabor.
+4. Confirmar código no formato `PM000001` para cada variação.
+5. Testar fornecedor e entrada de compra com aumento do estoque.
+6. Aplicar RLS por módulo nas tabelas antigas do ERP.
+7. Criar testes automatizados para vendas, compras e estoque.
+8. Integrar compras do PDV às contas a pagar do Financeiro.
+9. Implementar o módulo Clínica por último.
 
 ## Próximos passos
 

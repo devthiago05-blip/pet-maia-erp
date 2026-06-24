@@ -4,7 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatProductName } from "@/lib/formatters";
 import type { Product, Supplier } from "@/types/domain";
 
 interface PurchaseLine {
@@ -196,7 +196,7 @@ export function PurchaseModal({
                     <option value="">Produto</option>
                     {products.map((product) => (
                       <option key={product.id} value={product.id}>
-                        {product.sku} · {product.nome}
+                        {product.sku} · {formatProductName(product)}
                       </option>
                     ))}
                   </select>

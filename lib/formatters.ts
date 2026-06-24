@@ -1,3 +1,5 @@
+import type { Product } from "@/types/domain";
+
 export function formatCurrency(value: number | string | null | undefined) {
   const numericValue = Number(value || 0);
 
@@ -17,4 +19,14 @@ export function formatDate(value: string | null | undefined) {
     : new Date(value);
 
   return date.toLocaleDateString("pt-BR");
+}
+
+export function formatProductName(product: Product) {
+  const variation = [product.tamanho, product.cor, product.sabor].filter(
+    Boolean,
+  );
+
+  return variation.length > 0
+    ? `${product.nome} - ${variation.join(" / ")}`
+    : product.nome;
 }

@@ -99,6 +99,10 @@ export interface Product {
   nome: string;
   sku?: string;
   categoria?: string;
+  category_id?: number;
+  tamanho?: string;
+  cor?: string;
+  sabor?: string;
   preco_custo: number;
   preco_venda: number;
   estoque: number;
@@ -108,6 +112,15 @@ export interface Product {
 }
 
 export type NewProductInput = Omit<Product, "id" | "created_at">;
+
+export interface ProductCategory {
+  id: number;
+  nome: string;
+  ativo: boolean;
+  created_at?: string;
+}
+
+export type NewProductCategoryInput = Pick<ProductCategory, "nome">;
 
 export interface PosQuote {
   id: number;

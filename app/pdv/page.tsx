@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { CategoryModal } from "@/components/pos/CategoryModal";
 import { ProductModal } from "@/components/pos/ProductModal";
 import {
   type PurchaseInput,
@@ -20,14 +21,20 @@ import {
 } from "@/components/pos/PurchaseModal";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { formatCurrency, formatDate } from "@/lib/formatters";
+import {
+  formatCurrency,
+  formatDate,
+  formatProductName,
+} from "@/lib/formatters";
 import {
   createPosQuote,
   createPosSale,
   createProduct,
+  createProductCategory,
   createProductPurchase,
   createSupplier,
   fetchPosQuotes,
+  fetchProductCategories,
   fetchProductPurchases,
   fetchProducts,
   fetchSuppliers,
@@ -35,10 +42,12 @@ import {
 } from "@/services/pos";
 import { fetchTutors } from "@/services/tutors";
 import type {
+  NewProductCategoryInput,
   NewProductInput,
   NewSupplierInput,
   PosQuote,
   Product,
+  ProductCategory,
   ProductPurchase,
   Supplier,
   Tutor,
@@ -51,6 +60,7 @@ interface CartItem {
 
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [quotes, setQuotes] = useState<PosQuote[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
@@ -76,7 +86,10 @@ export default function PosPage() {
         (!term ||
           product.nome.toLowerCase().includes(term) ||
           product.sku?.toLowerCase().includes(term) ||
-          product.categoria?.toLowerCase().includes(term)),
+          product.categoria?.toLowerCase().includes(term) ||
+          product.tamanho?.toLowerCase().includes(term) ||
+          product.cor?.toLowerCase().includes(term) ||
+          product.sabor?.toLowerCase().includes(term)),
     );
   }, [products, search]);
 
@@ -93,12 +106,14 @@ export default function PosPage() {
     setLoadError("");
     const [
       productsResponse,
+      categoriesResponse,
       quotesResponse,
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
     ] = await Promise.all([
       fetchProducts(),
+      fetchProductCategories(),
       fetchPosQuotes(),
       fetchTutors(),
       fetchSuppliers(),
@@ -107,6 +122,7 @@ export default function PosPage() {
 
     const error =
       productsResponse.error ||
+      categoriesResponse.error ||
       quotesResponse.error ||
       tutorsResponse.error ||
       suppliersResponse.error ||
@@ -115,13 +131,14 @@ export default function PosPage() {
     if (error) {
       console.error(error);
       setLoadError(
-        "Não foi possível carregar o PDV. Verifique se os scripts 003_pos.sql e 004_pos_purchases.sql foram executados.",
+        "Não foi possível carregar o PDV. Verifique se os scripts SQL 003, 004 e 005 foram executados.",
       );
       setLoading(false);
       return;
     }
 
     setProducts(productsResponse.data || []);
+    setCategories(categoriesResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
@@ -267,6 +284,20 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleCategorySave(category: NewProductCategoryInput) {
+    const { error } = await createProductCategory(category);
+
+    if (error) {
+      toast.error(
+        error.code === "23505" ? "Essa categoria já existe" : error.message,
+      );
+      throw error;
+    }
+
+    toast.success("Categoria salva com sucesso!");
+    await loadData();
+  }
+
   async function handleSupplierSave(supplier: NewSupplierInput) {
     const { error } = await createSupplier(supplier);
 
@@ -306,7 +337,15 @@ export default function PosPage() {
                 Produtos, estoque, vendas e orçamentos
               </p>
             </div>
-            {view === "products" && <ProductModal onSave={handleProductSave} />}
+            {view === "products" && (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <CategoryModal onSave={handleCategorySave} />
+                <ProductModal
+                  categories={categories}
+                  onSave={handleProductSave}
+                />
+              </div>
+            )}
             {view === "purchases" && (
               <div className="flex flex-col gap-2 sm:flex-row">
                 <SupplierModal onSave={handleSupplierSave} />
@@ -387,7 +426,11 @@ export default function PosPage() {
               onClear={clearSale}
             />
           ) : view === "products" ? (
-            <ProductsView products={products} onSave={handleProductSave} />
+            <ProductsView
+              products={products}
+              categories={categories}
+              onSave={handleProductSave}
+            />
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />
           ) : (
@@ -539,7 +582,7 @@ function SaleView({
                   {product.estoque} un.
                 </span>
               </div>
-              <p className="mt-3 font-bold">{product.nome}</p>
+              <p className="mt-3 font-bold">{formatProductName(product)}</p>
               <p className="text-sm text-slate-500">
                 {product.categoria || "Sem categoria"}
               </p>
@@ -576,7 +619,9 @@ function SaleView({
               <div key={item.product.id} className="rounded-xl border p-3">
                 <div className="flex justify-between gap-3">
                   <div>
-                    <p className="font-medium">{item.product.nome}</p>
+                    <p className="font-medium">
+                      {formatProductName(item.product)}
+                    </p>
                     <p className="text-sm text-slate-500">
                       {formatCurrency(item.product.preco_venda)}
                     </p>
@@ -689,9 +734,11 @@ function SaleView({
 
 function ProductsView({
   products,
+  categories,
   onSave,
 }: {
   products: Product[];
+  categories: ProductCategory[];
   onSave: (product: NewProductInput | Product) => Promise<void>;
 }) {
   return (
@@ -719,7 +766,7 @@ function ProductsView({
               products.map((product) => (
                 <tr key={product.id} className="border-t">
                   <td className="p-4">
-                    <p className="font-medium">{product.nome}</p>
+                    <p className="font-medium">{formatProductName(product)}</p>
                     <p className="text-xs text-slate-500">
                       {product.sku || "Sem código"}
                     </p>
@@ -733,7 +780,11 @@ function ProductsView({
                   </td>
                   <td className="p-4">{product.ativo ? "Ativo" : "Inativo"}</td>
                   <td className="p-4">
-                    <ProductModal product={product} onSave={onSave} />
+                    <ProductModal
+                      product={product}
+                      categories={categories}
+                      onSave={onSave}
+                    />
                   </td>
                 </tr>
               ))

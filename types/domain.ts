@@ -108,6 +108,30 @@ export interface NewClinicalPrescriptionInput {
   instructions?: string;
 }
 
+export interface PetVaccination {
+  id: number;
+  pet_id: number;
+  vaccine_name: string;
+  manufacturer?: string;
+  batch_number?: string;
+  application_date: string;
+  next_dose_date?: string;
+  professional_name: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface NewPetVaccinationInput {
+  petId: number;
+  vaccineName: string;
+  manufacturer?: string;
+  batchNumber?: string;
+  applicationDate: string;
+  nextDoseDate?: string;
+  professionalName: string;
+  notes?: string;
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

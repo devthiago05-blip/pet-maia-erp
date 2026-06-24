@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type {
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
+  NewPetVaccinationInput,
 } from "@/types/domain";
 
 export async function fetchClinicalRecordsByPet(petId: number) {
@@ -53,6 +54,31 @@ export async function createClinicalPrescription(
       frequency: prescription.frequency,
       duration: prescription.duration || null,
       instructions: prescription.instructions || null,
+    },
+  ]);
+}
+
+export async function fetchPetVaccinations(petId: number) {
+  return supabase
+    .from("pet_vaccinations")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("application_date", { ascending: false });
+}
+
+export async function createPetVaccination(
+  vaccination: NewPetVaccinationInput,
+) {
+  return supabase.from("pet_vaccinations").insert([
+    {
+      pet_id: vaccination.petId,
+      vaccine_name: vaccination.vaccineName,
+      manufacturer: vaccination.manufacturer || null,
+      batch_number: vaccination.batchNumber || null,
+      application_date: vaccination.applicationDate,
+      next_dose_date: vaccination.nextDoseDate || null,
+      professional_name: vaccination.professionalName,
+      notes: vaccination.notes || null,
     },
   ]);
 }

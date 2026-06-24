@@ -26,6 +26,8 @@
 - Compras integradas ao Financeiro como contas a pagar.
 - Consulta clínica com anamnese, alergias e medicamentos em uso.
 - Prescrições vinculadas ao atendimento clínico.
+- Receita veterinária imprimível com dados do paciente e profissional.
+- Carteira clínica de vacinação com fabricante, lote e próxima dose.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -41,6 +43,8 @@
 - `components/agenda/AppointmentReceiptModal.tsx`
 - `components/clinic/NewClinicalRecordModal.tsx`
 - `components/clinic/PrescriptionModal.tsx`
+- `components/clinic/PrescriptionDocumentModal.tsx`
+- `components/clinic/VaccinationModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -56,6 +60,7 @@
 - `supabase/sql/006_clinical_records.sql`
 - `supabase/sql/007_pos_operations.sql`
 - `supabase/sql/008_clinical_anamnesis_prescriptions.sql`
+- `supabase/sql/009_clinical_vaccines.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -83,15 +88,17 @@ Arquivos padrão removidos:
 12. Testar compra e confirmar a conta a pagar no Financeiro.
 13. Executar `supabase/sql/008_clinical_anamnesis_prescriptions.sql`.
 14. Testar anamnese e prescrição em uma consulta clínica.
-15. Aplicar RLS por módulo nas tabelas antigas do ERP.
-16. Criar testes automatizados para vendas, compras e estoque.
-17. Continuar Clínica com vacinas, exames e documentos de prescrição.
+15. Executar `supabase/sql/009_clinical_vaccines.sql`.
+16. Testar impressão de receita e registro de vacina.
+17. Aplicar RLS por módulo nas tabelas antigas do ERP.
+18. Criar testes automatizados para vendas, compras e estoque.
+19. Continuar Clínica com exames e documentos clínicos.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. Clínica: impressão/compartilhamento de prescrição.
-3. Clínica: vacinas e exames no próximo bloco.
+2. Clínica: solicitações e resultados de exames.
+3. Clínica: documentos e atestados veterinários.
 4. Clínica: internação em bloco posterior.
 5. PDV: cancelamento de vendas e devoluções em etapa futura.
 6. Qualidade: testes de integração com Supabase.

@@ -6,7 +6,9 @@ import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
+import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
+import { VaccinationModal } from "@/components/clinic/VaccinationModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
@@ -15,7 +17,9 @@ import { fetchAppointmentsByPet } from "@/services/appointments";
 import {
   createClinicalPrescription,
   createClinicalRecord,
+  createPetVaccination,
   fetchClinicalRecordsByPet,
+  fetchPetVaccinations,
 } from "@/services/clinical";
 import { fetchFinancialEntriesByPet } from "@/services/financial";
 import { fetchPetById } from "@/services/pets";
@@ -25,7 +29,9 @@ import type {
   FinancialEntry,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
+  NewPetVaccinationInput,
   Pet,
+  PetVaccination,
 } from "@/types/domain";
 
 const tabs = [
@@ -52,6 +58,8 @@ export default function PetPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
   const [clinicalError, setClinicalError] = useState("");
+  const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
+  const [vaccinationError, setVaccinationError] = useState("");
   const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>(
     [],
   );
@@ -77,12 +85,17 @@ export default function PetPage() {
         return;
       }
 
-      const [appointmentsResponse, financialResponse, clinicalResponse] =
-        await Promise.all([
-          fetchAppointmentsByPet(petId),
-          fetchFinancialEntriesByPet(data.nome),
-          fetchClinicalRecordsByPet(petId),
-        ]);
+      const [
+        appointmentsResponse,
+        financialResponse,
+        clinicalResponse,
+        vaccinationsResponse,
+      ] = await Promise.all([
+        fetchAppointmentsByPet(petId),
+        fetchFinancialEntriesByPet(data.nome),
+        fetchClinicalRecordsByPet(petId),
+        fetchPetVaccinations(petId),
+      ]);
 
       if (appointmentsResponse.error) {
         console.error(appointmentsResponse.error);
@@ -101,6 +114,15 @@ export default function PetPage() {
         setClinicalRecords(clinicalResponse.data || []);
       }
 
+      if (vaccinationsResponse.error) {
+        console.error(vaccinationsResponse.error);
+        setVaccinationError(
+          "Execute o script 009_clinical_vaccines.sql para habilitar as vacinas.",
+        );
+      } else {
+        setVaccinations(vaccinationsResponse.data || []);
+      }
+
       setPet(data);
       setAppointments(appointmentsResponse.data || []);
       setFinancialEntries(financialResponse.data || []);
@@ -110,9 +132,6 @@ export default function PetPage() {
     loadPet();
   });
 
-  const vaccineAppointments = appointments.filter((appointment) =>
-    normalizeText(appointment.servico).includes("vacina"),
-  );
   const groomingAppointments = appointments.filter((appointment) => {
     const service = normalizeText(appointment.servico);
     return ["banho", "tosa", "hidratacao", "unhas", "ouvido"].some((term) =>
@@ -168,6 +187,28 @@ export default function PetPage() {
 
     setClinicalRecords(data || []);
     toast.success("Prescrição adicionada!");
+  }
+
+  async function handleCreateVaccination(vaccination: NewPetVaccinationInput) {
+    const { error: createError } = await createPetVaccination(vaccination);
+
+    if (createError) {
+      toast.error(createError.message);
+      throw createError;
+    }
+
+    const { data, error: reloadError } = await fetchPetVaccinations(
+      vaccination.petId,
+    );
+
+    if (reloadError) {
+      toast.error("Vacina salva, mas o histórico não foi atualizado");
+      return;
+    }
+
+    setVaccinations(data || []);
+    setVaccinationError("");
+    toast.success("Vacina registrada!");
   }
 
   return (
@@ -239,9 +280,12 @@ export default function PetPage() {
                     />
                   )}
                   {tab === "vacinas" && (
-                    <AppointmentHistory
-                      title="Vacinas"
-                      appointments={vaccineAppointments}
+                    <VaccinationHistory
+                      pet={pet}
+                      vaccinations={vaccinations}
+                      error={vaccinationError}
+                      professionalName={profile?.nome || ""}
+                      onSave={handleCreateVaccination}
                     />
                   )}
                   {tab === "banhos" && (
@@ -359,25 +403,32 @@ function ClinicalHistory({
                   />
                 </div>
                 {record.clinical_prescriptions?.length ? (
-                  <div className="mt-3 divide-y rounded-xl border bg-white">
-                    {record.clinical_prescriptions.map((prescription) => (
-                      <div key={prescription.id} className="p-3 text-sm">
-                        <p className="font-semibold">
-                          {prescription.medication}
-                        </p>
-                        <p className="text-slate-600">
-                          {prescription.dosage} · {prescription.frequency}
-                          {prescription.duration
-                            ? ` · ${prescription.duration}`
-                            : ""}
-                        </p>
-                        {prescription.instructions && (
-                          <p className="mt-1 whitespace-pre-wrap text-slate-500">
-                            {prescription.instructions}
+                  <div className="mt-3 space-y-3">
+                    <div className="divide-y rounded-xl border bg-white">
+                      {record.clinical_prescriptions.map((prescription) => (
+                        <div key={prescription.id} className="p-3 text-sm">
+                          <p className="font-semibold">
+                            {prescription.medication}
                           </p>
-                        )}
-                      </div>
-                    ))}
+                          <p className="text-slate-600">
+                            {prescription.dosage} · {prescription.frequency}
+                            {prescription.duration
+                              ? ` · ${prescription.duration}`
+                              : ""}
+                          </p>
+                          {prescription.instructions && (
+                            <p className="mt-1 whitespace-pre-wrap text-slate-500">
+                              {prescription.instructions}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    <PrescriptionDocumentModal
+                      pet={pet}
+                      record={record}
+                      prescriptions={record.clinical_prescriptions}
+                    />
                   </div>
                 ) : (
                   <p className="mt-3 text-sm text-slate-500">
@@ -409,6 +460,88 @@ function ClinicalText({
       <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
       <p className="mt-1 whitespace-pre-wrap text-sm">{value}</p>
     </div>
+  );
+}
+
+function VaccinationHistory({
+  pet,
+  vaccinations,
+  error,
+  professionalName,
+  onSave,
+}: {
+  pet: Pet;
+  vaccinations: PetVaccination[];
+  error: string;
+  professionalName: string;
+  onSave: (vaccination: NewPetVaccinationInput) => Promise<void>;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h3 className="text-lg font-bold">Carteira de vacinação</h3>
+          <p className="text-sm text-slate-500">
+            Aplicações e próximas doses de {pet.nome}
+          </p>
+        </div>
+        {!error && (
+          <VaccinationModal
+            petId={pet.id}
+            defaultProfessionalName={professionalName}
+            onSave={onSave}
+          />
+        )}
+      </div>
+
+      {error ? (
+        <p className="p-6 text-sm text-amber-700">{error}</p>
+      ) : vaccinations.length === 0 ? (
+        <p className="p-6 text-center text-sm text-slate-500">
+          Nenhuma vacina registrada.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[760px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="p-4 text-left">Vacina</th>
+                <th className="p-4 text-left">Aplicação</th>
+                <th className="p-4 text-left">Próxima dose</th>
+                <th className="p-4 text-left">Fabricante / lote</th>
+                <th className="p-4 text-left">Profissional</th>
+              </tr>
+            </thead>
+            <tbody>
+              {vaccinations.map((vaccination) => (
+                <tr key={vaccination.id} className="border-t">
+                  <td className="p-4">
+                    <p className="font-medium">{vaccination.vaccine_name}</p>
+                    {vaccination.notes && (
+                      <p className="mt-1 max-w-xs text-xs text-slate-500">
+                        {vaccination.notes}
+                      </p>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {formatDate(vaccination.application_date)}
+                  </td>
+                  <td className="p-4">
+                    {formatDate(vaccination.next_dose_date)}
+                  </td>
+                  <td className="p-4">
+                    {[vaccination.manufacturer, vaccination.batch_number]
+                      .filter(Boolean)
+                      .join(" · ") || "-"}
+                  </td>
+                  <td className="p-4">{vaccination.professional_name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 

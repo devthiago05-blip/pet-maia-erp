@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
@@ -95,6 +96,26 @@ export default function AgendaPage() {
     formaPagamento: string;
   } | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [search, setSearch] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [filterStatus, setFilterStatus] = useState("Todos");
+
+  const filteredAppointments = useMemo(() => {
+    const term = normalizeText(search);
+
+    return appointments.filter((appointment) => {
+      const matchesSearch =
+        !term ||
+        normalizeText(appointment.pets?.nome || "").includes(term) ||
+        normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
+        normalizeText(appointment.servico).includes(term);
+      const matchesDate = !filterDate || appointment.data === filterDate;
+      const matchesStatus =
+        filterStatus === "Todos" || appointment.status === filterStatus;
+
+      return matchesSearch && matchesDate && matchesStatus;
+    });
+  }, [appointments, filterDate, filterStatus, search]);
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -306,15 +327,43 @@ export default function AgendaPage() {
             </button>
           </div>
 
+          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-3">
+            <label className="flex items-center gap-3 rounded-xl border px-3">
+              <Search size={18} className="text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar pet, tutor ou serviço"
+                className="min-w-0 flex-1 py-3 outline-none"
+              />
+            </label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(event) => setFilterDate(event.target.value)}
+              className="rounded-xl border p-3"
+            />
+            <select
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+              className="rounded-xl border p-3"
+            >
+              <option>Todos</option>
+              <option>Agendado</option>
+              <option>Finalizado</option>
+              <option>Cancelado</option>
+            </select>
+          </div>
+
           {viewMode === "kanban" ? (
             <KanbanBoard
-              appointments={appointments}
+              appointments={filteredAppointments}
               onFinish={setAppointmentToFinish}
               onCancel={handleCancelAppointment}
             />
           ) : (
             <AppointmentTable
-              appointments={appointments}
+              appointments={filteredAppointments}
               onFinish={setAppointmentToFinish}
               onDelete={handleDeleteAppointment}
             />

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
@@ -21,21 +22,41 @@ export default function FinanceiroPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("Todos");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const totalRecebido = entries
+  const filteredEntries = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    return entries.filter((entry) => {
+      const date = entry.created_at?.slice(0, 10) || "";
+      return (
+        (!term || entry.descricao.toLowerCase().includes(term)) &&
+        (typeFilter === "Todos" || entry.tipo === typeFilter) &&
+        (statusFilter === "Todos" || entry.status_pagamento === statusFilter) &&
+        (!startDate || date >= startDate) &&
+        (!endDate || date <= endDate)
+      );
+    });
+  }, [endDate, entries, search, startDate, statusFilter, typeFilter]);
+
+  const totalRecebido = filteredEntries
     .filter(
       (entry) => entry.tipo === "Receita" && entry.status_pagamento === "Pago",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
-  const totalReceber = entries
+  const totalReceber = filteredEntries
     .filter(
       (entry) =>
         entry.tipo === "Receita" && entry.status_pagamento === "Pendente",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
-  const totalDespesas = entries
+  const totalDespesas = filteredEntries
     .filter((entry) => entry.tipo === "Despesa")
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
@@ -123,8 +144,14 @@ export default function FinanceiroPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
-            <SummaryCard title="Recebido" value={formatCurrency(totalRecebido)} />
-            <SummaryCard title="A Receber" value={formatCurrency(totalReceber)} />
+            <SummaryCard
+              title="Recebido"
+              value={formatCurrency(totalRecebido)}
+            />
+            <SummaryCard
+              title="A Receber"
+              value={formatCurrency(totalReceber)}
+            />
             <SummaryCard title="Lucro" value={formatCurrency(lucro)} />
           </div>
 
@@ -134,13 +161,55 @@ export default function FinanceiroPage() {
             </div>
           )}
 
+          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2 xl:grid-cols-5">
+            <label className="flex items-center gap-3 rounded-xl border px-3">
+              <Search size={18} className="text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar descrição"
+                className="min-w-0 flex-1 py-3 outline-none"
+              />
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(event) => setTypeFilter(event.target.value)}
+              className="rounded-xl border p-3"
+            >
+              <option>Todos</option>
+              <option>Receita</option>
+              <option>Despesa</option>
+            </select>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="rounded-xl border p-3"
+            >
+              <option>Todos</option>
+              <option>Pago</option>
+              <option>Pendente</option>
+            </select>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="rounded-xl border p-3"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="rounded-xl border p-3"
+            />
+          </div>
+
           {loading ? (
             <div className="rounded-2xl border bg-white p-6 text-sm text-slate-500">
               Carregando lançamentos financeiros...
             </div>
           ) : (
             <FinancialTable
-              entries={entries}
+              entries={filteredEntries}
               onReceive={handleReceiveEntry}
               onDelete={handleDeleteEntry}
             />

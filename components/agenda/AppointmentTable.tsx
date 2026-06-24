@@ -34,44 +34,57 @@ export function AppointmentTable({
           </thead>
 
           <tbody>
-            {appointments.map((appointment) => (
-              <tr key={appointment.id} className="border-t">
-                <td className="p-3 sm:p-4">{appointment.hora}</td>
-                <td className="p-3 sm:p-4">{appointment.pets?.nome || "-"}</td>
-                <td className="p-3 sm:p-4">{appointment.servico}</td>
-                <td className="p-3 sm:p-4">
-                  <span
-                    className={`rounded-full px-3 py-1 text-sm font-medium ${
-                      appointment.status === "Finalizado"
-                        ? "bg-green-100 text-green-700"
-                        : appointment.status === "Cancelado"
-                          ? "bg-red-100 text-red-700"
-                          : "bg-yellow-100 text-yellow-700"
-                    }`}
-                  >
-                    {appointment.status}
-                  </span>
-                </td>
-                <td className="p-3 sm:p-4">
-                  <div className="flex flex-wrap gap-3">
-                    <button
-                      onClick={() => onFinish(appointment)}
-                      className="text-green-600"
-                    >
-                      Finalizar
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setAppointmentToDelete(appointment)}
-                      className="text-red-600"
-                    >
-                      Excluir
-                    </button>
-                  </div>
+            {appointments.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="p-6 text-center text-sm text-slate-500"
+                >
+                  Nenhum agendamento encontrado.
                 </td>
               </tr>
-            ))}
+            ) : (
+              appointments.map((appointment) => (
+                <tr key={appointment.id} className="border-t">
+                  <td className="p-3 sm:p-4">{appointment.hora}</td>
+                  <td className="p-3 sm:p-4">
+                    {appointment.pets?.nome || "-"}
+                  </td>
+                  <td className="p-3 sm:p-4">{appointment.servico}</td>
+                  <td className="p-3 sm:p-4">
+                    <span
+                      className={`rounded-full px-3 py-1 text-sm font-medium ${
+                        appointment.status === "Finalizado"
+                          ? "bg-green-100 text-green-700"
+                          : appointment.status === "Cancelado"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {appointment.status}
+                    </span>
+                  </td>
+                  <td className="p-3 sm:p-4">
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        onClick={() => onFinish(appointment)}
+                        className="text-green-600"
+                      >
+                        Finalizar
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setAppointmentToDelete(appointment)}
+                        className="text-red-600"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

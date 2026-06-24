@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   CalendarDays,
   LayoutDashboard,
   Menu,
@@ -39,6 +40,12 @@ const menuItems: Array<{
     icon: Wallet,
   },
   { href: "/receipts", label: "Recibos", module: "recibos", icon: Receipt },
+  {
+    href: "/relatorios",
+    label: "Relatórios",
+    module: "relatorios",
+    icon: BarChart3,
+  },
   {
     href: "/settings",
     label: "Configurações",

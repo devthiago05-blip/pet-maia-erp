@@ -1,7 +1,7 @@
 "use client";
 
-import { FileText, Printer, ReceiptText } from "lucide-react";
-import { useState } from "react";
+import { FileText, Printer, ReceiptText, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -15,8 +15,25 @@ export default function ReceiptsPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const revenueEntries = entries.filter((entry) => entry.tipo === "Receita");
+  const revenueEntries = useMemo(() => {
+    const term = search.trim().toLowerCase();
+
+    return entries.filter((entry) => {
+      const date = entry.created_at?.slice(0, 10) || "";
+      return (
+        entry.tipo === "Receita" &&
+        (!term || entry.descricao.toLowerCase().includes(term)) &&
+        (statusFilter === "Todos" || entry.status_pagamento === statusFilter) &&
+        (!startDate || date >= startDate) &&
+        (!endDate || date <= endDate)
+      );
+    });
+  }, [endDate, entries, search, startDate, statusFilter]);
   const paidEntries = revenueEntries.filter(
     (entry) => entry.status_pagamento === "Pago",
   );
@@ -90,6 +107,39 @@ export default function ReceiptsPage() {
               {loadError}
             </div>
           )}
+
+          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2 xl:grid-cols-4">
+            <label className="flex items-center gap-3 rounded-xl border px-3">
+              <Search size={18} className="text-slate-400" />
+              <input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Buscar descrição"
+                className="min-w-0 flex-1 py-3 outline-none"
+              />
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              className="rounded-xl border p-3"
+            >
+              <option>Todos</option>
+              <option>Pago</option>
+              <option>Pendente</option>
+            </select>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => setStartDate(event.target.value)}
+              className="rounded-xl border p-3"
+            />
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => setEndDate(event.target.value)}
+              className="rounded-xl border p-3"
+            />
+          </div>
 
           {loading ? (
             <div className="rounded-2xl border bg-white p-6 text-sm text-slate-500">

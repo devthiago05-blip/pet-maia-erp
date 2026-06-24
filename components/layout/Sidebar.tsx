@@ -10,6 +10,7 @@ import {
   Scissors,
   Settings,
   ShoppingCart,
+  Stethoscope,
   UserCog,
   Users,
   Wallet,
@@ -49,6 +50,12 @@ const menuItems: Array<{
     icon: BarChart3,
   },
   { href: "/pdv", label: "PDV", module: "pdv", icon: ShoppingCart },
+  {
+    href: "/clinica",
+    label: "Clínica",
+    module: "clinica",
+    icon: Stethoscope,
+  },
   {
     href: "/settings",
     label: "Configurações",

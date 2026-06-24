@@ -132,6 +132,15 @@ export interface NewPetVaccinationInput {
   notes?: string;
 }
 
+export interface ClinicPatientOverview extends Pet {
+  lastClinicalRecord?: {
+    consultation_date: string;
+    professional_name: string;
+  };
+  nextReturnDate?: string;
+  nextVaccinationDate?: string;
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

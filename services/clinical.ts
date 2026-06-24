@@ -82,3 +82,26 @@ export async function createPetVaccination(
     },
   ]);
 }
+
+export async function fetchClinicPatients() {
+  return supabase
+    .from("pets")
+    .select(
+      `
+        *,
+        tutors (
+          nome,
+          telefone
+        ),
+        clinical_records (
+          consultation_date,
+          professional_name,
+          return_date
+        ),
+        pet_vaccinations (
+          next_dose_date
+        )
+      `,
+    )
+    .order("nome");
+}

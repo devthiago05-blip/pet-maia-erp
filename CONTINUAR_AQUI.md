@@ -28,6 +28,8 @@
 - Prescrições vinculadas ao atendimento clínico.
 - Receita veterinária imprimível com dados do paciente e profissional.
 - Carteira clínica de vacinação com fabricante, lote e próxima dose.
+- Módulo Clínica visível na sidebar e na gestão de permissões.
+- Página Clínica com pacientes, retornos, vacinas e acesso ao prontuário.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -37,6 +39,7 @@
 - `app/login/page.tsx`
 - `app/pdv/page.tsx`
 - `app/pets/[id]/page.tsx`
+- `app/clinica/page.tsx`
 - `components/pos/CategoryModal.tsx`
 - `components/pos/ProductSelectionModal.tsx`
 - `components/pos/PosDocumentModal.tsx`
@@ -61,6 +64,7 @@
 - `supabase/sql/007_pos_operations.sql`
 - `supabase/sql/008_clinical_anamnesis_prescriptions.sql`
 - `supabase/sql/009_clinical_vaccines.sql`
+- `supabase/sql/010_clinic_module_access.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -90,9 +94,11 @@ Arquivos padrão removidos:
 14. Testar anamnese e prescrição em uma consulta clínica.
 15. Executar `supabase/sql/009_clinical_vaccines.sql`.
 16. Testar impressão de receita e registro de vacina.
-17. Aplicar RLS por módulo nas tabelas antigas do ERP.
-18. Criar testes automatizados para vendas, compras e estoque.
-19. Continuar Clínica com exames e documentos clínicos.
+17. Executar `supabase/sql/010_clinic_module_access.sql`.
+18. Testar o item Clínica no menu e as permissões de usuário.
+19. Aplicar RLS por módulo nas tabelas antigas do ERP.
+20. Criar testes automatizados para vendas, compras e estoque.
+21. Continuar Clínica com exames e documentos clínicos.
 
 ## Próximos passos
 

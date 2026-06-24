@@ -194,11 +194,13 @@ export function PurchaseModal({
                     className="rounded-xl border p-3"
                   >
                     <option value="">Produto</option>
-                    {products.map((product) => (
-                      <option key={product.id} value={product.id}>
-                        {product.sku} · {formatProductName(product)}
-                      </option>
-                    ))}
+                    {products
+                      .filter((product) => product.ativo)
+                      .map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.sku} · {formatProductName(product)}
+                        </option>
+                      ))}
                   </select>
                   <input
                     type="number"

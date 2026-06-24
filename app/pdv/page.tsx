@@ -20,6 +20,7 @@ import {
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
 import { SupplierModal } from "@/components/pos/SupplierModal";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   formatCurrency,
@@ -27,6 +28,7 @@ import {
   formatProductName,
 } from "@/lib/formatters";
 import {
+  archiveProduct,
   createPosQuote,
   createPosSale,
   createProductCategory,
@@ -290,6 +292,21 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleProductDelete(product: Product) {
+    const { error } = await archiveProduct(product.id);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Produto excluído do catálogo");
+    setCart((current) =>
+      current.filter((item) => item.product.id !== product.id),
+    );
+    await loadData();
+  }
+
   async function handleCategorySave(category: NewProductCategoryInput) {
     const { error } = await createProductCategory(category);
 
@@ -436,6 +453,7 @@ export default function PosPage() {
               products={products}
               categories={categories}
               onSave={handleProductSave}
+              onDelete={handleProductDelete}
             />
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />
@@ -742,63 +760,115 @@ function ProductsView({
   products,
   categories,
   onSave,
+  onDelete,
 }: {
   products: Product[];
   categories: ProductCategory[];
   onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
+  onDelete: (product: Product) => Promise<void>;
 }) {
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const activeProducts = products.filter((product) => product.ativo);
+
+  async function handleConfirmDelete() {
+    if (!productToDelete) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await onDelete(productToDelete);
+      setProductToDelete(null);
+    } catch {
+      return;
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[840px]">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="p-4 text-left">Produto</th>
-              <th className="p-4 text-left">Categoria</th>
-              <th className="p-4 text-left">Venda</th>
-              <th className="p-4 text-left">Estoque</th>
-              <th className="p-4 text-left">Status</th>
-              <th className="p-4 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.length === 0 ? (
+    <>
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[840px]">
+            <thead className="bg-slate-50">
               <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
-                  Nenhum produto cadastrado.
-                </td>
+                <th className="p-4 text-left">Produto</th>
+                <th className="p-4 text-left">Categoria</th>
+                <th className="p-4 text-left">Venda</th>
+                <th className="p-4 text-left">Estoque</th>
+                <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-left">Ações</th>
               </tr>
-            ) : (
-              products.map((product) => (
-                <tr key={product.id} className="border-t">
-                  <td className="p-4">
-                    <p className="font-medium">{formatProductName(product)}</p>
-                    <p className="text-xs text-slate-500">
-                      {product.sku || "Sem código"}
-                    </p>
-                  </td>
-                  <td className="p-4">{product.categoria || "-"}</td>
-                  <td className="p-4">{formatCurrency(product.preco_venda)}</td>
-                  <td
-                    className={`p-4 font-medium ${product.estoque <= product.estoque_minimo ? "text-red-600" : ""}`}
-                  >
-                    {product.estoque}
-                  </td>
-                  <td className="p-4">{product.ativo ? "Ativo" : "Inativo"}</td>
-                  <td className="p-4">
-                    <ProductModal
-                      product={product}
-                      categories={categories}
-                      onSave={onSave}
-                    />
+            </thead>
+            <tbody>
+              {activeProducts.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-slate-500">
+                    Nenhum produto cadastrado.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                activeProducts.map((product) => (
+                  <tr key={product.id} className="border-t">
+                    <td className="p-4">
+                      <p className="font-medium">
+                        {formatProductName(product)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {product.sku || "Sem código"}
+                      </p>
+                    </td>
+                    <td className="p-4">{product.categoria || "-"}</td>
+                    <td className="p-4">
+                      {formatCurrency(product.preco_venda)}
+                    </td>
+                    <td
+                      className={`p-4 font-medium ${product.estoque <= product.estoque_minimo ? "text-red-600" : ""}`}
+                    >
+                      {product.estoque}
+                    </td>
+                    <td className="p-4">
+                      {product.ativo ? "Ativo" : "Inativo"}
+                    </td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap gap-3">
+                        <ProductModal
+                          product={product}
+                          categories={categories}
+                          onSave={onSave}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setProductToDelete(product)}
+                          className="text-red-600"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+      <ConfirmationDialog
+        isOpen={Boolean(productToDelete)}
+        title="Excluir produto"
+        description={`Deseja excluir ${productToDelete ? formatProductName(productToDelete) : "este produto"} do catálogo? O histórico de compras e vendas será preservado.`}
+        confirmText={deleting ? "Excluindo..." : "Excluir"}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          if (!deleting) {
+            setProductToDelete(null);
+          }
+        }}
+      />
+    </>
   );
 }
 

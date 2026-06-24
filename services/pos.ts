@@ -57,6 +57,16 @@ export async function updateProduct(product: Product) {
     .eq("id", product.id);
 }
 
+export async function archiveProduct(id: number) {
+  return supabase
+    .from("products")
+    .update({
+      ativo: false,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+}
+
 export async function fetchSuppliers() {
   return supabase.from("suppliers").select("*").order("nome");
 }

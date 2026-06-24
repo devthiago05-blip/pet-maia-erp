@@ -54,6 +54,33 @@ export interface Pet {
   };
 }
 
+export interface ClinicalRecord {
+  id: number;
+  pet_id: number;
+  professional_id?: string;
+  professional_name: string;
+  consultation_date: string;
+  weight_kg?: number;
+  temperature_c?: number;
+  main_complaint: string;
+  diagnosis?: string;
+  conduct?: string;
+  return_date?: string;
+  created_at: string;
+}
+
+export interface NewClinicalRecordInput {
+  petId: number;
+  professionalName: string;
+  consultationDate: string;
+  weightKg?: number;
+  temperatureC?: number;
+  mainComplaint: string;
+  diagnosis?: string;
+  conduct?: string;
+  returnDate?: string;
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

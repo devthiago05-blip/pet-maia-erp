@@ -13,6 +13,9 @@
 - Categorias administráveis no PDV, sem categoria digitada livremente.
 - Variações opcionais de tamanho, cor e sabor por código de produto.
 - Busca, compras, vendas e orçamentos identificam a variação completa.
+- Cadastro em lote de variações com preço e estoque independentes.
+- Mensagem do WhatsApp separada do código PIX copia e cola.
+- Botões independentes para copiar mensagem e copiar somente o PIX.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -22,6 +25,7 @@
 - `app/login/page.tsx`
 - `app/pdv/page.tsx`
 - `components/pos/CategoryModal.tsx`
+- `components/agenda/AppointmentReceiptModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -50,11 +54,13 @@ Arquivos padrão removidos:
 2. Executar `supabase/sql/005_product_categories_variations.sql` depois do 004.
 3. Testar um produto simples e produtos com tamanho, cor ou sabor.
 4. Confirmar código no formato `PM000001` para cada variação.
-5. Testar fornecedor e entrada de compra com aumento do estoque.
-6. Aplicar RLS por módulo nas tabelas antigas do ERP.
-7. Criar testes automatizados para vendas, compras e estoque.
-8. Integrar compras do PDV às contas a pagar do Financeiro.
-9. Implementar o módulo Clínica por último.
+5. Testar produto com tamanhos diferentes, preços e estoques independentes.
+6. Testar WhatsApp e colar o PIX como uma segunda mensagem.
+7. Testar fornecedor e entrada de compra com aumento do estoque.
+8. Aplicar RLS por módulo nas tabelas antigas do ERP.
+9. Criar testes automatizados para vendas, compras e estoque.
+10. Integrar compras do PDV às contas a pagar do Financeiro.
+11. Implementar o módulo Clínica por último.
 
 ## Próximos passos
 

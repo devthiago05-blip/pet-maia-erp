@@ -29,9 +29,9 @@ import {
 import {
   createPosQuote,
   createPosSale,
-  createProduct,
   createProductCategory,
   createProductPurchase,
+  createProducts,
   createSupplier,
   fetchPosQuotes,
   fetchProductCategories,
@@ -269,18 +269,24 @@ export default function PosPage() {
     setPaymentMethod("PIX");
   }
 
-  async function handleProductSave(product: NewProductInput | Product) {
+  async function handleProductSave(
+    productsToSave: Array<NewProductInput | Product>,
+  ) {
     const response =
-      "id" in product
-        ? await updateProduct(product)
-        : await createProduct(product);
+      productsToSave.length === 1 && "id" in productsToSave[0]
+        ? await updateProduct(productsToSave[0])
+        : await createProducts(productsToSave as NewProductInput[]);
 
     if (response.error) {
       toast.error(response.error.message);
       throw response.error;
     }
 
-    toast.success("Produto salvo com sucesso!");
+    toast.success(
+      productsToSave.length === 1
+        ? "Produto salvo com sucesso!"
+        : `${productsToSave.length} variações salvas com sucesso!`,
+    );
     await loadData();
   }
 
@@ -739,7 +745,7 @@ function ProductsView({
 }: {
   products: Product[];
   categories: ProductCategory[];
-  onSave: (product: NewProductInput | Product) => Promise<void>;
+  onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
 }) {
   return (
     <div className="overflow-hidden rounded-xl border bg-white">

@@ -27,6 +27,7 @@ export function AppointmentReceiptModal({
 }: AppointmentReceiptModalProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [messageCopied, setMessageCopied] = useState(false);
 
   const petName = appointment.pets?.nome || "Pet";
   const tutorName = appointment.pets?.tutors?.nome || "Tutor";
@@ -90,13 +91,13 @@ export function AppointmentReceiptModal({
     };
   }, [pixCode]);
 
-  const message = [
+  const receiptMessage = [
     `Olá, ${tutorName}!`,
     `O atendimento de ${petName} foi concluído.`,
     `Serviços: ${appointment.servico}.`,
     `Valor: ${formatCurrency(valor)}.`,
     `Forma de pagamento: ${formaPagamento}.`,
-    pixCode ? `PIX copia e cola: ${pixCode}` : "",
+    pixCode ? "O código PIX será enviado em uma mensagem separada." : "",
     `Obrigado! ${clinicSettings?.nome || "PET MAIA ERP"}`,
   ]
     .filter(Boolean)
@@ -119,15 +120,22 @@ export function AppointmentReceiptModal({
     }
 
     window.open(
-      `https://wa.me/${phone}?text=${encodeURIComponent(message)}`,
+      `https://wa.me/${phone}?text=${encodeURIComponent(receiptMessage)}`,
       "_blank",
       "noopener,noreferrer",
     );
   }
 
+  async function handleCopyMessage() {
+    await navigator.clipboard.writeText(receiptMessage);
+    setMessageCopied(true);
+    toast.success("Mensagem do recibo copiada!");
+    window.setTimeout(() => setMessageCopied(false), 2000);
+  }
+
   async function handleShare() {
     if (!navigator.share) {
-      await navigator.clipboard.writeText(message);
+      await navigator.clipboard.writeText(receiptMessage);
       toast.success("Mensagem copiada para compartilhar");
       return;
     }
@@ -135,7 +143,7 @@ export function AppointmentReceiptModal({
     try {
       const shareData: ShareData = {
         title: `Atendimento de ${petName}`,
-        text: message,
+        text: receiptMessage,
       };
 
       if (qrCodeUrl) {
@@ -218,6 +226,15 @@ export function AppointmentReceiptModal({
             </div>
           ) : null}
 
+          {pixCode && (
+            <div className="rounded-xl border bg-slate-50 p-3">
+              <p className="mb-2 text-sm font-semibold">PIX copia e cola</p>
+              <p className="max-h-24 overflow-y-auto break-all rounded-lg bg-white p-3 font-mono text-xs text-slate-600">
+                {pixCode}
+              </p>
+            </div>
+          )}
+
           <div className="grid gap-3 sm:grid-cols-2">
             {pixCode && (
               <button
@@ -239,8 +256,16 @@ export function AppointmentReceiptModal({
             </button>
             <button
               type="button"
+              onClick={handleCopyMessage}
+              className="flex items-center justify-center gap-2 rounded-xl border py-3"
+            >
+              {messageCopied ? <Check size={18} /> : <Copy size={18} />}
+              {messageCopied ? "Mensagem copiada" : "Copiar mensagem"}
+            </button>
+            <button
+              type="button"
               onClick={handleShare}
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-3 text-white sm:col-span-2"
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-3 text-white"
             >
               <Share2 size={18} />
               Compartilhar recibo

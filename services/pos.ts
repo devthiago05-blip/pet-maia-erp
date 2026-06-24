@@ -27,13 +27,13 @@ export async function createProductCategory(category: NewProductCategoryInput) {
   return supabase.from("product_categories").insert([category]);
 }
 
-export async function createProduct(product: NewProductInput) {
-  return supabase.from("products").insert([
-    {
+export async function createProducts(products: NewProductInput[]) {
+  return supabase.from("products").insert(
+    products.map((product) => ({
       ...product,
       sku: product.sku || null,
-    },
-  ]);
+    })),
+  );
 }
 
 export async function updateProduct(product: Product) {

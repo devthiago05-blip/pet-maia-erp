@@ -30,6 +30,7 @@
 - Carteira clínica de vacinação com fabricante, lote e próxima dose.
 - Módulo Clínica visível na sidebar e na gestão de permissões.
 - Página Clínica com pacientes, retornos, vacinas e acesso ao prontuário.
+- Exames clínicos com solicitação, coleta, laboratório, status e resultado.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -48,6 +49,7 @@
 - `components/clinic/PrescriptionModal.tsx`
 - `components/clinic/PrescriptionDocumentModal.tsx`
 - `components/clinic/VaccinationModal.tsx`
+- `components/clinic/ExamModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -65,6 +67,7 @@
 - `supabase/sql/008_clinical_anamnesis_prescriptions.sql`
 - `supabase/sql/009_clinical_vaccines.sql`
 - `supabase/sql/010_clinic_module_access.sql`
+- `supabase/sql/011_clinical_exams.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -96,15 +99,17 @@ Arquivos padrão removidos:
 16. Testar impressão de receita e registro de vacina.
 17. Executar `supabase/sql/010_clinic_module_access.sql`.
 18. Testar o item Clínica no menu e as permissões de usuário.
-19. Aplicar RLS por módulo nas tabelas antigas do ERP.
-20. Criar testes automatizados para vendas, compras e estoque.
-21. Continuar Clínica com exames e documentos clínicos.
+19. Executar `supabase/sql/011_clinical_exams.sql`.
+20. Testar solicitação e atualização do resultado de exame.
+21. Aplicar RLS por módulo nas tabelas antigas do ERP.
+22. Criar testes automatizados para vendas, compras e estoque.
+23. Continuar Clínica com documentos clínicos.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. Clínica: solicitações e resultados de exames.
-3. Clínica: documentos e atestados veterinários.
+2. Clínica: documentos e atestados veterinários.
+3. Clínica: anexos de exames via Supabase Storage.
 4. Clínica: internação em bloco posterior.
 5. PDV: cancelamento de vendas e devoluções em etapa futura.
 6. Qualidade: testes de integração com Supabase.

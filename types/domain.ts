@@ -141,6 +141,36 @@ export interface ClinicPatientOverview extends Pet {
   nextVaccinationDate?: string;
 }
 
+export interface ClinicalExam {
+  id: number;
+  pet_id: number;
+  clinical_record_id?: number;
+  exam_name: string;
+  request_date: string;
+  collection_date?: string;
+  result_date?: string;
+  laboratory?: string;
+  status: "Solicitado" | "Coletado" | "Concluído" | "Cancelado";
+  result?: string;
+  notes?: string;
+  professional_name: string;
+  created_at: string;
+}
+
+export interface ClinicalExamInput {
+  id?: number;
+  petId: number;
+  examName: string;
+  requestDate: string;
+  collectionDate?: string;
+  resultDate?: string;
+  laboratory?: string;
+  status: ClinicalExam["status"];
+  result?: string;
+  notes?: string;
+  professionalName: string;
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

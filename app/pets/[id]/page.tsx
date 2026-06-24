@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
 import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
@@ -18,13 +19,17 @@ import {
   createClinicalPrescription,
   createClinicalRecord,
   createPetVaccination,
+  fetchClinicalExamsByPet,
   fetchClinicalRecordsByPet,
   fetchPetVaccinations,
+  saveClinicalExam,
 } from "@/services/clinical";
 import { fetchFinancialEntriesByPet } from "@/services/financial";
 import { fetchPetById } from "@/services/pets";
 import type {
   Appointment,
+  ClinicalExam,
+  ClinicalExamInput,
   ClinicalRecord,
   FinancialEntry,
   NewClinicalPrescriptionInput,
@@ -38,6 +43,7 @@ const tabs = [
   { id: "dados", label: "Dados" },
   { id: "historico", label: "Histórico" },
   { id: "clinica", label: "Clínica" },
+  { id: "exames", label: "Exames" },
   { id: "vacinas", label: "Vacinas" },
   { id: "banhos", label: "Banhos" },
   { id: "financeiro", label: "Financeiro" },
@@ -60,6 +66,8 @@ export default function PetPage() {
   const [clinicalError, setClinicalError] = useState("");
   const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
   const [vaccinationError, setVaccinationError] = useState("");
+  const [exams, setExams] = useState<ClinicalExam[]>([]);
+  const [examError, setExamError] = useState("");
   const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>(
     [],
   );
@@ -90,11 +98,13 @@ export default function PetPage() {
         financialResponse,
         clinicalResponse,
         vaccinationsResponse,
+        examsResponse,
       ] = await Promise.all([
         fetchAppointmentsByPet(petId),
         fetchFinancialEntriesByPet(data.nome),
         fetchClinicalRecordsByPet(petId),
         fetchPetVaccinations(petId),
+        fetchClinicalExamsByPet(petId),
       ]);
 
       if (appointmentsResponse.error) {
@@ -121,6 +131,15 @@ export default function PetPage() {
         );
       } else {
         setVaccinations(vaccinationsResponse.data || []);
+      }
+
+      if (examsResponse.error) {
+        console.error(examsResponse.error);
+        setExamError(
+          "Execute o script 011_clinical_exams.sql para habilitar os exames.",
+        );
+      } else {
+        setExams(examsResponse.data || []);
       }
 
       setPet(data);
@@ -211,6 +230,28 @@ export default function PetPage() {
     toast.success("Vacina registrada!");
   }
 
+  async function handleSaveExam(input: ClinicalExamInput) {
+    const { error: saveError } = await saveClinicalExam(input);
+
+    if (saveError) {
+      toast.error(saveError.message);
+      throw saveError;
+    }
+
+    const { data, error: reloadError } = await fetchClinicalExamsByPet(
+      input.petId,
+    );
+
+    if (reloadError) {
+      toast.error("Exame salvo, mas o histórico não foi atualizado");
+      return;
+    }
+
+    setExams(data || []);
+    setExamError("");
+    toast.success(input.id ? "Exame atualizado!" : "Exame solicitado!");
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -286,6 +327,15 @@ export default function PetPage() {
                       error={vaccinationError}
                       professionalName={profile?.nome || ""}
                       onSave={handleCreateVaccination}
+                    />
+                  )}
+                  {tab === "exames" && (
+                    <ExamHistory
+                      pet={pet}
+                      exams={exams}
+                      error={examError}
+                      professionalName={profile?.nome || ""}
+                      onSave={handleSaveExam}
                     />
                   )}
                   {tab === "banhos" && (
@@ -539,6 +589,88 @@ function VaccinationHistory({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ExamHistory({
+  pet,
+  exams,
+  error,
+  professionalName,
+  onSave,
+}: {
+  pet: Pet;
+  exams: ClinicalExam[];
+  error: string;
+  professionalName: string;
+  onSave: (input: ClinicalExamInput) => Promise<void>;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h3 className="text-lg font-bold">Exames clínicos</h3>
+          <p className="text-sm text-slate-500">
+            Solicitações e resultados de {pet.nome}
+          </p>
+        </div>
+        {!error && (
+          <ExamModal
+            petId={pet.id}
+            defaultProfessionalName={professionalName}
+            onSave={onSave}
+          />
+        )}
+      </div>
+
+      {error ? (
+        <p className="p-6 text-sm text-amber-700">{error}</p>
+      ) : exams.length === 0 ? (
+        <p className="p-6 text-center text-sm text-slate-500">
+          Nenhum exame registrado.
+        </p>
+      ) : (
+        <div className="divide-y">
+          {exams.map((exam) => (
+            <article key={exam.id} className="space-y-3 p-4 sm:p-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h4 className="font-bold">{exam.exam_name}</h4>
+                  <p className="text-sm text-slate-500">
+                    Solicitado em {formatDate(exam.request_date)} por{" "}
+                    {exam.professional_name}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium">
+                    {exam.status}
+                  </span>
+                  <ExamModal
+                    petId={pet.id}
+                    exam={exam}
+                    defaultProfessionalName={professionalName}
+                    onSave={onSave}
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2 text-sm sm:grid-cols-3">
+                <p>
+                  <strong>Coleta:</strong> {formatDate(exam.collection_date)}
+                </p>
+                <p>
+                  <strong>Resultado:</strong> {formatDate(exam.result_date)}
+                </p>
+                <p>
+                  <strong>Laboratório:</strong> {exam.laboratory || "-"}
+                </p>
+              </div>
+              <ClinicalText label="Resultado" value={exam.result} />
+              <ClinicalText label="Observações" value={exam.notes} />
+            </article>
+          ))}
         </div>
       )}
     </section>

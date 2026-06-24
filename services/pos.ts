@@ -1,5 +1,9 @@
 import { supabase } from "@/lib/supabase";
-import type { NewProductInput, Product } from "@/types/domain";
+import type {
+  NewProductInput,
+  NewSupplierInput,
+  Product,
+} from "@/types/domain";
 
 export interface PosCartItem {
   product_id: number;
@@ -11,7 +15,12 @@ export async function fetchProducts() {
 }
 
 export async function createProduct(product: NewProductInput) {
-  return supabase.from("products").insert([product]);
+  return supabase.from("products").insert([
+    {
+      ...product,
+      sku: product.sku || null,
+    },
+  ]);
 }
 
 export async function updateProduct(product: Product) {
@@ -29,6 +38,55 @@ export async function updateProduct(product: Product) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", product.id);
+}
+
+export async function fetchSuppliers() {
+  return supabase.from("suppliers").select("*").order("nome");
+}
+
+export async function createSupplier(supplier: NewSupplierInput) {
+  return supabase.from("suppliers").insert([supplier]);
+}
+
+export async function fetchProductPurchases() {
+  return supabase
+    .from("product_purchases")
+    .select(
+      `
+        *,
+        suppliers (
+          nome
+        )
+      `,
+    )
+    .order("data_compra", { ascending: false })
+    .limit(50);
+}
+
+export async function createProductPurchase({
+  supplierId,
+  documentNumber,
+  purchaseDate,
+  notes,
+  items,
+}: {
+  supplierId: number;
+  documentNumber: string;
+  purchaseDate: string;
+  notes: string;
+  items: Array<{
+    product_id: number;
+    quantidade: number;
+    custo_unitario: number;
+  }>;
+}) {
+  return supabase.rpc("create_product_purchase", {
+    selected_supplier_id: supplierId,
+    document_number: documentNumber,
+    purchase_date: purchaseDate,
+    notes,
+    items,
+  });
 }
 
 export async function fetchPosQuotes() {

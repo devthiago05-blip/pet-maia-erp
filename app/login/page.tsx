@@ -3,6 +3,7 @@
 import { LockKeyhole, Mail } from "lucide-react";
 import { FormEvent, useState } from "react";
 
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -31,8 +32,8 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <div className="w-full max-w-md rounded-2xl border bg-white p-6 shadow-sm sm:p-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-[#8A0EEA]">PET MAIA ERP</h1>
+        <div className="mb-8 text-center">
+          <BrandLogo priority className="mx-auto max-w-[320px]" />
           <p className="mt-2 text-slate-500">
             Entre para acessar o painel administrativo
           </p>

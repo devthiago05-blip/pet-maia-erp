@@ -14,18 +14,35 @@ import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { ProductModal } from "@/components/pos/ProductModal";
+import {
+  type PurchaseInput,
+  PurchaseModal,
+} from "@/components/pos/PurchaseModal";
+import { SupplierModal } from "@/components/pos/SupplierModal";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createPosQuote,
   createPosSale,
   createProduct,
+  createProductPurchase,
+  createSupplier,
   fetchPosQuotes,
+  fetchProductPurchases,
   fetchProducts,
+  fetchSuppliers,
   updateProduct,
 } from "@/services/pos";
 import { fetchTutors } from "@/services/tutors";
-import type { NewProductInput, PosQuote, Product, Tutor } from "@/types/domain";
+import type {
+  NewProductInput,
+  NewSupplierInput,
+  PosQuote,
+  Product,
+  ProductPurchase,
+  Supplier,
+  Tutor,
+} from "@/types/domain";
 
 interface CartItem {
   product: Product;
@@ -35,9 +52,13 @@ interface CartItem {
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [quotes, setQuotes] = useState<PosQuote[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [view, setView] = useState<"sale" | "products" | "quotes">("sale");
+  const [view, setView] = useState<
+    "sale" | "products" | "purchases" | "quotes"
+  >("sale");
   const [search, setSearch] = useState("");
   const [tutorId, setTutorId] = useState("");
   const [customerName, setCustomerName] = useState("");
@@ -70,16 +91,31 @@ export default function PosPage() {
   async function loadData() {
     setLoading(true);
     setLoadError("");
-    const [productsResponse, quotesResponse, tutorsResponse] =
-      await Promise.all([fetchProducts(), fetchPosQuotes(), fetchTutors()]);
+    const [
+      productsResponse,
+      quotesResponse,
+      tutorsResponse,
+      suppliersResponse,
+      purchasesResponse,
+    ] = await Promise.all([
+      fetchProducts(),
+      fetchPosQuotes(),
+      fetchTutors(),
+      fetchSuppliers(),
+      fetchProductPurchases(),
+    ]);
 
     const error =
-      productsResponse.error || quotesResponse.error || tutorsResponse.error;
+      productsResponse.error ||
+      quotesResponse.error ||
+      tutorsResponse.error ||
+      suppliersResponse.error ||
+      purchasesResponse.error;
 
     if (error) {
       console.error(error);
       setLoadError(
-        "Não foi possível carregar o PDV. Verifique se o script 003_pos.sql foi executado.",
+        "Não foi possível carregar o PDV. Verifique se os scripts 003_pos.sql e 004_pos_purchases.sql foram executados.",
       );
       setLoading(false);
       return;
@@ -88,6 +124,8 @@ export default function PosPage() {
     setProducts(productsResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
     setTutors(tutorsResponse.data || []);
+    setSuppliers(suppliersResponse.data || []);
+    setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
     setLoading(false);
   }
 
@@ -229,6 +267,30 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleSupplierSave(supplier: NewSupplierInput) {
+    const { error } = await createSupplier(supplier);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Fornecedor salvo com sucesso!");
+    await loadData();
+  }
+
+  async function handlePurchaseSave(purchase: PurchaseInput) {
+    const { error } = await createProductPurchase(purchase);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Compra registrada e estoque atualizado!");
+    await loadData();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -245,6 +307,16 @@ export default function PosPage() {
               </p>
             </div>
             {view === "products" && <ProductModal onSave={handleProductSave} />}
+            {view === "purchases" && (
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <SupplierModal onSave={handleSupplierSave} />
+                <PurchaseModal
+                  products={products}
+                  suppliers={suppliers}
+                  onSave={handlePurchaseSave}
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 sm:grid-cols-3">
@@ -263,6 +335,7 @@ export default function PosPage() {
             {[
               ["sale", "Venda"],
               ["products", "Produtos"],
+              ["purchases", "Compras"],
               ["quotes", "Orçamentos"],
             ].map(([id, label]) => (
               <button
@@ -315,11 +388,82 @@ export default function PosPage() {
             />
           ) : view === "products" ? (
             <ProductsView products={products} onSave={handleProductSave} />
+          ) : view === "purchases" ? (
+            <PurchasesView purchases={purchases} suppliers={suppliers} />
           ) : (
             <QuotesView quotes={quotes} />
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function PurchasesView({
+  purchases,
+  suppliers,
+}: {
+  purchases: ProductPurchase[];
+  suppliers: Supplier[];
+}) {
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="p-4 text-left">Número</th>
+                <th className="p-4 text-left">Fornecedor</th>
+                <th className="p-4 text-left">Documento</th>
+                <th className="p-4 text-left">Data</th>
+                <th className="p-4 text-left">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchases.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-6 text-center text-slate-500">
+                    Nenhuma compra registrada.
+                  </td>
+                </tr>
+              ) : (
+                purchases.map((purchase) => (
+                  <tr key={purchase.id} className="border-t">
+                    <td className="p-4">
+                      #{String(purchase.id).padStart(6, "0")}
+                    </td>
+                    <td className="p-4">{purchase.suppliers?.nome || "-"}</td>
+                    <td className="p-4">{purchase.numero_documento || "-"}</td>
+                    <td className="p-4">{formatDate(purchase.data_compra)}</td>
+                    <td className="p-4">{formatCurrency(purchase.total)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <aside className="rounded-xl border bg-white p-4">
+        <h2 className="font-bold">Fornecedores</h2>
+        <div className="mt-3 divide-y">
+          {suppliers.length === 0 ? (
+            <p className="py-4 text-sm text-slate-500">
+              Nenhum fornecedor cadastrado.
+            </p>
+          ) : (
+            suppliers.map((supplier) => (
+              <div key={supplier.id} className="py-3">
+                <p className="font-medium">{supplier.nome}</p>
+                <p className="text-xs text-slate-500">
+                  {supplier.contato || supplier.telefone || "Sem contato"}
+                </p>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

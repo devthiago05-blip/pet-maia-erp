@@ -13,7 +13,6 @@ interface ProductModalProps {
 export function ProductModal({ product, onSave }: ProductModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState(product?.nome || "");
-  const [sku, setSku] = useState(product?.sku || "");
   const [categoria, setCategoria] = useState(product?.categoria || "");
   const [precoCusto, setPrecoCusto] = useState(
     String(product?.preco_custo || ""),
@@ -55,7 +54,7 @@ export function ProductModal({ product, onSave }: ProductModalProps) {
       await onSave({
         ...(product ? { id: product.id } : {}),
         nome: nome.trim(),
-        sku: sku.trim() || undefined,
+        sku: product?.sku,
         categoria: categoria.trim() || undefined,
         ...values,
         ativo,
@@ -90,11 +89,14 @@ export function ProductModal({ product, onSave }: ProductModalProps) {
             </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <ProductInput label="Nome" value={nome} onChange={setNome} />
-              <ProductInput
-                label="SKU / Código"
-                value={sku}
-                onChange={setSku}
-              />
+              <label className="grid gap-2 text-sm font-medium">
+                Código
+                <input
+                  readOnly
+                  value={product?.sku || "Gerado automaticamente ao salvar"}
+                  className="rounded-xl border bg-slate-50 p-3 font-normal text-slate-500"
+                />
+              </label>
               <ProductInput
                 label="Categoria"
                 value={categoria}

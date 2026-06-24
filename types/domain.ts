@@ -121,6 +121,31 @@ export interface PosQuote {
   };
 }
 
+export interface Supplier {
+  id: number;
+  nome: string;
+  documento?: string;
+  telefone?: string;
+  email?: string;
+  contato?: string;
+  ativo: boolean;
+  created_at?: string;
+}
+
+export type NewSupplierInput = Omit<Supplier, "id" | "created_at">;
+
+export interface ProductPurchase {
+  id: number;
+  numero_documento?: string;
+  data_compra: string;
+  total: number;
+  observacao?: string;
+  created_at: string;
+  suppliers?: {
+    nome: string;
+  };
+}
+
 export interface NewServiceInput {
   nome: string;
   preco_pequeno: number;

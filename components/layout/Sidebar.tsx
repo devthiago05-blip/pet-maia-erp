@@ -20,6 +20,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import type { AccessModule } from "@/lib/access-control";
 import { cn } from "@/lib/utils";
 
@@ -117,7 +118,7 @@ export function Sidebar() {
       {open && (
         <aside className="fixed top-0 left-0 z-50 h-dvh w-[min(18rem,calc(100vw-2rem))] overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-xl md:hidden">
           <div className="mb-8 flex items-center justify-between gap-4">
-            <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
+            <BrandLogo priority className="max-w-[190px]" />
             <button
               type="button"
               aria-label="Fechar menu"
@@ -127,15 +128,19 @@ export function Sidebar() {
             </button>
           </div>
 
-          <p className="mb-8 text-sm text-gray-500">Gestão Veterinária</p>
+          <p className="mb-8 text-sm text-gray-500">
+            Gestão clínica e comercial
+          </p>
           <MenuItems onNavigate={() => setOpen(false)} />
         </aside>
       )}
 
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-sm md:block lg:w-72 lg:p-6">
         <div className="mb-10">
-          <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
-          <p className="text-sm text-gray-500">Gestão Veterinária</p>
+          <BrandLogo priority className="max-w-[210px]" />
+          <p className="mt-2 text-sm text-gray-500">
+            Gestão clínica e comercial
+          </p>
         </div>
         <MenuItems />
       </aside>

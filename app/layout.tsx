@@ -23,8 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PET MAIA ERP",
-  description: "Gestão inteligente para clínicas e pet shops",
+  title: "Clínica Veterinária Pet Maia",
+  description: "Gestão clínica e comercial da Clínica Veterinária Pet Maia",
 };
 
 export default function RootLayout({

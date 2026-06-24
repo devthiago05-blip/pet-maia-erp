@@ -3,6 +3,7 @@
 import { Printer, X } from "lucide-react";
 import { useState } from "react";
 
+import { BrandLogo } from "@/components/branding/BrandLogo";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FinancialEntry } from "@/types/domain";
 
@@ -41,9 +42,7 @@ export function ReceiptModal({ entry }: ReceiptModalProps) {
 
             <div className="receipt-print-area space-y-6 p-5 sm:p-8">
               <div className="border-b pb-5 text-center">
-                <h1 className="text-2xl font-bold text-[#8A0EEA]">
-                  PET MAIA ERP
-                </h1>
+                <BrandLogo className="mx-auto max-w-[260px]" />
                 <p className="mt-1 text-sm text-slate-500">
                   Comprovante de recebimento
                 </p>

@@ -3,11 +3,14 @@
 import { Bell, CalendarDays, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { useAccess } from "@/components/auth/AccessContext";
 import { supabase } from "@/lib/supabase";
 
 export function Header() {
   const router = useRouter();
+  const { profile } = useAccess();
   const today = new Date().toLocaleDateString("pt-BR");
+  const initial = profile?.nome?.trim().charAt(0).toUpperCase() || "U";
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -42,12 +45,14 @@ export function Header() {
 
           <div className="hidden items-center gap-3 sm:flex">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8A0EEA] font-bold text-white">
-              T
+              {initial}
             </div>
 
             <div className="hidden lg:block">
-              <p className="font-medium">Thiago</p>
-              <p className="text-xs text-slate-500">Administrador</p>
+              <p className="font-medium">{profile?.nome || "Usuário"}</p>
+              <p className="text-xs text-slate-500">
+                {profile?.is_admin ? "Administrador" : "Usuário"}
+              </p>
             </div>
           </div>
 

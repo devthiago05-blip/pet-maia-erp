@@ -1,3 +1,20 @@
+import type { AccessModule } from "@/lib/access-control";
+
+export interface UserPermission {
+  module: AccessModule;
+  can_access: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  nome: string;
+  email: string;
+  ativo: boolean;
+  is_admin: boolean;
+  created_at?: string;
+  user_permissions?: UserPermission[];
+}
+
 export interface Tutor {
   id: number;
   nome: string;

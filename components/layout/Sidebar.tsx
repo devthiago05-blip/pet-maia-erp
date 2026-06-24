@@ -8,87 +8,78 @@ import {
   Receipt,
   Scissors,
   Settings,
+  UserCog,
   Users,
   Wallet,
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 
+import { useAccess } from "@/components/auth/AccessContext";
+import type { AccessModule } from "@/lib/access-control";
+import { cn } from "@/lib/utils";
+
+const menuItems: Array<{
+  href: string;
+  label: string;
+  module: AccessModule;
+  icon: typeof LayoutDashboard;
+}> = [
+  { href: "/", label: "Dashboard", module: "dashboard", icon: LayoutDashboard },
+  { href: "/tutors", label: "Tutores", module: "tutores", icon: Users },
+  { href: "/pets", label: "Pets", module: "pets", icon: PawPrint },
+  { href: "/services", label: "Serviços", module: "servicos", icon: Scissors },
+  { href: "/agenda", label: "Agenda", module: "agenda", icon: CalendarDays },
+  {
+    href: "/financeiro",
+    label: "Financeiro",
+    module: "financeiro",
+    icon: Wallet,
+  },
+  { href: "/receipts", label: "Recibos", module: "recibos", icon: Receipt },
+  {
+    href: "/settings",
+    label: "Configurações",
+    module: "configuracoes",
+    icon: Settings,
+  },
+  { href: "/usuarios", label: "Usuários", module: "usuarios", icon: UserCog },
+];
+
 function MenuItems({ onNavigate }: { onNavigate?: () => void }) {
+  const pathname = usePathname();
+  const { canAccess } = useAccess();
+
   return (
     <nav className="flex flex-col gap-2">
-      <Link
-        href="/"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl bg-purple-50 px-4 py-3 font-medium text-[#8A0EEA]"
-      >
-        <LayoutDashboard size={20} />
-        Dashboard
-      </Link>
+      {menuItems
+        .filter((item) => canAccess(item.module))
+        .map((item) => {
+          const Icon = item.icon;
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-      <Link
-        href="/tutors"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <Users size={20} />
-        Tutores
-      </Link>
-
-      <Link
-        href="/pets"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <PawPrint size={20} />
-        Pets
-      </Link>
-
-      <Link
-        href="/services"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <Scissors size={20} />
-        Serviços
-      </Link>
-
-      <Link
-        href="/agenda"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <CalendarDays size={20} />
-        Agenda
-      </Link>
-
-      <Link
-        href="/financeiro"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <Wallet size={20} />
-        Financeiro
-      </Link>
-
-      <Link
-        href="/receipts"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <Receipt size={20} />
-        Recibos
-      </Link>
-
-      <Link
-        href="/settings"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
-      >
-        <Settings size={20} />
-        Configurações
-      </Link>
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={onNavigate}
+              className={cn(
+                "flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition",
+                isActive
+                  ? "bg-purple-50 text-[#8A0EEA]"
+                  : "text-slate-700 hover:bg-slate-100",
+              )}
+            >
+              <Icon size={20} />
+              {item.label}
+            </Link>
+          );
+        })}
     </nav>
   );
 }
@@ -118,7 +109,6 @@ export function Sidebar() {
         <aside className="fixed top-0 left-0 z-50 h-dvh w-[min(18rem,calc(100vw-2rem))] overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-xl md:hidden">
           <div className="mb-8 flex items-center justify-between gap-4">
             <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
-
             <button
               type="button"
               aria-label="Fechar menu"
@@ -129,7 +119,6 @@ export function Sidebar() {
           </div>
 
           <p className="mb-8 text-sm text-gray-500">Gestão Veterinária</p>
-
           <MenuItems onNavigate={() => setOpen(false)} />
         </aside>
       )}
@@ -139,7 +128,6 @@ export function Sidebar() {
           <h2 className="text-2xl font-bold text-[#8A0EEA]">PET MAIA ERP</h2>
           <p className="text-sm text-gray-500">Gestão Veterinária</p>
         </div>
-
         <MenuItems />
       </aside>
     </>

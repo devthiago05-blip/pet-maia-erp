@@ -127,18 +127,24 @@ export default function ReceiptsPage() {
               <option>Pago</option>
               <option>Pendente</option>
             </select>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-              className="rounded-xl border p-3"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
-              className="rounded-xl border p-3"
-            />
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Data inicial
+              <input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Data final
+              <input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+              />
+            </label>
           </div>
 
           {loading ? (

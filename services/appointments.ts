@@ -17,6 +17,15 @@ export async function fetchAppointments() {
   );
 }
 
+export async function fetchAppointmentsByPet(petId: number) {
+  return supabase
+    .from("appointments")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("data", { ascending: false })
+    .order("hora", { ascending: false });
+}
+
 export async function createAppointment(
   appointment: NewAppointmentInput,
   petId: number,

@@ -16,6 +16,14 @@ export async function fetchRecentFinancialEntries() {
     .limit(5);
 }
 
+export async function fetchFinancialEntriesByPet(petName: string) {
+  return supabase
+    .from("financial_entries")
+    .select("*")
+    .ilike("descricao", `% - ${petName}`)
+    .order("created_at", { ascending: false });
+}
+
 export async function fetchPaidRevenueValues() {
   return supabase
     .from("financial_entries")

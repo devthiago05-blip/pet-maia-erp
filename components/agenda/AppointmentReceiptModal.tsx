@@ -2,12 +2,12 @@
 
 import { Check, Copy, MessageCircle, Share2, X } from "lucide-react";
 import Image from "next/image";
-import { payload } from "pix-payload";
 import QRCode from "qrcode";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/formatters";
+import { createPixPayload } from "@/lib/pix";
 import type { Appointment, ClinicSettings } from "@/types/domain";
 
 interface AppointmentReceiptModalProps {
@@ -39,19 +39,33 @@ export function AppointmentReceiptModal({
       clinicSettings.pix_city,
     );
 
-  const pixCode = useMemo(() => {
+  const pixResult = useMemo(() => {
     if (!canGeneratePix || !clinicSettings) {
-      return "";
+      return { code: "", error: "" };
     }
 
-    return payload({
-      key: clinicSettings.pix_key || "",
-      name: clinicSettings.pix_recipient_name || "",
-      city: clinicSettings.pix_city || "",
-      amount: valor,
-      transactionId: `PET${appointment.id}`,
-    });
+    try {
+      return {
+        code: createPixPayload({
+          key: clinicSettings.pix_key || "",
+          name: clinicSettings.pix_recipient_name || "",
+          city: clinicSettings.pix_city || "",
+          amount: valor,
+          transactionId: `PET${appointment.id}`,
+        }),
+        error: "",
+      };
+    } catch (error) {
+      return {
+        code: "",
+        error:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível gerar o PIX.",
+      };
+    }
   }, [appointment.id, canGeneratePix, clinicSettings, valor]);
+  const pixCode = pixResult.code;
 
   useEffect(() => {
     if (!pixCode) {
@@ -179,7 +193,11 @@ export function AppointmentReceiptModal({
             </p>
           </div>
 
-          {canGeneratePix && qrCodeUrl ? (
+          {pixResult.error ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {pixResult.error} Revise os dados em Configurações.
+            </div>
+          ) : canGeneratePix && qrCodeUrl ? (
             <div className="text-center">
               <Image
                 src={qrCodeUrl}

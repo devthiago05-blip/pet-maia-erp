@@ -149,19 +149,25 @@ export function NewAppointmentModal({
                 )}
               </div>
 
-              <input
-                type="date"
-                value={data}
-                onChange={(event) => setData(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              />
+              <label className="grid gap-2 text-sm font-medium">
+                Data do agendamento
+                <input
+                  type="date"
+                  value={data}
+                  onChange={(event) => setData(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                />
+              </label>
 
-              <input
-                type="time"
-                value={hora}
-                onChange={(event) => setHora(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              />
+              <label className="grid gap-2 text-sm font-medium">
+                Horário
+                <input
+                  type="time"
+                  value={hora}
+                  onChange={(event) => setHora(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                />
+              </label>
 
               <select
                 value={status}

@@ -1,16 +1,115 @@
 "use client";
 
 import { Bell, CalendarDays, LogOut } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/lib/supabase";
+import {
+  fetchPendingFinancialNotifications,
+  fetchTodayPendingAppointments,
+} from "@/services/notifications";
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  href: string;
+}
+
+interface AppointmentNotificationRow {
+  id: number;
+  hora: string;
+  servico: string;
+  pets?: {
+    nome?: string;
+  } | null;
+}
+
+const pageTitles: Record<string, string> = {
+  "/": "Dashboard",
+  "/agenda": "Agenda",
+  "/financeiro": "Financeiro",
+  "/pets": "Pets",
+  "/receipts": "Recibos",
+  "/relatorios": "Relatórios",
+  "/services": "Serviços",
+  "/settings": "Configurações",
+  "/tutors": "Tutores",
+  "/usuarios": "Usuários",
+};
 
 export function Header() {
+  const pathname = usePathname();
   const router = useRouter();
-  const { profile } = useAccess();
+  const { profile, canAccess } = useAccess();
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const today = new Date().toLocaleDateString("pt-BR");
+  const todayIso = new Date().toLocaleDateString("en-CA");
   const initial = profile?.nome?.trim().charAt(0).toUpperCase() || "U";
+  const route = Object.keys(pageTitles)
+    .filter((item) => item !== "/")
+    .find((item) => pathname === item || pathname.startsWith(`${item}/`));
+  const pageTitle = route
+    ? pageTitles[route]
+    : pageTitles[pathname] || "PET MAIA ERP";
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadNotifications() {
+      const [appointmentsResponse, financialResponse] = await Promise.all([
+        canAccess("agenda")
+          ? fetchTodayPendingAppointments(todayIso)
+          : Promise.resolve({ data: [], error: null }),
+        canAccess("financeiro")
+          ? fetchPendingFinancialNotifications()
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (!active) {
+        return;
+      }
+
+      if (appointmentsResponse.error) {
+        console.error(appointmentsResponse.error);
+      }
+
+      if (financialResponse.error) {
+        console.error(financialResponse.error);
+      }
+
+      const appointmentItems: NotificationItem[] = (
+        (appointmentsResponse.data ||
+          []) as unknown as AppointmentNotificationRow[]
+      ).map((appointment) => ({
+        id: `appointment-${appointment.id}`,
+        title: `${appointment.hora} · ${appointment.pets?.nome || "Pet"}`,
+        description: appointment.servico,
+        href: "/agenda",
+      }));
+      const financialItems: NotificationItem[] = (
+        financialResponse.data || []
+      ).map((entry) => ({
+        id: `financial-${entry.id}`,
+        title: "Pagamento pendente",
+        description: `${entry.descricao} · ${formatCurrency(entry.valor)}`,
+        href: "/financeiro",
+      }));
+
+      setNotifications([...appointmentItems, ...financialItems]);
+    }
+
+    loadNotifications();
+
+    return () => {
+      active = false;
+    };
+  }, [canAccess, todayIso]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -18,11 +117,11 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-slate-200 bg-white py-3 pr-4 pl-16 sm:py-4 md:pl-8">
+    <header className="relative border-b border-slate-200 bg-white py-3 pr-4 pl-16 sm:py-4 md:pl-8">
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
-            Dashboard
+            {pageTitle}
           </h1>
           <p className="truncate text-xs text-slate-500 sm:text-sm">
             Bem-vindo ao PET MAIA ERP
@@ -35,19 +134,61 @@ export function Header() {
             <span>{today}</span>
           </div>
 
-          <button type="button" className="relative">
-            <Bell size={20} />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen((current) => !current)}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100"
+              aria-label="Abrir notificações"
+              aria-expanded={notificationsOpen}
+            >
+              <Bell size={20} />
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF7A00] px-1 text-xs text-white">
+                  {notifications.length > 9 ? "9+" : notifications.length}
+                </span>
+              )}
+            </button>
 
-            <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF7A00] text-xs text-white">
-              3
-            </span>
-          </button>
+            {notificationsOpen && (
+              <div className="absolute top-12 right-0 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border bg-white shadow-xl">
+                <div className="border-b p-4">
+                  <p className="font-bold">Notificações</p>
+                  <p className="text-xs text-slate-500">
+                    Agenda de hoje e pagamentos pendentes
+                  </p>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="p-5 text-center text-sm text-slate-500">
+                      Nenhuma notificação no momento.
+                    </p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <Link
+                        key={notification.id}
+                        href={notification.href}
+                        onClick={() => setNotificationsOpen(false)}
+                        className="block border-b p-4 transition last:border-b-0 hover:bg-slate-50"
+                      >
+                        <p className="text-sm font-semibold">
+                          {notification.title}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500">
+                          {notification.description}
+                        </p>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="hidden items-center gap-3 sm:flex">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8A0EEA] font-bold text-white">
               {initial}
             </div>
-
             <div className="hidden lg:block">
               <p className="font-medium">{profile?.nome || "Usuário"}</p>
               <p className="text-xs text-slate-500">

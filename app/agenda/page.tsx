@@ -341,20 +341,24 @@ export default function AgendaPage() {
                 className="min-w-0 flex-1 py-3 outline-none"
               />
             </label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(event) => setStartDate(event.target.value)}
-              aria-label="Data inicial"
-              className="rounded-xl border p-3"
-            />
-            <input
-              type="date"
-              value={endDate}
-              onChange={(event) => setEndDate(event.target.value)}
-              aria-label="Data final"
-              className="rounded-xl border p-3"
-            />
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Data inicial
+              <input
+                type="date"
+                value={startDate}
+                onChange={(event) => setStartDate(event.target.value)}
+                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Data final
+              <input
+                type="date"
+                value={endDate}
+                onChange={(event) => setEndDate(event.target.value)}
+                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+              />
+            </label>
             <select
               value={filterStatus}
               onChange={(event) => setFilterStatus(event.target.value)}

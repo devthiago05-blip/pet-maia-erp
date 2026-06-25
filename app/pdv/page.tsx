@@ -24,6 +24,7 @@ import {
 } from "@/lib/formatters";
 import {
   archiveProduct,
+  cancelPosSale,
   convertPosQuote,
   createPosQuote,
   createPosSale,
@@ -390,6 +391,18 @@ export default function PosPage() {
     setView("sales");
   }
 
+  async function handleSaleCancel(saleId: number) {
+    const { error } = await cancelPosSale(saleId);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Venda excluída e estoque devolvido!");
+    await loadData();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -506,7 +519,7 @@ export default function PosPage() {
           ) : view === "quotes" ? (
             <QuotesView quotes={quotes} onConvert={handleQuoteConvert} />
           ) : (
-            <SalesView sales={sales} />
+            <SalesView sales={sales} onCancel={handleSaleCancel} />
           )}
         </div>
       </main>
@@ -975,58 +988,124 @@ function QuotesView({
   );
 }
 
-function SalesView({ sales }: { sales: PosSale[] }) {
+function SalesView({
+  sales,
+  onCancel,
+}: {
+  sales: PosSale[];
+  onCancel: (saleId: number) => Promise<void>;
+}) {
+  const [saleToCancel, setSaleToCancel] = useState<PosSale | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function handleConfirmCancel() {
+    if (!saleToCancel) {
+      return;
+    }
+
+    setCancelling(true);
+    try {
+      await onCancel(saleToCancel.id);
+      setSaleToCancel(null);
+    } catch {
+      return;
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
-    <div className="overflow-hidden rounded-xl border bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px]">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="p-4 text-left">Número</th>
-              <th className="p-4 text-left">Cliente</th>
-              <th className="p-4 text-left">Data</th>
-              <th className="p-4 text-left">Pagamento</th>
-              <th className="p-4 text-left">Total</th>
-              <th className="p-4 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sales.length === 0 ? (
+    <>
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px]">
+            <thead className="bg-slate-50">
               <tr>
-                <td colSpan={6} className="p-6 text-center text-slate-500">
-                  Nenhuma venda registrada.
-                </td>
+                <th className="p-4 text-left">Número</th>
+                <th className="p-4 text-left">Cliente</th>
+                <th className="p-4 text-left">Data</th>
+                <th className="p-4 text-left">Pagamento</th>
+                <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-left">Total</th>
+                <th className="p-4 text-left">Ações</th>
               </tr>
-            ) : (
-              sales.map((sale) => (
-                <tr key={sale.id} className="border-t">
-                  <td className="p-4">#{String(sale.id).padStart(6, "0")}</td>
-                  <td className="p-4">
-                    {sale.tutors?.nome || sale.cliente_nome || "Consumidor"}
-                  </td>
-                  <td className="p-4">{formatDate(sale.created_at)}</td>
-                  <td className="p-4">{sale.forma_pagamento}</td>
-                  <td className="p-4">{formatCurrency(sale.total)}</td>
-                  <td className="p-4">
-                    <PosDocumentModal
-                      type="Venda"
-                      number={sale.id}
-                      customer={
-                        sale.tutors?.nome || sale.cliente_nome || "Consumidor"
-                      }
-                      date={sale.created_at}
-                      paymentMethod={sale.forma_pagamento}
-                      total={sale.total}
-                      items={sale.pos_sale_items || []}
-                    />
+            </thead>
+            <tbody>
+              {sales.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                    Nenhuma venda registrada.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                sales.map((sale) => (
+                  <tr key={sale.id} className="border-t">
+                    <td className="p-4">#{String(sale.id).padStart(6, "0")}</td>
+                    <td className="p-4">
+                      {sale.tutors?.nome || sale.cliente_nome || "Consumidor"}
+                    </td>
+                    <td className="p-4">{formatDate(sale.created_at)}</td>
+                    <td className="p-4">{sale.forma_pagamento}</td>
+                    <td className="p-4">
+                      <span
+                        className={
+                          sale.status === "Cancelada"
+                            ? "text-red-600"
+                            : "text-emerald-600"
+                        }
+                      >
+                        {sale.status || "Concluída"}
+                      </span>
+                    </td>
+                    <td className="p-4">{formatCurrency(sale.total)}</td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap gap-3">
+                        <PosDocumentModal
+                          type="Venda"
+                          number={sale.id}
+                          customer={
+                            sale.tutors?.nome ||
+                            sale.cliente_nome ||
+                            "Consumidor"
+                          }
+                          date={sale.created_at}
+                          paymentMethod={sale.forma_pagamento}
+                          status={sale.status || "Concluída"}
+                          total={sale.total}
+                          items={sale.pos_sale_items || []}
+                        />
+                        {sale.status !== "Cancelada" && (
+                          <button
+                            type="button"
+                            onClick={() => setSaleToCancel(sale)}
+                            className="text-red-600"
+                          >
+                            Excluir venda
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+
+      <ConfirmationDialog
+        isOpen={Boolean(saleToCancel)}
+        title="Excluir venda"
+        description={`Deseja excluir a venda #${String(saleToCancel?.id || 0).padStart(6, "0")}? Os produtos voltarão ao estoque e a receita será removida do Financeiro.`}
+        confirmText={cancelling ? "Excluindo..." : "Excluir venda"}
+        onConfirm={handleConfirmCancel}
+        onCancel={() => {
+          if (!cancelling) {
+            setSaleToCancel(null);
+          }
+        }}
+      />
+    </>
   );
 }
 

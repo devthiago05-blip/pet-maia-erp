@@ -269,6 +269,7 @@ export interface PosSale {
   cliente_nome?: string;
   total: number;
   forma_pagamento: string;
+  status?: "Concluída" | "Cancelada";
   created_at: string;
   tutors?: {
     nome: string;

@@ -31,6 +31,8 @@
 - Módulo Clínica visível na sidebar e na gestão de permissões.
 - Página Clínica com pacientes, retornos, vacinas e acesso ao prontuário.
 - Exames clínicos com solicitação, coleta, laboratório, status e resultado.
+- Exclusão auditável de vendas com devolução integral ao estoque.
+- Receita financeira da venda removida automaticamente ao cancelar.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -68,6 +70,7 @@
 - `supabase/sql/009_clinical_vaccines.sql`
 - `supabase/sql/010_clinic_module_access.sql`
 - `supabase/sql/011_clinical_exams.sql`
+- `supabase/sql/012_pos_sale_cancellation.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -101,9 +104,12 @@ Arquivos padrão removidos:
 18. Testar o item Clínica no menu e as permissões de usuário.
 19. Executar `supabase/sql/011_clinical_exams.sql`.
 20. Testar solicitação e atualização do resultado de exame.
-21. Aplicar RLS por módulo nas tabelas antigas do ERP.
-22. Criar testes automatizados para vendas, compras e estoque.
-23. Continuar Clínica com documentos clínicos.
+21. Executar `supabase/sql/012_pos_sale_cancellation.sql`.
+22. Testar exclusão de venda, devolução de estoque e remoção da receita.
+23. Aplicar RLS por módulo nas tabelas antigas do ERP.
+24. Criar testes automatizados para vendas, compras e estoque.
+25. Criar módulos CRM e BI.
+26. Continuar Clínica com documentos clínicos.
 
 ## Próximos passos
 

@@ -175,6 +175,12 @@ export async function convertPosQuote(quoteId: number, paymentMethod: string) {
   });
 }
 
+export async function cancelPosSale(saleId: number) {
+  return supabase.rpc("cancel_pos_sale", {
+    selected_sale_id: saleId,
+  });
+}
+
 export async function createPosQuote({
   tutorId,
   customerName,

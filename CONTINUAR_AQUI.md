@@ -35,6 +35,8 @@
 - Receita financeira da venda removida automaticamente ao cancelar.
 - Módulo CRM com histórico de contatos e próximas ações por tutor.
 - Módulo BI com indicadores financeiros, operacionais, PDV e estoque.
+- BI visual com gráficos de evolução financeira, atendimentos, pagamentos,
+  produtos vendidos e estoque crítico.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 

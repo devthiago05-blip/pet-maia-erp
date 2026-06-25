@@ -116,6 +116,51 @@ export default function BiPage() {
       .sort((first, second) => second[1] - first[1])
       .slice(0, 6);
   })();
+  const appointmentStatus = ["Agendado", "Finalizado", "Cancelado"].map(
+    (status) => ({
+      label: status,
+      value: periodAppointments.filter(
+        (appointment) => appointment.status === status,
+      ).length,
+    }),
+  );
+  const paymentMethods = Array.from(
+    periodEntries
+      .filter((entry) => entry.tipo === "Receita")
+      .reduce((ranking, entry) => {
+        const method = entry.forma_pagamento || "Não informado";
+        ranking.set(method, (ranking.get(method) || 0) + Number(entry.valor));
+        return ranking;
+      }, new Map<string, number>()),
+  ).sort((first, second) => second[1] - first[1]);
+  const monthlyFinancial = Array.from(
+    periodEntries.reduce((months, entry) => {
+      const month = entry.created_at?.slice(0, 7);
+
+      if (!month) {
+        return months;
+      }
+
+      const current = months.get(month) || { revenue: 0, expenses: 0 };
+      if (entry.tipo === "Receita" && entry.status_pagamento === "Pago") {
+        current.revenue += Number(entry.valor);
+      }
+      if (entry.tipo === "Despesa" && entry.status_pagamento === "Pago") {
+        current.expenses += Number(entry.valor);
+      }
+      months.set(month, current);
+      return months;
+    }, new Map<string, { revenue: number; expenses: number }>()),
+  )
+    .sort(([first], [second]) => first.localeCompare(second))
+    .slice(-6)
+    .map(([month, values]) => ({
+      label: new Date(`${month}-01T00:00:00`).toLocaleDateString("pt-BR", {
+        month: "short",
+        year: "2-digit",
+      }),
+      ...values,
+    }));
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
@@ -209,19 +254,41 @@ export default function BiPage() {
               </div>
 
               <div className="grid gap-6 xl:grid-cols-2">
-                <BiList
+                <ComparisonChart
+                  title="Evolução financeira"
+                  items={monthlyFinancial}
+                />
+                <BarChart
+                  title="Status dos atendimentos"
+                  items={appointmentStatus}
+                  colors={["bg-amber-500", "bg-emerald-500", "bg-red-500"]}
+                />
+                <BarChart
                   title="Produtos mais vendidos"
                   items={topProducts.map(([label, value]) => ({
                     label,
-                    value: `${value} un.`,
+                    value,
                   }))}
+                  valueSuffix=" un."
+                  colors={["bg-[#8A0EEA]", "bg-blue-500", "bg-emerald-500"]}
                 />
-                <BiList
+                <BarChart
+                  title="Receitas por pagamento"
+                  items={paymentMethods.map(([label, value]) => ({
+                    label,
+                    value,
+                  }))}
+                  valueFormatter={formatCurrency}
+                  colors={["bg-emerald-500", "bg-blue-500", "bg-amber-500"]}
+                />
+                <BarChart
                   title="Produtos com estoque baixo"
                   items={lowStock.slice(0, 8).map((product) => ({
                     label: product.nome,
-                    value: `${product.estoque} un.`,
+                    value: product.estoque,
                   }))}
+                  valueSuffix=" un."
+                  colors={["bg-red-500", "bg-amber-500"]}
                 />
               </div>
             </>
@@ -250,31 +317,118 @@ function BiCard({
   );
 }
 
-function BiList({
+function BarChart({
   title,
   items,
+  colors,
+  valueSuffix = "",
+  valueFormatter,
 }: {
   title: string;
-  items: Array<{ label: string; value: string }>;
+  items: Array<{ label: string; value: number }>;
+  colors: string[];
+  valueSuffix?: string;
+  valueFormatter?: (value: number) => string;
 }) {
+  const maximum = Math.max(...items.map((item) => item.value), 1);
+
   return (
     <section className="rounded-xl border bg-white p-4 sm:p-6">
       <h2 className="text-lg font-bold">{title}</h2>
-      <div className="mt-4 divide-y">
+      <div className="mt-5 space-y-4">
         {items.length === 0 ? (
           <p className="py-4 text-sm text-slate-500">Nenhum dado no período.</p>
         ) : (
-          items.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between gap-4 py-3"
-            >
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
+          items.map((item, index) => (
+            <div key={item.label}>
+              <div className="mb-1 flex items-center justify-between gap-4 text-sm">
+                <span className="min-w-0 truncate">{item.label}</span>
+                <strong className="shrink-0">
+                  {valueFormatter
+                    ? valueFormatter(item.value)
+                    : `${item.value}${valueSuffix}`}
+                </strong>
+              </div>
+              <div className="h-3 overflow-hidden rounded bg-slate-100">
+                <div
+                  className={`h-full rounded ${colors[index % colors.length]}`}
+                  style={{
+                    width: `${Math.max((item.value / maximum) * 100, item.value > 0 ? 3 : 0)}%`,
+                  }}
+                />
+              </div>
             </div>
           ))
         )}
       </div>
     </section>
+  );
+}
+
+function ComparisonChart({
+  title,
+  items,
+}: {
+  title: string;
+  items: Array<{ label: string; revenue: number; expenses: number }>;
+}) {
+  const maximum = Math.max(
+    ...items.flatMap((item) => [item.revenue, item.expenses]),
+    1,
+  );
+
+  return (
+    <section className="rounded-xl border bg-white p-4 sm:p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="text-lg font-bold">{title}</h2>
+        <div className="flex gap-4 text-xs">
+          <ChartLegend color="bg-emerald-500" label="Receitas" />
+          <ChartLegend color="bg-red-500" label="Despesas" />
+        </div>
+      </div>
+      {items.length === 0 ? (
+        <p className="mt-5 py-4 text-sm text-slate-500">
+          Nenhum dado no período.
+        </p>
+      ) : (
+        <div className="mt-5 flex h-64 items-end gap-3 border-b border-slate-200 px-1">
+          {items.map((item) => (
+            <div
+              key={item.label}
+              className="flex min-w-0 flex-1 flex-col items-center gap-2"
+            >
+              <div className="flex h-52 w-full items-end justify-center gap-1">
+                <div
+                  title={`Receitas: ${formatCurrency(item.revenue)}`}
+                  className="w-[38%] max-w-8 rounded-t bg-emerald-500"
+                  style={{
+                    height: `${Math.max((item.revenue / maximum) * 100, item.revenue > 0 ? 3 : 0)}%`,
+                  }}
+                />
+                <div
+                  title={`Despesas: ${formatCurrency(item.expenses)}`}
+                  className="w-[38%] max-w-8 rounded-t bg-red-500"
+                  style={{
+                    height: `${Math.max((item.expenses / maximum) * 100, item.expenses > 0 ? 3 : 0)}%`,
+                  }}
+                />
+              </div>
+              <span className="w-full truncate text-center text-xs text-slate-500">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ChartLegend({ color, label }: { color: string; label: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className={`h-2.5 w-2.5 rounded-sm ${color}`} />
+      {label}
+    </span>
   );
 }

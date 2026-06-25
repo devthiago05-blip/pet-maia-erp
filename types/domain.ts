@@ -171,6 +171,35 @@ export interface ClinicalExamInput {
   professionalName: string;
 }
 
+export interface CrmInteraction {
+  id: number;
+  tutor_id: number;
+  contact_date: string;
+  channel: string;
+  subject: string;
+  notes?: string;
+  next_action_date?: string;
+  status: "Aberto" | "Concluído";
+  responsible_name: string;
+  created_at: string;
+}
+
+export interface CrmInteractionInput {
+  tutorId: number;
+  contactDate: string;
+  channel: string;
+  subject: string;
+  notes?: string;
+  nextActionDate?: string;
+  status: CrmInteraction["status"];
+  responsibleName: string;
+}
+
+export interface CrmTutor extends Omit<Tutor, "pets"> {
+  pets?: Array<{ id: number; nome: string }>;
+  crm_interactions?: CrmInteraction[];
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

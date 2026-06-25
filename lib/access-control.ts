@@ -9,6 +9,8 @@ export const accessModules = [
   "relatorios",
   "pdv",
   "clinica",
+  "crm",
+  "bi",
   "configuracoes",
   "usuarios",
 ] as const;
@@ -26,6 +28,8 @@ export const accessModuleLabels: Record<AccessModule, string> = {
   relatorios: "Relatórios",
   pdv: "PDV",
   clinica: "Clínica",
+  crm: "CRM",
+  bi: "BI",
   configuracoes: "Configurações",
   usuarios: "Usuários",
 };
@@ -41,6 +45,8 @@ export const routeAccess: Record<string, AccessModule> = {
   "/relatorios": "relatorios",
   "/pdv": "pdv",
   "/clinica": "clinica",
+  "/crm": "crm",
+  "/bi": "bi",
   "/settings": "configuracoes",
   "/usuarios": "usuarios",
 };

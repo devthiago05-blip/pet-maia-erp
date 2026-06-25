@@ -33,6 +33,8 @@
 - Exames clínicos com solicitação, coleta, laboratório, status e resultado.
 - Exclusão auditável de vendas com devolução integral ao estoque.
 - Receita financeira da venda removida automaticamente ao cancelar.
+- Módulo CRM com histórico de contatos e próximas ações por tutor.
+- Módulo BI com indicadores financeiros, operacionais, PDV e estoque.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -43,6 +45,8 @@
 - `app/pdv/page.tsx`
 - `app/pets/[id]/page.tsx`
 - `app/clinica/page.tsx`
+- `app/crm/page.tsx`
+- `app/bi/page.tsx`
 - `components/pos/CategoryModal.tsx`
 - `components/pos/ProductSelectionModal.tsx`
 - `components/pos/PosDocumentModal.tsx`
@@ -52,6 +56,7 @@
 - `components/clinic/PrescriptionDocumentModal.tsx`
 - `components/clinic/VaccinationModal.tsx`
 - `components/clinic/ExamModal.tsx`
+- `components/crm/InteractionModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
@@ -71,6 +76,7 @@
 - `supabase/sql/010_clinic_module_access.sql`
 - `supabase/sql/011_clinical_exams.sql`
 - `supabase/sql/012_pos_sale_cancellation.sql`
+- `supabase/sql/013_crm_bi_modules.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -106,10 +112,12 @@ Arquivos padrão removidos:
 20. Testar solicitação e atualização do resultado de exame.
 21. Executar `supabase/sql/012_pos_sale_cancellation.sql`.
 22. Testar exclusão de venda, devolução de estoque e remoção da receita.
-23. Aplicar RLS por módulo nas tabelas antigas do ERP.
-24. Criar testes automatizados para vendas, compras e estoque.
-25. Criar módulos CRM e BI.
-26. Continuar Clínica com documentos clínicos.
+23. Executar `supabase/sql/013_crm_bi_modules.sql`.
+24. Liberar CRM e BI nas permissões dos usuários necessários.
+25. Testar contato no CRM e os indicadores do BI.
+26. Aplicar RLS por módulo nas tabelas antigas do ERP.
+27. Criar testes automatizados para vendas, compras e estoque.
+28. Continuar Clínica com documentos clínicos.
 
 ## Próximos passos
 

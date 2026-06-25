@@ -3,6 +3,8 @@
 import {
   BarChart3,
   CalendarDays,
+  ChartNoAxesCombined,
+  Handshake,
   LayoutDashboard,
   Menu,
   PawPrint,
@@ -56,6 +58,8 @@ const menuItems: Array<{
     module: "clinica",
     icon: Stethoscope,
   },
+  { href: "/crm", label: "CRM", module: "crm", icon: Handshake },
+  { href: "/bi", label: "BI", module: "bi", icon: ChartNoAxesCombined },
   {
     href: "/settings",
     label: "Configurações",

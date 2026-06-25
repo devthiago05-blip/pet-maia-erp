@@ -35,6 +35,7 @@
 - Receita financeira da venda removida automaticamente ao cancelar.
 - Módulo CRM com histórico de contatos e próximas ações por tutor.
 - Módulo BI com indicadores financeiros, operacionais, PDV e estoque.
+- Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
 ## Arquivos modificados
@@ -56,6 +57,7 @@
 - `components/clinic/PrescriptionDocumentModal.tsx`
 - `components/clinic/VaccinationModal.tsx`
 - `components/clinic/ExamModal.tsx`
+- `components/clinic/ClinicalDocumentModal.tsx`
 - `components/crm/InteractionModal.tsx`
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
@@ -77,6 +79,7 @@
 - `supabase/sql/011_clinical_exams.sql`
 - `supabase/sql/012_pos_sale_cancellation.sql`
 - `supabase/sql/013_crm_bi_modules.sql`
+- `supabase/sql/014_clinical_documents.sql`
 - `types/domain.ts`
 
 Arquivos padrão removidos:
@@ -115,18 +118,19 @@ Arquivos padrão removidos:
 23. Executar `supabase/sql/013_crm_bi_modules.sql`.
 24. Liberar CRM e BI nas permissões dos usuários necessários.
 25. Testar contato no CRM e os indicadores do BI.
-26. Aplicar RLS por módulo nas tabelas antigas do ERP.
-27. Criar testes automatizados para vendas, compras e estoque.
-28. Continuar Clínica com documentos clínicos.
+26. Executar `supabase/sql/014_clinical_documents.sql`.
+27. Testar emissão e impressão de documento clínico.
+28. Aplicar RLS por módulo nas tabelas antigas do ERP.
+29. Criar testes automatizados para vendas, compras e estoque.
+30. Continuar Clínica com anexos e internação.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. Clínica: documentos e atestados veterinários.
-3. Clínica: anexos de exames via Supabase Storage.
-4. Clínica: internação em bloco posterior.
-5. PDV: cancelamento de vendas e devoluções em etapa futura.
-6. Qualidade: testes de integração com Supabase.
+2. Clínica: anexos de exames via Supabase Storage.
+3. Clínica: internação em bloco posterior.
+4. PDV: cancelamento de vendas e devoluções em etapa futura.
+5. Qualidade: testes de integração com Supabase.
 
 ## Comandos necessários
 

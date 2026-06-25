@@ -200,6 +200,26 @@ export interface CrmTutor extends Omit<Tutor, "pets"> {
   crm_interactions?: CrmInteraction[];
 }
 
+export interface ClinicalDocument {
+  id: number;
+  pet_id: number;
+  document_type: "Atestado" | "Declaração" | "Orientação";
+  title: string;
+  content: string;
+  issue_date: string;
+  professional_name: string;
+  created_at: string;
+}
+
+export interface ClinicalDocumentInput {
+  petId: number;
+  documentType: ClinicalDocument["document_type"];
+  title: string;
+  content: string;
+  issueDate: string;
+  professionalName: string;
+}
+
 export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
 
 export interface Appointment {

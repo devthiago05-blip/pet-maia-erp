@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type {
+  ClinicalDocumentInput,
   ClinicalExamInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
@@ -133,4 +134,25 @@ export async function saveClinicalExam(input: ClinicalExamInput) {
   return input.id
     ? supabase.from("clinical_exams").update(values).eq("id", input.id)
     : supabase.from("clinical_exams").insert([values]);
+}
+
+export async function fetchClinicalDocumentsByPet(petId: number) {
+  return supabase
+    .from("clinical_documents")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("issue_date", { ascending: false });
+}
+
+export async function createClinicalDocument(input: ClinicalDocumentInput) {
+  return supabase.from("clinical_documents").insert([
+    {
+      pet_id: input.petId,
+      document_type: input.documentType,
+      title: input.title,
+      content: input.content,
+      issue_date: input.issueDate,
+      professional_name: input.professionalName,
+    },
+  ]);
 }

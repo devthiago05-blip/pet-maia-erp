@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
 import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
@@ -16,9 +17,11 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import { fetchAppointmentsByPet } from "@/services/appointments";
 import {
+  createClinicalDocument,
   createClinicalPrescription,
   createClinicalRecord,
   createPetVaccination,
+  fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
   fetchClinicalRecordsByPet,
   fetchPetVaccinations,
@@ -28,6 +31,8 @@ import { fetchFinancialEntriesByPet } from "@/services/financial";
 import { fetchPetById } from "@/services/pets";
 import type {
   Appointment,
+  ClinicalDocument,
+  ClinicalDocumentInput,
   ClinicalExam,
   ClinicalExamInput,
   ClinicalRecord,
@@ -44,6 +49,7 @@ const tabs = [
   { id: "historico", label: "Histórico" },
   { id: "clinica", label: "Clínica" },
   { id: "exames", label: "Exames" },
+  { id: "documentos", label: "Documentos" },
   { id: "vacinas", label: "Vacinas" },
   { id: "banhos", label: "Banhos" },
   { id: "financeiro", label: "Financeiro" },
@@ -68,6 +74,8 @@ export default function PetPage() {
   const [vaccinationError, setVaccinationError] = useState("");
   const [exams, setExams] = useState<ClinicalExam[]>([]);
   const [examError, setExamError] = useState("");
+  const [documents, setDocuments] = useState<ClinicalDocument[]>([]);
+  const [documentError, setDocumentError] = useState("");
   const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>(
     [],
   );
@@ -99,12 +107,14 @@ export default function PetPage() {
         clinicalResponse,
         vaccinationsResponse,
         examsResponse,
+        documentsResponse,
       ] = await Promise.all([
         fetchAppointmentsByPet(petId),
         fetchFinancialEntriesByPet(data.nome),
         fetchClinicalRecordsByPet(petId),
         fetchPetVaccinations(petId),
         fetchClinicalExamsByPet(petId),
+        fetchClinicalDocumentsByPet(petId),
       ]);
 
       if (appointmentsResponse.error) {
@@ -140,6 +150,15 @@ export default function PetPage() {
         );
       } else {
         setExams(examsResponse.data || []);
+      }
+
+      if (documentsResponse.error) {
+        console.error(documentsResponse.error);
+        setDocumentError(
+          "Execute o script 014_clinical_documents.sql para habilitar os documentos.",
+        );
+      } else {
+        setDocuments(documentsResponse.data || []);
       }
 
       setPet(data);
@@ -252,6 +271,28 @@ export default function PetPage() {
     toast.success(input.id ? "Exame atualizado!" : "Exame solicitado!");
   }
 
+  async function handleCreateDocument(input: ClinicalDocumentInput) {
+    const { error: createError } = await createClinicalDocument(input);
+
+    if (createError) {
+      toast.error(createError.message);
+      throw createError;
+    }
+
+    const { data, error: reloadError } = await fetchClinicalDocumentsByPet(
+      input.petId,
+    );
+
+    if (reloadError) {
+      toast.error("Documento salvo, mas a lista não foi atualizada");
+      return;
+    }
+
+    setDocuments(data || []);
+    setDocumentError("");
+    toast.success("Documento clínico salvo!");
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -336,6 +377,15 @@ export default function PetPage() {
                       error={examError}
                       professionalName={profile?.nome || ""}
                       onSave={handleSaveExam}
+                    />
+                  )}
+                  {tab === "documentos" && (
+                    <ClinicalDocuments
+                      pet={pet}
+                      documents={documents}
+                      error={documentError}
+                      professionalName={profile?.nome || ""}
+                      onSave={handleCreateDocument}
                     />
                   )}
                   {tab === "banhos" && (
@@ -671,6 +721,79 @@ function ExamHistory({
               <ClinicalText label="Observações" value={exam.notes} />
             </article>
           ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ClinicalDocuments({
+  pet,
+  documents,
+  error,
+  professionalName,
+  onSave,
+}: {
+  pet: Pet;
+  documents: ClinicalDocument[];
+  error: string;
+  professionalName: string;
+  onSave: (input: ClinicalDocumentInput) => Promise<void>;
+}) {
+  return (
+    <section className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h3 className="text-lg font-bold">Documentos clínicos</h3>
+          <p className="text-sm text-slate-500">
+            Atestados, declarações e orientações de {pet.nome}
+          </p>
+        </div>
+        {!error && (
+          <ClinicalDocumentModal
+            pet={pet}
+            defaultProfessionalName={professionalName}
+            onSave={onSave}
+          />
+        )}
+      </div>
+
+      {error ? (
+        <p className="p-6 text-sm text-amber-700">{error}</p>
+      ) : documents.length === 0 ? (
+        <p className="p-6 text-center text-sm text-slate-500">
+          Nenhum documento emitido.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[680px]">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="p-4 text-left">Data</th>
+                <th className="p-4 text-left">Tipo</th>
+                <th className="p-4 text-left">Título</th>
+                <th className="p-4 text-left">Profissional</th>
+                <th className="p-4 text-left">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((document) => (
+                <tr key={document.id} className="border-t">
+                  <td className="p-4">{formatDate(document.issue_date)}</td>
+                  <td className="p-4">{document.document_type}</td>
+                  <td className="p-4">{document.title}</td>
+                  <td className="p-4">{document.professional_name}</td>
+                  <td className="p-4">
+                    <ClinicalDocumentModal
+                      pet={pet}
+                      document={document}
+                      defaultProfessionalName={professionalName}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

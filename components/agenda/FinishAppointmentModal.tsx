@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { Service } from "@/types/domain";
+import type {
+  CompletedAppointmentService,
+  Service,
+} from "@/types/domain";
 
 interface FinishAppointmentModalProps {
   pet: string;
@@ -12,11 +15,12 @@ interface FinishAppointmentModalProps {
   services: Service[];
   onClose: () => void;
   onSave: (dados: {
-    valor: number;
-    formaPagamento: string;
-    servicoDescricao: string;
-    observacoes?: string;
-  }) => Promise<void> | void;
+  valor: number;
+  formaPagamento: string;
+  servicoDescricao: string;
+  observacoes?: string;
+  services: CompletedAppointmentService[];
+}) => Promise<void> | void;
 }
 
 function normalizeText(value: string) {
@@ -158,18 +162,24 @@ if (total <= 0) {
   return;
 }
 
-    const servicoDescricao = selectedServices
-      .map((service) => service.nome)
-      .join(" + ");
+    const completedServices = selectedServices.map((service) => ({
+  serviceName: service.nome,
+  price: Number(servicePrices[service.id] || 0),
+}));
 
-    setSaving(true);
+const servicoDescricao = completedServices
+  .map((service) => service.serviceName)
+  .join(" + ");
 
-    await onSave({
-      valor: total,
-      formaPagamento,
-      servicoDescricao,
-      observacoes: observacoes.trim() || undefined,
-    });
+setSaving(true);
+
+await onSave({
+  valor: total,
+  formaPagamento,
+  servicoDescricao,
+  observacoes: observacoes.trim() || undefined,
+  services: completedServices,
+});
 
     setSaving(false);
   }

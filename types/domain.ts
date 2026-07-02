@@ -263,6 +263,10 @@ export interface Service {
   preco_grande: number;
 }
 
+export interface CompletedAppointmentService {
+  serviceName: string;
+  price: number;
+}
 export interface Product {
   id: number;
   nome: string;

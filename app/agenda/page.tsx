@@ -26,6 +26,7 @@ import { fetchTutors } from "@/services/tutors";
 import type {
   Appointment,
   ClinicSettings,
+  CompletedAppointmentService,
   NewAppointmentInput,
   Pet,
   Service,
@@ -53,10 +54,12 @@ export default function AgendaPage() {
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
   const [completedReceipt, setCompletedReceipt] = useState<{
-    appointment: Appointment;
-    valor: number;
-    formaPagamento: string;
-  } | null>(null);
+  appointment: Appointment;
+  valor: number;
+  formaPagamento: string;
+  services: CompletedAppointmentService[];
+  observacoes?: string;
+} | null>(null);
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -201,11 +204,13 @@ async function handleFinishAppointment({
   formaPagamento,
   servicoDescricao,
   observacoes,
+  services: completedServices,
 }: {
   valor: number;
   formaPagamento: string;
   servicoDescricao: string;
   observacoes?: string;
+  services: CompletedAppointmentService[];
 }) {
   if (!appointmentToFinish) {
     return;
@@ -245,10 +250,12 @@ async function handleFinishAppointment({
   toast.success("Atendimento finalizado!");
 
   setCompletedReceipt({
-    appointment: completedAppointment,
-    valor,
-    formaPagamento,
-  });
+  appointment: completedAppointment,
+  valor,
+  formaPagamento,
+  services: completedServices,
+  observacoes,
+});
 
   setAppointmentToFinish(null);
   await loadAppointments();
@@ -373,12 +380,14 @@ return (
 
         {completedReceipt && (
           <AppointmentReceiptModal
-            appointment={completedReceipt.appointment}
-            clinicSettings={clinicSettings}
-            valor={completedReceipt.valor}
-            formaPagamento={completedReceipt.formaPagamento}
-            onClose={() => setCompletedReceipt(null)}
-          />
+  appointment={completedReceipt.appointment}
+  clinicSettings={clinicSettings}
+  valor={completedReceipt.valor}
+  formaPagamento={completedReceipt.formaPagamento}
+  services={completedReceipt.services}
+  observacoes={completedReceipt.observacoes}
+  onClose={() => setCompletedReceipt(null)}
+/>
         )}
       </main>
     </div>

@@ -8,13 +8,19 @@ import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/formatters";
 import { createPixPayload } from "@/lib/pix";
-import type { Appointment, ClinicSettings } from "@/types/domain";
+import type {
+  Appointment,
+  ClinicSettings,
+  CompletedAppointmentService,
+} from "@/types/domain";
 
 interface AppointmentReceiptModalProps {
   appointment: Appointment;
   clinicSettings: ClinicSettings | null;
   formaPagamento: string;
   valor: number;
+  services: CompletedAppointmentService[];
+  observacoes?: string;
   onClose: () => void;
 }
 
@@ -23,6 +29,8 @@ export function AppointmentReceiptModal({
   clinicSettings,
   formaPagamento,
   valor,
+  services,
+  observacoes,
   onClose,
 }: AppointmentReceiptModalProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -32,6 +40,13 @@ export function AppointmentReceiptModal({
   const petName = appointment.pets?.nome || "Pet";
   const tutorName = appointment.pets?.tutors?.nome || "Tutor";
   const tutorPhone = appointment.pets?.tutors?.telefone || "";
+  const serviceLines =
+  services.length > 0
+    ? services.map(
+        (service) =>
+          `${service.serviceName}: ${formatCurrency(service.price)}`,
+      )
+    : [`${appointment.servico}: ${formatCurrency(valor)}`];
   const canGeneratePix =
     formaPagamento === "PIX" &&
     Boolean(
@@ -92,11 +107,13 @@ export function AppointmentReceiptModal({
   }, [pixCode]);
 
   const receiptMessage = [
-    `Olá, ${tutorName}!`,
-    `O atendimento de ${petName} foi concluído.`,
-    `Serviços: ${appointment.servico}.`,
-    `Valor: ${formatCurrency(valor)}.`,
-    `Forma de pagamento: ${formaPagamento}.`,
+  `Olá, ${tutorName}!`,
+  `O atendimento de ${petName} foi concluído.`,
+  "Serviços realizados:",
+  ...serviceLines,
+  `Total: ${formatCurrency(valor)}.`,
+  `Forma de pagamento: ${formaPagamento}.`,
+  observacoes ? `Observações: ${observacoes}.` : "",
     pixCode ? "O código PIX será enviado em uma mensagem separada." : "",
     `Obrigado! ${clinicSettings?.nome || "PET MAIA ERP"}`,
   ]
@@ -193,12 +210,42 @@ export function AppointmentReceiptModal({
             <p>
               <strong>Pet:</strong> {petName}
             </p>
-            <p>
-              <strong>Serviços:</strong> {appointment.servico}
-            </p>
-            <p>
-              <strong>Valor:</strong> {formatCurrency(valor)}
-            </p>
+            <div className="mt-3 space-y-2">
+  <strong>Serviços realizados:</strong>
+
+  <div className="space-y-1">
+    {services.length > 0 ? (
+      services.map((service) => (
+        <div
+          key={`${service.serviceName}-${service.price}`}
+          className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2"
+        >
+          <span>{service.serviceName}</span>
+          <strong>{formatCurrency(service.price)}</strong>
+        </div>
+      ))
+    ) : (
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+        <span>{appointment.servico}</span>
+        <strong>{formatCurrency(valor)}</strong>
+      </div>
+    )}
+  </div>
+</div>
+
+{observacoes && (
+  <p className="mt-3">
+    <strong>Observações:</strong> {observacoes}
+  </p>
+)}
+
+<p className="mt-3">
+  <strong>Total:</strong> {formatCurrency(valor)}
+</p>
+
+<p>
+  <strong>Forma de pagamento:</strong> {formaPagamento}
+</p>
           </div>
 
           {pixResult.error ? (

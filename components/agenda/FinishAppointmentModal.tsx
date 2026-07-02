@@ -1,116 +1,139 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-interface ExtraService {
-  id: string;
-  nome: string;
-  valor: string;
-}
+import type { Service } from "@/types/domain";
 
 interface FinishAppointmentModalProps {
   pet: string;
   porte?: string;
   servico: string;
-  valorSugerido: number | null;
+  services: Service[];
+  onClose: () => void;
   onSave: (dados: {
     valor: number;
     formaPagamento: string;
     servicoDescricao: string;
     observacoes?: string;
-  }) => void;
+  }) => Promise<void> | void;
+}
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
+function getServicePriceByPetSize(service: Service, porte?: string) {
+  const normalizedSize = normalizeText(porte || "");
+
+  if (normalizedSize === "pequeno") {
+    return Number(service.preco_pequeno || 0);
+  }
+
+  if (normalizedSize === "medio") {
+    return Number(service.preco_medio || 0);
+  }
+
+  if (normalizedSize === "grande") {
+    return Number(service.preco_grande || 0);
+  }
+
+  return 0;
 }
 
 export function FinishAppointmentModal({
   pet,
   porte,
   servico,
-  valorSugerido,
+  services,
+  onClose,
   onSave,
 }: FinishAppointmentModalProps) {
-  const [valorPrincipal, setValorPrincipal] = useState(
-    valorSugerido === null ? "" : String(valorSugerido),
-  );
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [observacoes, setObservacoes] = useState("");
-  const [extras, setExtras] = useState<ExtraService[]>([]);
+  const [saving, setSaving] = useState(false);
 
-  const total = useMemo(() => {
-    const principal = Number(valorPrincipal) || 0;
-    const extrasTotal = extras.reduce(
-      (sum, extra) => sum + (Number(extra.valor) || 0),
-      0,
+  useEffect(() => {
+    const scheduledServiceNames = new Set(
+      servico
+        .split("+")
+        .map((serviceName) => normalizeText(serviceName))
+        .filter(Boolean),
     );
 
-    return principal + extrasTotal;
-  }, [extras, valorPrincipal]);
+    const initialSelectedIds = services
+      .filter((service) => scheduledServiceNames.has(normalizeText(service.nome)))
+      .map((service) => service.id);
 
-  function handleAddExtra() {
-    setExtras((currentExtras) => [
-      ...currentExtras,
-      {
-        id: crypto.randomUUID(),
-        nome: "",
-        valor: "",
-      },
-    ]);
-  }
+    setSelectedServiceIds(initialSelectedIds);
+  }, [services, servico]);
 
-  function handleRemoveExtra(id: string) {
-    setExtras((currentExtras) =>
-      currentExtras.filter((extra) => extra.id !== id),
-    );
-  }
-
-  function handleUpdateExtra(
-    id: string,
-    field: keyof Omit<ExtraService, "id">,
-    value: string,
-  ) {
-    setExtras((currentExtras) =>
-      currentExtras.map((extra) =>
-        extra.id === id ? { ...extra, [field]: value } : extra,
+  const selectedServices = useMemo(
+    () =>
+      services.filter((service) =>
+        selectedServiceIds.includes(service.id),
       ),
-    );
+    [selectedServiceIds, services],
+  );
+
+  const total = useMemo(
+    () =>
+      selectedServices.reduce(
+        (sum, service) => sum + getServicePriceByPetSize(service, porte),
+        0,
+      ),
+    [porte, selectedServices],
+  );
+
+  const hasValidSize = ["pequeno", "medio", "grande"].includes(
+    normalizeText(porte || ""),
+  );
+
+  function handleToggleService(serviceId: number) {
+    setSelectedServiceIds((currentIds) => {
+      if (currentIds.includes(serviceId)) {
+        return currentIds.filter((id) => id !== serviceId);
+      }
+
+      return [...currentIds, serviceId];
+    });
   }
 
-  function handleSave() {
-    const principal = Number(valorPrincipal);
-
-    if (!valorPrincipal.trim()) {
-      toast.error("Informe o valor principal");
+  async function handleSave() {
+    if (!hasValidSize) {
+      toast.error("Informe o porte do pet para calcular os valores");
       return;
     }
 
-    if (!Number.isFinite(principal) || principal <= 0) {
-      toast.error("Informe um valor principal válido");
+    if (selectedServices.length === 0) {
+      toast.error("Selecione pelo menos um serviço realizado");
       return;
     }
 
-    const hasInvalidExtra = extras.some(
-      (extra) =>
-        !extra.nome.trim() ||
-        !extra.valor.trim() ||
-        !Number.isFinite(Number(extra.valor)) ||
-        Number(extra.valor) <= 0,
-    );
-
-    if (hasInvalidExtra) {
-      toast.error("Preencha corretamente todos os serviços extras");
+    if (total <= 0) {
+      toast.error("O valor total precisa ser maior que zero");
       return;
     }
 
-    const extraNames = extras.map((extra) => extra.nome.trim());
-    const servicoDescricao = [servico, ...extraNames].join(" + ");
+    const servicoDescricao = selectedServices
+      .map((service) => service.nome)
+      .join(" + ");
 
-    onSave({
+    setSaving(true);
+
+    await onSave({
       valor: total,
       formaPagamento,
       servicoDescricao,
       observacoes: observacoes.trim() || undefined,
     });
+
+    setSaving(false);
   }
 
   return (
@@ -130,7 +153,8 @@ export function FinishAppointmentModal({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Confirme os serviços realizados e o valor total.
+            Selecione os serviços realizados. Os valores serão calculados pelo
+            porte do pet.
           </p>
         </div>
 
@@ -145,105 +169,115 @@ export function FinishAppointmentModal({
             </p>
 
             <p>
-              <strong>Serviço:</strong> {servico}
+              <strong>Serviço agendado:</strong> {servico}
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
-              Valor principal
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={valorPrincipal}
-                onChange={(event) => setValorPrincipal(event.target.value)}
-                className="w-full rounded-xl border p-3 font-normal"
-              />
-            </label>
-
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
-              Forma de pagamento
-              <select
-                value={formaPagamento}
-                onChange={(event) => setFormaPagamento(event.target.value)}
-                className="w-full rounded-xl border p-3 font-normal"
-              >
-                <option>PIX</option>
-                <option>Dinheiro</option>
-                <option>Cartão</option>
-              </select>
-            </label>
-          </div>
+          {!hasValidSize && (
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-700">
+              O pet precisa ter porte Pequeno, Médio ou Grande cadastrado para o
+              sistema calcular o valor automaticamente.
+            </div>
+          )}
 
           <section className="rounded-2xl border border-slate-200 p-4">
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="font-bold text-slate-800">Serviços extras</h3>
-                <p className="text-sm text-slate-500">
-                  Adicione serviços realizados além do agendamento principal.
-                </p>
-              </div>
+            <div className="mb-3">
+              <h3 className="font-bold text-slate-800">
+                Serviços realizados
+              </h3>
 
-              <button
-                type="button"
-                onClick={handleAddExtra}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA] px-3 py-2 text-sm font-semibold text-[#8A0EEA] transition hover:bg-[#8A0EEA]/10 sm:w-auto"
-              >
-                <Plus size={16} />
-                Adicionar
-              </button>
+              <p className="text-sm text-slate-500">
+                Selecione os serviços cadastrados que foram realizados neste
+                atendimento.
+              </p>
             </div>
 
             <div className="space-y-3">
-              {extras.length === 0 ? (
+              {services.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
-                  Nenhum serviço extra adicionado
+                  Nenhum serviço cadastrado encontrado
                 </div>
               ) : (
-                extras.map((extra) => (
-                  <div
-                    key={extra.id}
-                    className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_160px_auto]"
-                  >
-                    <input
-                      value={extra.nome}
-                      onChange={(event) =>
-                        handleUpdateExtra(extra.id, "nome", event.target.value)
-                      }
-                      placeholder="Nome do serviço"
-                      className="w-full rounded-xl border p-3"
-                    />
+                services.map((service) => {
+                  const price = getServicePriceByPetSize(service, porte);
+                  const checked = selectedServiceIds.includes(service.id);
 
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={extra.valor}
-                      onChange={(event) =>
-                        handleUpdateExtra(
-                          extra.id,
-                          "valor",
-                          event.target.value,
-                        )
-                      }
-                      placeholder="Valor"
-                      className="w-full rounded-xl border p-3"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveExtra(extra.id)}
-                      className="inline-flex items-center justify-center rounded-xl bg-red-50 p-3 text-red-600 transition hover:bg-red-100"
-                      aria-label="Remover serviço extra"
+                  return (
+                    <label
+                      key={service.id}
+                      className={`flex cursor-pointer flex-col gap-3 rounded-xl border p-3 transition sm:flex-row sm:items-center sm:justify-between ${
+                        checked
+                          ? "border-[#8A0EEA] bg-[#8A0EEA]/5"
+                          : "border-slate-200 hover:bg-slate-50"
+                      }`}
                     >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleService(service.id)}
+                          className="mt-1 h-4 w-4 accent-[#8A0EEA]"
+                        />
+
+                        <div>
+                          <p className="font-semibold text-slate-800">
+                            {service.nome}
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+                            Pequeno:{" "}
+                            {Number(service.preco_pequeno || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}{" "}
+                            · Médio:{" "}
+                            {Number(service.preco_medio || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}{" "}
+                            · Grande:{" "}
+                            {Number(service.preco_grande || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
+
+                      <strong className="text-right text-[#8A0EEA]">
+                        {price.toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
+                      </strong>
+                    </label>
+                  );
+                })
               )}
             </div>
           </section>
+
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Forma de pagamento
+            <select
+              value={formaPagamento}
+              onChange={(event) => setFormaPagamento(event.target.value)}
+              className="w-full rounded-xl border p-3 font-normal"
+            >
+              <option>PIX</option>
+              <option>Dinheiro</option>
+              <option>Cartão</option>
+            </select>
+          </label>
 
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Observações
@@ -251,13 +285,14 @@ export function FinishAppointmentModal({
               value={observacoes}
               onChange={(event) => setObservacoes(event.target.value)}
               rows={3}
-              placeholder="Exemplo: pet sensível, hidratação cortesia, desconto aplicado..."
+              placeholder="Exemplo: desconto aplicado, hidratação cortesia, pet sensível..."
               className="w-full resize-none rounded-xl border p-3 font-normal"
             />
           </label>
 
           <div className="rounded-2xl bg-[#8A0EEA]/10 p-4">
             <p className="text-sm font-medium text-[#8A0EEA]">Valor total</p>
+
             <p className="text-2xl font-bold text-[#8A0EEA]">
               {total.toLocaleString("pt-BR", {
                 style: "currency",
@@ -269,13 +304,9 @@ export function FinishAppointmentModal({
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
               type="button"
-              onClick={() => onSave({
-                valor: 0,
-                formaPagamento,
-                servicoDescricao: servico,
-                observacoes: "CANCEL_MODAL",
-              })}
-              className="w-full rounded-xl border px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-100 sm:w-auto"
+              onClick={onClose}
+              disabled={saving}
+              className="w-full rounded-xl border px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 sm:w-auto"
             >
               Cancelar
             </button>
@@ -283,9 +314,10 @@ export function FinishAppointmentModal({
             <button
               type="button"
               onClick={handleSave}
-              className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white transition hover:bg-[#7600d1] sm:w-auto"
+              disabled={saving}
+              className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white transition hover:bg-[#7600d1] disabled:opacity-60 sm:w-auto"
             >
-              Finalizar atendimento
+              {saving ? "Finalizando..." : "Finalizar atendimento"}
             </button>
           </div>
         </div>

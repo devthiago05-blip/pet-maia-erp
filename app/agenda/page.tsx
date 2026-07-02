@@ -40,45 +40,7 @@ function normalizeText(value: string) {
     .toLowerCase();
 }
 
-function calculateAppointmentValue(
-  appointment: Appointment,
-  services: Service[],
-) {
-  const porte = normalizeText(appointment.pets?.porte || "");
-  const priceField =
-    porte === "pequeno"
-      ? "preco_pequeno"
-      : porte === "medio"
-        ? "preco_medio"
-        : porte === "grande"
-          ? "preco_grande"
-          : null;
 
-  if (!priceField) {
-    return null;
-  }
-
-  const selectedServiceNames = appointment.servico
-    .split(" + ")
-    .map(normalizeText)
-    .filter(Boolean);
-
-  const selectedServices = selectedServiceNames.map((serviceName) =>
-    services.find((service) => normalizeText(service.nome) === serviceName),
-  );
-
-  if (
-    selectedServices.length === 0 ||
-    selectedServices.some((service) => !service)
-  ) {
-    return null;
-  }
-
-  return selectedServices.reduce(
-    (total, service) => total + Number(service?.[priceField] || 0),
-    0,
-  );
-}
 
 export default function AgendaPage() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -234,7 +196,7 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
-  async function handleFinishAppointment({
+async function handleFinishAppointment({
   valor,
   formaPagamento,
   servicoDescricao,
@@ -245,17 +207,13 @@ export default function AgendaPage() {
   servicoDescricao: string;
   observacoes?: string;
 }) {
-  if (observacoes === "CANCEL_MODAL") {
-    setAppointmentToFinish(null);
-    return;
-  }
-
   if (!appointmentToFinish) {
     return;
   }
 
   const completedAppointment = appointmentToFinish;
   const petName = completedAppointment.pets?.nome || "";
+
   const descricaoCompleta = observacoes
     ? `${servicoDescricao} | Obs: ${observacoes}`
     : servicoDescricao;
@@ -295,7 +253,8 @@ export default function AgendaPage() {
   setAppointmentToFinish(null);
   await loadAppointments();
 }
-  return (
+
+return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
 
@@ -403,15 +362,13 @@ export default function AgendaPage() {
 
         {appointmentToFinish && (
           <FinishAppointmentModal
-            pet={appointmentToFinish.pets?.nome || ""}
-            porte={appointmentToFinish.pets?.porte}
-            servico={appointmentToFinish.servico}
-            valorSugerido={calculateAppointmentValue(
-              appointmentToFinish,
-              services,
-            )}
-            onSave={handleFinishAppointment}
-          />
+  pet={appointmentToFinish.pets?.nome || ""}
+  porte={appointmentToFinish.pets?.porte}
+  servico={appointmentToFinish.servico}
+  services={services}
+  onClose={() => setAppointmentToFinish(null)}
+  onSave={handleFinishAppointment}
+/>
         )}
 
         {completedReceipt && (

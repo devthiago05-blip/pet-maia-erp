@@ -235,52 +235,66 @@ export default function AgendaPage() {
   }
 
   async function handleFinishAppointment({
-    valor,
-    formaPagamento,
-  }: {
-    valor: number;
-    formaPagamento: string;
-  }) {
-    if (!appointmentToFinish) {
-      return;
-    }
-
-    const completedAppointment = appointmentToFinish;
-    const petName = completedAppointment.pets?.nome || "";
-    const { error } = await createAppointmentFinancialEntry(
-      petName,
-      completedAppointment.servico,
-      valor,
-      formaPagamento,
-    );
-
-    if (error) {
-      console.error(error);
-      toast.error(error.message);
-      return;
-    }
-
-    const { error: statusError } = await updateAppointmentStatus(
-      completedAppointment.id,
-      "Finalizado",
-    );
-
-    if (statusError) {
-      console.error(statusError);
-      toast.error(statusError.message);
-      return;
-    }
-
-    toast.success("Atendimento finalizado!");
-    setCompletedReceipt({
-      appointment: completedAppointment,
-      valor,
-      formaPagamento,
-    });
+  valor,
+  formaPagamento,
+  servicoDescricao,
+  observacoes,
+}: {
+  valor: number;
+  formaPagamento: string;
+  servicoDescricao: string;
+  observacoes?: string;
+}) {
+  if (observacoes === "CANCEL_MODAL") {
     setAppointmentToFinish(null);
-    await loadAppointments();
+    return;
   }
 
+  if (!appointmentToFinish) {
+    return;
+  }
+
+  const completedAppointment = appointmentToFinish;
+  const petName = completedAppointment.pets?.nome || "";
+  const descricaoCompleta = observacoes
+    ? `${servicoDescricao} | Obs: ${observacoes}`
+    : servicoDescricao;
+
+  const { error } = await createAppointmentFinancialEntry(
+    petName,
+    descricaoCompleta,
+    valor,
+    formaPagamento,
+  );
+
+  if (error) {
+    console.error(error);
+    toast.error(error.message);
+    return;
+  }
+
+  const { error: statusError } = await updateAppointmentStatus(
+    completedAppointment.id,
+    "Finalizado",
+  );
+
+  if (statusError) {
+    console.error(statusError);
+    toast.error(statusError.message);
+    return;
+  }
+
+  toast.success("Atendimento finalizado!");
+
+  setCompletedReceipt({
+    appointment: completedAppointment,
+    valor,
+    formaPagamento,
+  });
+
+  setAppointmentToFinish(null);
+  await loadAppointments();
+}
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />

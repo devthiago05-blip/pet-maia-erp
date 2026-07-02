@@ -391,3 +391,11 @@ export interface NewFinancialEntryInput {
   formaPagamento: string;
   tipo: FinancialEntryType;
 }
+export interface UpdateFinancialEntryInput {
+  descricao: string;
+  valor: number;
+  formaPagamento: string;
+  tipo: FinancialEntryType;
+  statusPagamento: PaymentStatus;
+  dataVencimento?: string;
+}

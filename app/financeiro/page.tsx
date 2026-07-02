@@ -4,6 +4,7 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { EditFinancialModal } from "@/components/financeiro/EditFinancialModal";
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
 import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 import { Header } from "@/components/layout/Header";
@@ -15,11 +16,18 @@ import {
   deleteFinancialEntry,
   fetchFinancialEntries,
   markFinancialEntryAsPaid,
+  updateFinancialEntry,
 } from "@/services/financial";
-import type { FinancialEntry, NewFinancialEntryInput } from "@/types/domain";
+import type {
+  FinancialEntry,
+  NewFinancialEntryInput,
+  UpdateFinancialEntryInput,
+} from "@/types/domain";
 
 export default function FinanceiroPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
+  const [entryToEdit, setEntryToEdit] =
+  useState<FinancialEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -122,6 +130,22 @@ export default function FinanceiroPage() {
     setEntries(entries.filter((entry) => entry.id !== id));
     toast.success("Lançamento excluído com sucesso!");
   }
+  async function handleUpdateEntry(
+  id: number,
+  updatedEntry: UpdateFinancialEntryInput,
+) {
+  const { error } = await updateFinancialEntry(id, updatedEntry);
+
+  if (error) {
+    console.error(error);
+    toast.error("Erro ao atualizar lançamento");
+    return false;
+  }
+
+  await loadFinancial();
+  toast.success("Lançamento atualizado com sucesso!");
+  return true;
+}
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
@@ -215,12 +239,19 @@ export default function FinanceiroPage() {
             </div>
           ) : (
             <FinancialTable
-              entries={filteredEntries}
-              onReceive={handleReceiveEntry}
-              onDelete={handleDeleteEntry}
-            />
+  entries={filteredEntries}
+  onReceive={handleReceiveEntry}
+  onDelete={handleDeleteEntry}
+  onEdit={setEntryToEdit}
+/>
           )}
         </div>
+
+        <EditFinancialModal
+          entry={entryToEdit}
+          onClose={() => setEntryToEdit(null)}
+          onSave={handleUpdateEntry}
+        />
       </main>
     </div>
   );

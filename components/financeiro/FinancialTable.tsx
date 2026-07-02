@@ -10,12 +10,14 @@ interface FinancialTableProps {
   entries: FinancialEntry[];
   onDelete: (id: number) => void;
   onReceive: (id: number) => void;
+  onEdit: (entry: FinancialEntry) => void;
 }
 
 export function FinancialTable({
   entries,
   onDelete,
   onReceive,
+  onEdit,
 }: FinancialTableProps) {
   const [entryToDelete, setEntryToDelete] = useState<FinancialEntry | null>(
     null,
@@ -98,6 +100,13 @@ export function FinancialTable({
                             {entry.tipo === "Despesa" ? "Pagar" : "Receber"}
                           </button>
                         )}
+                        <button
+  type="button"
+  onClick={() => onEdit(entry)}
+  className="text-[#8A0EEA]"
+>
+  Editar
+</button>
 
                         <button
                           onClick={() => setEntryToDelete(entry)}

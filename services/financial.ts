@@ -1,5 +1,8 @@
 import { supabase } from "@/lib/supabase";
-import type { NewFinancialEntryInput } from "@/types/domain";
+import type {
+  NewFinancialEntryInput,
+  UpdateFinancialEntryInput,
+} from "@/types/domain";
 
 export async function fetchFinancialEntries() {
   return supabase
@@ -112,4 +115,20 @@ export async function fetchWeeklyPendingRevenue() {
     .eq("status_pagamento", "Pendente")
     .eq("tipo", "Receita")
     .gte("created_at", inicioSemana.toISOString());
+}
+export async function updateFinancialEntry(
+  id: number,
+  entry: UpdateFinancialEntryInput,
+) {
+  return supabase
+    .from("financial_entries")
+    .update({
+      descricao: entry.descricao.trim(),
+      valor: entry.valor,
+      tipo: entry.tipo,
+      forma_pagamento: entry.formaPagamento,
+      status_pagamento: entry.statusPagamento,
+      data_vencimento: entry.dataVencimento || null,
+    })
+    .eq("id", id);
 }

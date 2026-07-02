@@ -9,11 +9,13 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import {
   fetchDashboardCounts,
   fetchRecentAppointments,
+  fetchWeeklyAppointments,
+  fetchWeeklyAppointmentsByStatus,
 } from "@/services/dashboard";
 import {
-  fetchPaidRevenueValues,
-  fetchPendingRevenueValues,
   fetchRecentFinancialEntries,
+  fetchWeeklyPaidRevenue,
+  fetchWeeklyPendingRevenue,
 } from "@/services/financial";
 import type { Appointment, FinancialEntry } from "@/types/domain";
 
@@ -21,39 +23,47 @@ export default function HomePage() {
   const [pets, setPets] = useState(0);
   const [tutors, setTutors] = useState(0);
   const [appointments, setAppointments] = useState(0);
+  const [completedAppointments, setCompletedAppointments] = useState(0);
+  const [pendingAppointments, setPendingAppointments] = useState(0);
   const [recebido, setRecebido] = useState(0);
   const [receber, setReceber] = useState(0);
-  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<Appointment[]>(
-    [],
-  );
-  const [ultimosRecebimentos, setUltimosRecebimentos] = useState<
-    FinancialEntry[]
-  >([]);
+  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<Appointment[]>([]);
+  const [ultimosRecebimentos, setUltimosRecebimentos] = useState<FinancialEntry[]>([]);
 
   useEffect(() => {
     async function loadData() {
-      const [counts, appointmentsResponse, recebimentos, receitas, pendentes] =
-        await Promise.all([
-          fetchDashboardCounts(),
-          fetchRecentAppointments(),
-          fetchRecentFinancialEntries(),
-          fetchPaidRevenueValues(),
-          fetchPendingRevenueValues(),
-        ]);
-
+      const [
+        counts,
+        appointmentsResponse,
+        recebimentos,
+        receitas,
+        pendentes,
+        weeklyAppointments,
+        completed,
+        pending,
+      ] = await Promise.all([
+        fetchDashboardCounts(),
+        fetchRecentAppointments(),
+        fetchRecentFinancialEntries(),
+        fetchWeeklyPaidRevenue(),
+        fetchWeeklyPendingRevenue(),
+        fetchWeeklyAppointments(),
+        fetchWeeklyAppointmentsByStatus("Finalizado"),
+        fetchWeeklyAppointmentsByStatus("Agendado"),
+      ]);
       const totalRecebido =
-        receitas.data?.reduce((total, item) => total + Number(item.valor), 0) ||
-        0;
+        receitas.data?.reduce((total, item) => total + Number(item.valor), 0) || 0;
 
       const totalReceber =
-        pendentes.data?.reduce(
-          (total, item) => total + Number(item.valor),
-          0,
-        ) || 0;
+        pendentes.data?.reduce((total, item) => total + Number(item.valor), 0) || 0;
 
       setPets(counts.petsCount);
       setTutors(counts.tutorsCount);
-      setAppointments(counts.appointmentsCount);
+      setAppointments(weeklyAppointments.data?.length || 0);
+
+      setCompletedAppointments(completed.count || 0);
+
+      setPendingAppointments(pending.count || 0);
       setUltimosAgendamentos(appointmentsResponse.data || []);
       setUltimosRecebimentos(recebimentos.data || []);
       setRecebido(totalRecebido);
@@ -72,21 +82,25 @@ export default function HomePage() {
 
         <div className="p-4 sm:p-6 lg:p-8">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-6 xl:grid-cols-5">
-            <StatCard
-              title="Pets"
-              value={String(pets)}
-              icon={<PawPrint size={24} />}
-            />
+            <StatCard title="Pets" value={String(pets)} icon={<PawPrint size={24} />} />
+
+            <StatCard title="Tutores" value={String(tutors)} icon={<Users size={24} />} />
 
             <StatCard
-              title="Tutores"
-              value={String(tutors)}
-              icon={<Users size={24} />}
-            />
-
-            <StatCard
-              title="Agendamentos"
+              title="Agendamentos da Semana"
               value={String(appointments)}
+              icon={<CalendarDays size={24} />}
+            />
+
+            <StatCard
+              title="Concluídos"
+              value={String(completedAppointments)}
+              icon={<CalendarDays size={24} />}
+            />
+
+            <StatCard
+              title="Pendentes"
+              value={String(pendingAppointments)}
               icon={<CalendarDays size={24} />}
             />
 
@@ -97,7 +111,7 @@ export default function HomePage() {
             />
 
             <StatCard
-              title="Recebido"
+              title="Recebido da Semana"
               value={`R$ ${recebido.toFixed(2)}`}
               icon={<Wallet size={24} />}
             />
@@ -105,9 +119,7 @@ export default function HomePage() {
 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
             <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold sm:text-xl">
-                Últimos Agendamentos
-              </h2>
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">Últimos Agendamentos</h2>
 
               <div className="space-y-3">
                 {ultimosAgendamentos.map((appointment) => (
@@ -126,9 +138,7 @@ export default function HomePage() {
 
                     <div className="shrink-0 text-left sm:text-right">
                       <p>{appointment.hora}</p>
-                      <p className="text-sm text-slate-500">
-                        {appointment.status}
-                      </p>
+                      <p className="text-sm text-slate-500">{appointment.status}</p>
                     </div>
                   </div>
                 ))}
@@ -136,9 +146,7 @@ export default function HomePage() {
             </div>
 
             <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold sm:text-xl">
-                Últimos Recebimentos
-              </h2>
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">Últimos Recebimentos</h2>
 
               <div className="space-y-3">
                 {ultimosRecebimentos.map((item) => (
@@ -150,9 +158,7 @@ export default function HomePage() {
                       <p className="truncate font-medium">
                         {item.descricao.replace(/^Consulta\b/i, "Atendimento")}
                       </p>
-                      <p className="text-sm text-slate-500">
-                        {item.forma_pagamento}
-                      </p>
+                      <p className="text-sm text-slate-500">{item.forma_pagamento}</p>
                     </div>
 
                     <div className="shrink-0 text-left sm:text-right">

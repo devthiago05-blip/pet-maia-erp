@@ -79,3 +79,37 @@ export async function markFinancialEntryAsPaid(id: number) {
 export async function deleteFinancialEntry(id: number) {
   return supabase.from("financial_entries").delete().eq("id", id);
 }
+
+export async function fetchWeeklyPaidRevenue() {
+  const inicioSemana = new Date();
+
+  inicioSemana.setDate(
+    inicioSemana.getDate() - inicioSemana.getDay(),
+  );
+
+  inicioSemana.setHours(0, 0, 0, 0);
+
+  return supabase
+    .from("financial_entries")
+    .select("valor")
+    .eq("status_pagamento", "Pago")
+    .eq("tipo", "Receita")
+    .gte("created_at", inicioSemana.toISOString());
+}
+
+export async function fetchWeeklyPendingRevenue() {
+  const inicioSemana = new Date();
+
+  inicioSemana.setDate(
+    inicioSemana.getDate() - inicioSemana.getDay(),
+  );
+
+  inicioSemana.setHours(0, 0, 0, 0);
+
+  return supabase
+    .from("financial_entries")
+    .select("valor")
+    .eq("status_pagamento", "Pendente")
+    .eq("tipo", "Receita")
+    .gte("created_at", inicioSemana.toISOString());
+}

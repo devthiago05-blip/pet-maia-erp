@@ -28,3 +28,37 @@ export async function fetchRecentAppointments() {
     .order("id", { ascending: false })
     .limit(5);
 }
+
+
+export async function fetchWeeklyAppointments() {
+  const inicioSemana = new Date();
+
+  inicioSemana.setDate(
+    inicioSemana.getDate() - inicioSemana.getDay(),
+  );
+
+  inicioSemana.setHours(0, 0, 0, 0);
+
+  return supabase
+    .from("appointments")
+    .select("*")
+    .gte("data", inicioSemana.toISOString().split("T")[0]);
+}
+
+export async function fetchWeeklyAppointmentsByStatus(
+  status: string,
+) {
+  const inicioSemana = new Date();
+
+  inicioSemana.setDate(
+    inicioSemana.getDate() - inicioSemana.getDay(),
+  );
+
+  inicioSemana.setHours(0, 0, 0, 0);
+
+  return supabase
+    .from("appointments")
+    .select("*", { count: "exact", head: true })
+    .eq("status", status)
+    .gte("data", inicioSemana.toISOString().split("T")[0]);
+}

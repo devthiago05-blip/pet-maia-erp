@@ -15,7 +15,9 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   createAppointment,
   deleteAppointment,
+  deleteAppointmentServicesByAppointmentId,
   fetchAppointments,
+  replaceAppointmentServices,
   updateAppointmentStatus,
 } from "@/services/appointments";
 import {
@@ -244,24 +246,41 @@ async function handleFinishAppointment({
   formaPagamento,
 );
 
-  if (error) {
-    console.error(error);
-    toast.error(error.message);
-    return;
-  }
+if (error) {
+  console.error(error);
+  toast.error(error.message);
+  return;
+}
 
-  const { error: statusError } = await updateAppointmentStatus(
-    completedAppointment.id,
-    "Finalizado",
-  );
+const { error: servicesError } = await replaceAppointmentServices(
+  completedAppointment.id,
+  completedServices,
+);
 
-  if (statusError) {
-  console.error(statusError);
+if (servicesError) {
+  console.error(servicesError);
 
   await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
 
   toast.error(
-    "Erro ao finalizar atendimento. O lançamento financeiro foi desfeito.",
+    "Erro ao salvar os serviços realizados. O lançamento financeiro foi desfeito.",
+  );
+  return;
+}
+
+const { error: statusError } = await updateAppointmentStatus(
+  completedAppointment.id,
+  "Finalizado",
+);
+
+if (statusError) {
+  console.error(statusError);
+
+  await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+  await deleteAppointmentServicesByAppointmentId(completedAppointment.id);
+
+  toast.error(
+    "Erro ao finalizar atendimento. O financeiro e os serviços foram desfeitos.",
   );
   return;
 }

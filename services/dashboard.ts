@@ -33,32 +33,52 @@ export async function fetchRecentAppointments() {
 export async function fetchWeeklyAppointments() {
   const inicioSemana = new Date();
 
-  inicioSemana.setDate(
-    inicioSemana.getDate() - inicioSemana.getDay(),
-  );
-
+  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
   inicioSemana.setHours(0, 0, 0, 0);
 
   return supabase
     .from("appointments")
-    .select("*")
-    .gte("data", inicioSemana.toISOString().split("T")[0]);
+    .select(
+      `
+      *,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
+    .gte("data", inicioSemana.toISOString().split("T")[0])
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
 }
 
-export async function fetchWeeklyAppointmentsByStatus(
-  status: string,
-) {
+export async function fetchWeeklyAppointmentsByStatus(status: string) {
   const inicioSemana = new Date();
 
-  inicioSemana.setDate(
-    inicioSemana.getDate() - inicioSemana.getDay(),
-  );
-
+  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
   inicioSemana.setHours(0, 0, 0, 0);
 
   return supabase
     .from("appointments")
-    .select("*", { count: "exact", head: true })
+    .select(
+      `
+      *,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
     .eq("status", status)
-    .gte("data", inicioSemana.toISOString().split("T")[0]);
+    .gte("data", inicioSemana.toISOString().split("T")[0])
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
 }

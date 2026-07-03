@@ -106,7 +106,7 @@ export async function fetchWeeklyPaidRevenue() {
 
   return supabase
     .from("financial_entries")
-    .select("valor")
+    .select("*")
     .eq("status_pagamento", "Pago")
     .eq("tipo", "Receita")
     .gte("created_at", inicioSemana.toISOString());
@@ -123,7 +123,7 @@ export async function fetchWeeklyPendingRevenue() {
 
   return supabase
     .from("financial_entries")
-    .select("valor")
+    .select("*")
     .eq("status_pagamento", "Pendente")
     .eq("tipo", "Receita")
     .gte("created_at", inicioSemana.toISOString());

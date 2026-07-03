@@ -252,7 +252,15 @@ export interface FinancialEntry {
   data_vencimento?: string;
   origem?: string;
   referencia_id?: number;
+  tutor_id?: number | null;
+  pet_id?: number | null;
   created_at?: string;
+  tutors?: {
+    nome: string;
+  } | null;
+  pets?: {
+    nome: string;
+  } | null;
 }
 
 export interface Service {
@@ -394,7 +402,12 @@ export interface NewFinancialEntryInput {
   valor: number;
   formaPagamento: string;
   tipo: FinancialEntryType;
+  statusPagamento?: PaymentStatus;
+  dataVencimento?: string;
+  tutorId?: string;
+  petId?: string;
 }
+
 export interface UpdateFinancialEntryInput {
   descricao: string;
   valor: number;
@@ -402,4 +415,6 @@ export interface UpdateFinancialEntryInput {
   tipo: FinancialEntryType;
   statusPagamento: PaymentStatus;
   dataVencimento?: string;
+  tutorId?: string;
+  petId?: string;
 }

@@ -1,17 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import type {
   FinancialEntry,
   FinancialEntryType,
   PaymentStatus,
+  Pet,
+  Tutor,
   UpdateFinancialEntryInput,
 } from "@/types/domain";
 
 interface EditFinancialModalProps {
   entry: FinancialEntry | null;
+  tutors: Tutor[];
+  pets: Pet[];
   onClose: () => void;
   onSave: (
     id: number,
@@ -21,6 +25,8 @@ interface EditFinancialModalProps {
 
 export function EditFinancialModal({
   entry,
+  tutors,
+  pets,
   onClose,
   onSave,
 }: EditFinancialModalProps) {
@@ -31,7 +37,17 @@ export function EditFinancialModal({
   const [statusPagamento, setStatusPagamento] =
     useState<PaymentStatus>("Pendente");
   const [dataVencimento, setDataVencimento] = useState("");
+  const [tutorId, setTutorId] = useState("");
+  const [petId, setPetId] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const filteredPets = useMemo(() => {
+    if (!tutorId) {
+      return pets;
+    }
+
+    return pets.filter((pet) => String(pet.tutor_id) === tutorId);
+  }, [pets, tutorId]);
 
   useEffect(() => {
     if (!entry) {
@@ -44,10 +60,36 @@ export function EditFinancialModal({
     setFormaPagamento(entry.forma_pagamento || "PIX");
     setStatusPagamento(entry.status_pagamento || "Pendente");
     setDataVencimento(entry.data_vencimento?.slice(0, 10) || "");
+    setTutorId(entry.tutor_id ? String(entry.tutor_id) : "");
+    setPetId(entry.pet_id ? String(entry.pet_id) : "");
   }, [entry]);
 
   if (!entry) {
     return null;
+  }
+
+  function handleTutorChange(value: string) {
+    setTutorId(value);
+
+    if (!value) {
+      return;
+    }
+
+    const selectedPet = pets.find((pet) => String(pet.id) === petId);
+
+    if (selectedPet?.tutor_id && String(selectedPet.tutor_id) !== value) {
+      setPetId("");
+    }
+  }
+
+  function handlePetChange(value: string) {
+    setPetId(value);
+
+    const selectedPet = pets.find((pet) => String(pet.id) === value);
+
+    if (selectedPet?.tutor_id) {
+      setTutorId(String(selectedPet.tutor_id));
+    }
   }
 
   async function handleSave() {
@@ -64,19 +106,21 @@ export function EditFinancialModal({
     }
 
     if (!entry) {
-  return;
-}
+      return;
+    }
 
-setSaving(true);
+    setSaving(true);
 
-const success = await onSave(entry.id, {
-  descricao,
-  valor: numericValue,
-  formaPagamento,
-  tipo,
-  statusPagamento,
-  dataVencimento,
-});
+    const success = await onSave(entry.id, {
+      descricao,
+      valor: numericValue,
+      formaPagamento,
+      tipo,
+      statusPagamento,
+      dataVencimento,
+      tutorId,
+      petId,
+    });
 
     setSaving(false);
 
@@ -92,7 +136,7 @@ const success = await onSave(entry.id, {
       aria-modal="true"
       aria-labelledby="edit-financial-title"
     >
-      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
         <div className="mb-5">
           <h2
             id="edit-financial-title"
@@ -102,11 +146,43 @@ const success = await onSave(entry.id, {
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Atualize os dados financeiros do lançamento.
+            Atualize os dados financeiros e os vínculos do lançamento.
           </p>
         </div>
 
         <div className="space-y-4">
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Tutor
+            <select
+              value={tutorId}
+              onChange={(event) => handleTutorChange(event.target.value)}
+              className="w-full rounded-xl border p-3 font-normal"
+            >
+              <option value="">Sem tutor vinculado</option>
+              {tutors.map((tutor) => (
+                <option key={tutor.id} value={tutor.id}>
+                  {tutor.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Pet
+            <select
+              value={petId}
+              onChange={(event) => handlePetChange(event.target.value)}
+              className="w-full rounded-xl border p-3 font-normal"
+            >
+              <option value="">Sem pet vinculado</option>
+              {filteredPets.map((pet) => (
+                <option key={pet.id} value={pet.id}>
+                  {pet.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Descrição
             <input

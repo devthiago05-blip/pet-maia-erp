@@ -4,17 +4,27 @@ import type {
   UpdateFinancialEntryInput,
 } from "@/types/domain";
 
+const financialEntrySelect = `
+  *,
+  tutors (
+    nome
+  ),
+  pets (
+    nome
+  )
+`;
+
 export async function fetchFinancialEntries() {
   return supabase
     .from("financial_entries")
-    .select("*")
+    .select(financialEntrySelect)
     .order("created_at", { ascending: false });
 }
 
 export async function fetchRecentFinancialEntries() {
   return supabase
     .from("financial_entries")
-    .select("*")
+    .select(financialEntrySelect)
     .order("id", { ascending: false })
     .limit(5);
 }
@@ -22,8 +32,8 @@ export async function fetchRecentFinancialEntries() {
 export async function fetchFinancialEntriesByPet(petName: string) {
   return supabase
     .from("financial_entries")
-    .select("*")
-    .ilike("descricao", `% - ${petName}`)
+    .select(financialEntrySelect)
+    .or(`pets.nome.ilike.%${petName}%,descricao.ilike.% - ${petName}`)
     .order("created_at", { ascending: false });
 }
 
@@ -46,11 +56,15 @@ export async function fetchPendingRevenueValues() {
 export async function createFinancialEntry(entry: NewFinancialEntryInput) {
   return supabase.from("financial_entries").insert([
     {
-      descricao: entry.descricao,
+      descricao: entry.descricao.trim(),
       valor: entry.valor,
       tipo: entry.tipo,
       forma_pagamento: entry.formaPagamento,
-      status_pagamento: "Pendente",
+      status_pagamento: entry.statusPagamento || "Pendente",
+      data_vencimento: entry.dataVencimento || null,
+      origem: "manual",
+      tutor_id: entry.tutorId ? Number(entry.tutorId) : null,
+      pet_id: entry.petId ? Number(entry.petId) : null,
     },
   ]);
 }
@@ -85,6 +99,7 @@ export async function markFinancialEntryAsPaid(id: number) {
 export async function deleteFinancialEntry(id: number) {
   return supabase.from("financial_entries").delete().eq("id", id);
 }
+
 export async function deleteFinancialEntriesByAppointmentId(
   appointmentId: number,
 ) {
@@ -98,15 +113,12 @@ export async function deleteFinancialEntriesByAppointmentId(
 export async function fetchWeeklyPaidRevenue() {
   const inicioSemana = new Date();
 
-  inicioSemana.setDate(
-    inicioSemana.getDate() - inicioSemana.getDay(),
-  );
-
+  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
   inicioSemana.setHours(0, 0, 0, 0);
 
   return supabase
     .from("financial_entries")
-    .select("*")
+    .select(financialEntrySelect)
     .eq("status_pagamento", "Pago")
     .eq("tipo", "Receita")
     .gte("created_at", inicioSemana.toISOString());
@@ -115,19 +127,17 @@ export async function fetchWeeklyPaidRevenue() {
 export async function fetchWeeklyPendingRevenue() {
   const inicioSemana = new Date();
 
-  inicioSemana.setDate(
-    inicioSemana.getDate() - inicioSemana.getDay(),
-  );
-
+  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
   inicioSemana.setHours(0, 0, 0, 0);
 
   return supabase
     .from("financial_entries")
-    .select("*")
+    .select(financialEntrySelect)
     .eq("status_pagamento", "Pendente")
     .eq("tipo", "Receita")
     .gte("created_at", inicioSemana.toISOString());
 }
+
 export async function updateFinancialEntry(
   id: number,
   entry: UpdateFinancialEntryInput,
@@ -141,6 +151,8 @@ export async function updateFinancialEntry(
       forma_pagamento: entry.formaPagamento,
       status_pagamento: entry.statusPagamento,
       data_vencimento: entry.dataVencimento || null,
+      tutor_id: entry.tutorId ? Number(entry.tutorId) : null,
+      pet_id: entry.petId ? Number(entry.petId) : null,
     })
     .eq("id", id);
 }

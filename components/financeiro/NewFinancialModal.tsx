@@ -1,26 +1,92 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { FinancialEntryType, NewFinancialEntryInput } from "@/types/domain";
+import type {
+  FinancialEntryType,
+  NewFinancialEntryInput,
+  PaymentStatus,
+  Pet,
+  Tutor,
+} from "@/types/domain";
 
 interface NewFinancialModalProps {
-  onSave: (entry: NewFinancialEntryInput & { id: number }) => void;
+  tutors: Tutor[];
+  pets: Pet[];
+  onSave: (entry: NewFinancialEntryInput) => Promise<boolean>;
 }
 
-export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
+export function NewFinancialModal({
+  tutors,
+  pets,
+  onSave,
+}: NewFinancialModalProps) {
   const [open, setOpen] = useState(false);
   const [descricao, setDescricao] = useState("");
   const [valor, setValor] = useState("");
   const [tipo, setTipo] = useState<FinancialEntryType>("Receita");
   const [formaPagamento, setFormaPagamento] = useState("PIX");
+  const [statusPagamento, setStatusPagamento] =
+    useState<PaymentStatus>("Pendente");
+  const [dataVencimento, setDataVencimento] = useState("");
+  const [tutorId, setTutorId] = useState("");
+  const [petId, setPetId] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleSave() {
+  const filteredPets = useMemo(() => {
+    if (!tutorId) {
+      return pets;
+    }
+
+    return pets.filter((pet) => String(pet.tutor_id) === tutorId);
+  }, [pets, tutorId]);
+
+  function resetForm() {
+    setDescricao("");
+    setValor("");
+    setFormaPagamento("PIX");
+    setTipo("Receita");
+    setStatusPagamento("Pendente");
+    setDataVencimento("");
+    setTutorId("");
+    setPetId("");
+  }
+
+  function handleClose() {
+    resetForm();
+    setOpen(false);
+  }
+
+  function handleTutorChange(value: string) {
+    setTutorId(value);
+
+    if (!value) {
+      return;
+    }
+
+    const selectedPet = pets.find((pet) => String(pet.id) === petId);
+
+    if (selectedPet?.tutor_id && String(selectedPet.tutor_id) !== value) {
+      setPetId("");
+    }
+  }
+
+  function handlePetChange(value: string) {
+    setPetId(value);
+
+    const selectedPet = pets.find((pet) => String(pet.id) === value);
+
+    if (selectedPet?.tutor_id) {
+      setTutorId(String(selectedPet.tutor_id));
+    }
+  }
+
+  async function handleSave() {
     const numericValue = Number(valor);
 
     if (!descricao.trim() || !valor.trim()) {
-      toast.error("Preencha todos os campos");
+      toast.error("Preencha descrição e valor");
       return;
     }
 
@@ -29,19 +95,24 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
       return;
     }
 
-    onSave({
-      id: Date.now(),
+    setSaving(true);
+
+    const success = await onSave({
       descricao,
       valor: numericValue,
       formaPagamento,
       tipo,
+      statusPagamento,
+      dataVencimento,
+      tutorId,
+      petId,
     });
 
-    setDescricao("");
-    setValor("");
-    setFormaPagamento("PIX");
-    setTipo("Receita");
-    setOpen(false);
+    setSaving(false);
+
+    if (success) {
+      handleClose();
+    }
   }
 
   return (
@@ -49,60 +120,150 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white transition hover:bg-[#7600d1] sm:w-auto"
       >
         Novo Lançamento
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
-            <h2 className="mb-4 text-xl font-bold">Novo Lançamento</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="new-financial-title"
+        >
+          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+            <div className="mb-5">
+              <h2
+                id="new-financial-title"
+                className="text-xl font-bold text-slate-900"
+              >
+                Novo lançamento
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Registre uma receita ou despesa e vincule a um tutor ou pet
+                quando necessário.
+              </p>
+            </div>
 
             <div className="space-y-4">
-              <input
-                placeholder="Descrição"
-                value={descricao}
-                onChange={(event) => setDescricao(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              />
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Tutor
+                <select
+                  value={tutorId}
+                  onChange={(event) => handleTutorChange(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                >
+                  <option value="">Sem tutor vinculado</option>
+                  {tutors.map((tutor) => (
+                    <option key={tutor.id} value={tutor.id}>
+                      {tutor.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="Valor"
-                value={valor}
-                onChange={(event) => setValor(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              />
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Pet
+                <select
+                  value={petId}
+                  onChange={(event) => handlePetChange(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                >
+                  <option value="">Sem pet vinculado</option>
+                  {filteredPets.map((pet) => (
+                    <option key={pet.id} value={pet.id}>
+                      {pet.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
 
-              <select
-                value={tipo}
-                onChange={(event) =>
-                  setTipo(event.target.value as FinancialEntryType)
-                }
-                className="w-full rounded-xl border p-3"
-              >
-                <option value="Receita">Receita</option>
-                <option value="Despesa">Despesa</option>
-              </select>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Descrição
+                <input
+                  placeholder="Ex: Venda de produto, taxa, ajuste financeiro..."
+                  value={descricao}
+                  onChange={(event) => setDescricao(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                />
+              </label>
 
-              <select
-                value={formaPagamento}
-                onChange={(event) => setFormaPagamento(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              >
-                <option>PIX</option>
-                <option>Dinheiro</option>
-                <option>Cartão</option>
-              </select>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Valor
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="0,00"
+                  value={valor}
+                  onChange={(event) => setValor(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                />
+              </label>
 
-              <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Tipo
+                  <select
+                    value={tipo}
+                    onChange={(event) =>
+                      setTipo(event.target.value as FinancialEntryType)
+                    }
+                    className="w-full rounded-xl border p-3 font-normal"
+                  >
+                    <option value="Receita">Receita</option>
+                    <option value="Despesa">Despesa</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Status
+                  <select
+                    value={statusPagamento}
+                    onChange={(event) =>
+                      setStatusPagamento(event.target.value as PaymentStatus)
+                    }
+                    className="w-full rounded-xl border p-3 font-normal"
+                  >
+                    <option value="Pendente">Pendente</option>
+                    <option value="Pago">Pago</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Forma de pagamento
+                  <select
+                    value={formaPagamento}
+                    onChange={(event) => setFormaPagamento(event.target.value)}
+                    className="w-full rounded-xl border p-3 font-normal"
+                  >
+                    <option>PIX</option>
+                    <option>Dinheiro</option>
+                    <option>Cartão</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Data de vencimento
+                  <input
+                    type="date"
+                    value={dataVencimento}
+                    onChange={(event) => setDataVencimento(event.target.value)}
+                    className="w-full rounded-xl border p-3 font-normal"
+                  />
+                </label>
+              </div>
+
+              <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
-                  className="w-full rounded-xl border py-2 sm:flex-1"
+                  onClick={handleClose}
+                  disabled={saving}
+                  className="w-full rounded-xl border px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-100 disabled:opacity-60 sm:w-auto"
                 >
                   Cancelar
                 </button>
@@ -110,9 +271,10 @@ export function NewFinancialModal({ onSave }: NewFinancialModalProps) {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
+                  disabled={saving}
+                  className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white transition hover:bg-[#7600d1] disabled:opacity-60 sm:w-auto"
                 >
-                  Salvar
+                  {saving ? "Salvando..." : "Salvar lançamento"}
                 </button>
               </div>
             </div>

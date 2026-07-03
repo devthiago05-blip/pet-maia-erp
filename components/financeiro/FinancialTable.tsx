@@ -36,10 +36,12 @@ export function FinancialTable({
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[780px]">
+          <table className="w-full min-w-[980px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Descrição</th>
+                <th className="p-3 text-left sm:p-4">Tutor</th>
+                <th className="p-3 text-left sm:p-4">Pet</th>
                 <th className="p-3 text-left sm:p-4">Tipo</th>
                 <th className="p-3 text-left sm:p-4">Valor</th>
                 <th className="p-3 text-left sm:p-4">Vencimento</th>
@@ -52,7 +54,7 @@ export function FinancialTable({
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={8}
                     className="p-6 text-center text-sm text-slate-500"
                   >
                     Nenhum lançamento financeiro encontrado.
@@ -62,6 +64,15 @@ export function FinancialTable({
                 entries.map((entry) => (
                   <tr key={entry.id} className="border-t">
                     <td className="p-3 sm:p-4">{entry.descricao}</td>
+
+                    <td className="p-3 text-sm text-slate-600 sm:p-4">
+                      {entry.tutors?.nome || "-"}
+                    </td>
+
+                    <td className="p-3 text-sm text-slate-600 sm:p-4">
+                      {entry.pets?.nome || "-"}
+                    </td>
+
                     <td className="p-3 sm:p-4">
                       <span
                         className={`rounded-full px-3 py-1 text-sm font-medium ${
@@ -73,12 +84,15 @@ export function FinancialTable({
                         {entry.tipo || "Receita"}
                       </span>
                     </td>
+
                     <td className="p-3 sm:p-4">
                       {formatCurrency(entry.valor)}
                     </td>
+
                     <td className="p-3 sm:p-4">
                       {formatDate(entry.data_vencimento)}
                     </td>
+
                     <td className="p-3 sm:p-4">
                       {entry.status_pagamento === "Pago" ? (
                         <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
@@ -90,25 +104,29 @@ export function FinancialTable({
                         </span>
                       )}
                     </td>
+
                     <td className="p-3 sm:p-4">
                       <div className="flex flex-wrap gap-3">
                         {entry.status_pagamento !== "Pago" && (
                           <button
+                            type="button"
                             onClick={() => onReceive(entry.id)}
                             className="text-green-600"
                           >
                             {entry.tipo === "Despesa" ? "Pagar" : "Receber"}
                           </button>
                         )}
-                        <button
-  type="button"
-  onClick={() => onEdit(entry)}
-  className="text-[#8A0EEA]"
->
-  Editar
-</button>
 
                         <button
+                          type="button"
+                          onClick={() => onEdit(entry)}
+                          className="text-[#8A0EEA]"
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          type="button"
                           onClick={() => setEntryToDelete(entry)}
                           className="text-red-600"
                         >

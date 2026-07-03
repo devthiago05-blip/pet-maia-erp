@@ -82,3 +82,45 @@ export async function fetchWeeklyAppointmentsByStatus(status: string) {
     .order("data", { ascending: true })
     .order("hora", { ascending: true });
 }
+export async function fetchPetsForBathReminders() {
+  return supabase
+    .from("pets")
+    .select(
+      `
+      id,
+      nome,
+      tutors (
+        nome,
+        telefone
+      )
+    `,
+    )
+    .order("nome", { ascending: true });
+}
+
+export async function fetchFinalizedBathAppointmentsForReminders() {
+  return supabase
+    .from("appointments")
+    .select(
+      `
+      id,
+      pet_id,
+      servico,
+      data,
+      hora,
+      status,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
+    .eq("status", "Finalizado")
+    .ilike("servico", "%banho%")
+    .not("pet_id", "is", null)
+    .order("data", { ascending: false });
+}

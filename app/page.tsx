@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarDays, PawPrint, Users, Wallet } from "lucide-react";
+import {
+  CalendarDays,
+  MessageCircle,
+  PawPrint,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { StatCard } from "@/components/dashboard/StatCard";
@@ -8,6 +14,8 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import {
   fetchDashboardCounts,
+  fetchFinalizedBathAppointmentsForReminders,
+  fetchPetsForBathReminders,
   fetchRecentAppointments,
   fetchWeeklyAppointments,
   fetchWeeklyAppointmentsByStatus,
@@ -26,7 +34,21 @@ type DashboardDetail =
   | "completedAppointments"
   | "pendingAppointments"
   | "pendingRevenue"
-  | "paidRevenue";
+  | "paidRevenue"
+  | "bathReminders";
+
+interface BathReminder {
+  petId: number;
+  petName: string;
+  tutorName: string;
+  tutorPhone?: string;
+  daysWithoutBath: number | null;
+  lastBathDate?: string;
+}
+interface BathAppointmentForReminder {
+  pet_id?: number | null;
+  data?: string | null;
+}
 
 export default function HomePage() {
   const [pets, setPets] = useState(0);
@@ -60,6 +82,7 @@ export default function HomePage() {
   const [weeklyPendingRevenueList, setWeeklyPendingRevenueList] = useState<
     FinancialEntry[]
   >([]);
+  const [bathReminders, setBathReminders] = useState<BathReminder[]>([]);
 
   const [activeDetail, setActiveDetail] =
   useState<DashboardDetail | null>(null);
@@ -68,24 +91,28 @@ export default function HomePage() {
     async function loadData() {
       try {
         const [
-          counts,
-          appointmentsResponse,
-          recebimentos,
-          receitas,
-          pendentes,
-          weeklyAppointments,
-          completed,
-          pending,
-        ] = await Promise.all([
-          fetchDashboardCounts(),
-          fetchRecentAppointments(),
-          fetchRecentFinancialEntries(),
-          fetchWeeklyPaidRevenue(),
-          fetchWeeklyPendingRevenue(),
-          fetchWeeklyAppointments(),
-          fetchWeeklyAppointmentsByStatus("Finalizado"),
-          fetchWeeklyAppointmentsByStatus("Agendado"),
-        ]);
+  counts,
+  appointmentsResponse,
+  recebimentos,
+  receitas,
+  pendentes,
+  weeklyAppointments,
+  completed,
+  pending,
+  petsForReminders,
+  finalizedBathAppointments,
+] = await Promise.all([
+  fetchDashboardCounts(),
+  fetchRecentAppointments(),
+  fetchRecentFinancialEntries(),
+  fetchWeeklyPaidRevenue(),
+  fetchWeeklyPendingRevenue(),
+  fetchWeeklyAppointments(),
+  fetchWeeklyAppointmentsByStatus("Finalizado"),
+  fetchWeeklyAppointmentsByStatus("Agendado"),
+  fetchPetsForBathReminders(),
+  fetchFinalizedBathAppointmentsForReminders(),
+]);
 
         const weeklyAppointmentsData = weeklyAppointments.data || [];
         const completedAppointmentsData = completed.data || [];
@@ -120,6 +147,12 @@ export default function HomePage() {
         setUltimosRecebimentos(recebimentos.data || []);
         setRecebido(totalRecebido);
         setReceber(totalReceber);
+        setBathReminders(
+  buildBathReminders(
+    petsForReminders.data || [],
+    finalizedBathAppointments.data || [],
+  ),
+);
       } catch (error) {
         console.error(error);
       }
@@ -133,7 +166,127 @@ export default function HomePage() {
     currentDetail === detail ? null : detail,
   );
 }
+function parseDateOnly(value?: string) {
+  if (!value) {
+    return null;
+  }
 
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function calculateDaysSince(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
+
+  const differenceInMs = today.getTime() - targetDate.getTime();
+
+  return Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
+}
+
+function buildBathReminders(
+  petsList: Array<{
+    id: number;
+    nome: string;
+    tutors?:
+      | {
+          nome?: string;
+          telefone?: string;
+        }
+      | {
+          nome?: string;
+          telefone?: string;
+        }[];
+  }>,
+  finalizedBaths: BathAppointmentForReminder[],
+): BathReminder[] {
+  const reminders: BathReminder[] = [];
+
+  for (const pet of petsList) {
+    const tutor = Array.isArray(pet.tutors) ? pet.tutors[0] : pet.tutors;
+
+    const lastBath = finalizedBaths.find(
+      (appointment) => Number(appointment.pet_id) === Number(pet.id),
+    );
+
+    if (!lastBath) {
+      reminders.push({
+        petId: Number(pet.id),
+        petName: pet.nome,
+        tutorName: tutor?.nome || "Tutor não informado",
+        tutorPhone: tutor?.telefone,
+        daysWithoutBath: null,
+      });
+
+      continue;
+    }
+
+    const lastBathDate = parseDateOnly(lastBath.data || undefined);
+
+    if (!lastBathDate) {
+      continue;
+    }
+
+    const daysWithoutBath = calculateDaysSince(lastBathDate);
+
+    if (daysWithoutBath <= 30) {
+      continue;
+    }
+
+    reminders.push({
+      petId: Number(pet.id),
+      petName: pet.nome,
+      tutorName: tutor?.nome || "Tutor não informado",
+      tutorPhone: tutor?.telefone,
+      daysWithoutBath,
+      lastBathDate: lastBath.data || undefined,
+    });
+  }
+
+  return reminders;
+}
+
+function formatPhoneForWhatsApp(phone?: string) {
+  if (!phone) {
+    return "";
+  }
+
+  const onlyNumbers = phone.replace(/\D/g, "");
+
+  if (!onlyNumbers) {
+    return "";
+  }
+
+  return onlyNumbers.startsWith("55") ? onlyNumbers : `55${onlyNumbers}`;
+}
+
+function createBathReminderWhatsAppLink(reminder: BathReminder) {
+  const phone = formatPhoneForWhatsApp(reminder.tutorPhone);
+
+  if (!phone) {
+    return "";
+  }
+
+  const message = `Olá, ${reminder.tutorName}.
+
+Percebemos que o ${reminder.petName} já está há algum tempo sem banho.
+
+Que tal agendarmos um horário para deixar ele limpinho e cheiroso novamente?
+
+Estamos com agenda aberta.
+
+Equipe Pet Maia Banho e Tosa.`;
+
+  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
   function formatCurrency(value: number) {
     return value.toLocaleString("pt-BR", {
       style: "currency",
@@ -247,7 +400,76 @@ export default function HomePage() {
       </div>
     );
   }
+function renderBathRemindersList() {
+  if (bathReminders.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+        Nenhum lembrete de banho recorrente no momento.
+      </div>
+    );
+  }
 
+  return (
+    <div className="space-y-3">
+      {bathReminders.map((reminder) => {
+        const whatsappLink = createBathReminderWhatsAppLink(reminder);
+
+        return (
+          <div
+            key={reminder.petId}
+            className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-800">
+                {reminder.petName}
+              </p>
+
+              <p className="text-sm text-slate-500">
+                Tutor: {reminder.tutorName}
+              </p>
+
+              <p className="text-sm text-slate-500">
+                {reminder.daysWithoutBath === null
+                  ? "Sem banho finalizado registrado."
+                  : `Está há ${reminder.daysWithoutBath} dias sem banho.`}
+              </p>
+
+              {reminder.lastBathDate && (
+                <p className="text-xs text-slate-400">
+                  Último banho: {reminder.lastBathDate}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 sm:items-end">
+              {whatsappLink ? (
+                <a
+                  href={whatsappLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+                >
+                  Enviar WhatsApp
+                </a>
+              ) : (
+                <span className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-400">
+                  Sem telefone
+                </span>
+              )}
+
+              <a
+                href="/agenda"
+                className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+              >
+                Agendar
+              </a>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -348,6 +570,15 @@ export default function HomePage() {
                 "Nenhum recebimento encontrado nesta semana.",
               )}
             </StatCard>
+            <StatCard
+  title="Lembretes de Banho"
+  value={String(bathReminders.length)}
+  icon={<MessageCircle size={24} />}
+  active={activeDetail === "bathReminders"}
+  onClick={() => handleSelectDetail("bathReminders")}
+>
+  {renderBathRemindersList()}
+</StatCard>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">

@@ -18,7 +18,10 @@ import {
   fetchAppointments,
   updateAppointmentStatus,
 } from "@/services/appointments";
-import { createAppointmentFinancialEntry } from "@/services/financial";
+import {
+  createAppointmentFinancialEntry,
+  deleteFinancialEntriesByAppointmentId,
+} from "@/services/financial";
 import { fetchPets } from "@/services/pets";
 import { fetchServices } from "@/services/services";
 import { fetchClinicSettings } from "@/services/settings";
@@ -170,21 +173,31 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
-  async function handleDeleteAppointment(id: number) {
-    const { error } = await deleteAppointment(id);
+ async function handleDeleteAppointment(id: number) {
+  const { error } = await deleteAppointment(id);
 
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao excluir agendamento");
-      return;
-    }
-
-    setAppointments((currentAppointments) =>
-      currentAppointments.filter((appointment) => appointment.id !== id),
-    );
-
-    toast.success("Agendamento excluído!");
+  if (error) {
+    console.error(error);
+    toast.error("Erro ao excluir agendamento");
+    return;
   }
+
+  const { error: financialError } =
+    await deleteFinancialEntriesByAppointmentId(id);
+
+  if (financialError) {
+    console.error(financialError);
+    toast.warning(
+      "Agendamento excluído, mas não foi possível excluir o financeiro vinculado.",
+    );
+  } else {
+    toast.success("Agendamento e financeiro vinculado excluídos!");
+  }
+
+  setAppointments((currentAppointments) =>
+    currentAppointments.filter((appointment) => appointment.id !== id),
+  );
+}
 
   async function handleCancelAppointment(id: number) {
     const { error } = await updateAppointmentStatus(id, "Cancelado");
@@ -224,11 +237,12 @@ async function handleFinishAppointment({
     : servicoDescricao;
 
   const { error } = await createAppointmentFinancialEntry(
-    petName,
-    descricaoCompleta,
-    valor,
-    formaPagamento,
-  );
+  completedAppointment.id,
+  petName,
+  descricaoCompleta,
+  valor,
+  formaPagamento,
+);
 
   if (error) {
     console.error(error);
@@ -242,10 +256,15 @@ async function handleFinishAppointment({
   );
 
   if (statusError) {
-    console.error(statusError);
-    toast.error(statusError.message);
-    return;
-  }
+  console.error(statusError);
+
+  await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+
+  toast.error(
+    "Erro ao finalizar atendimento. O lançamento financeiro foi desfeito.",
+  );
+  return;
+}
 
   toast.success("Atendimento finalizado!");
 

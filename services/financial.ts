@@ -56,6 +56,7 @@ export async function createFinancialEntry(entry: NewFinancialEntryInput) {
 }
 
 export async function createAppointmentFinancialEntry(
+  appointmentId: number,
   petName: string,
   serviceDescription: string,
   valor: number,
@@ -68,6 +69,8 @@ export async function createAppointmentFinancialEntry(
       tipo: "Receita",
       forma_pagamento: formaPagamento,
       status_pagamento: "Pendente",
+      origem: "appointment",
+      referencia_id: appointmentId,
     },
   ]);
 }
@@ -81,6 +84,15 @@ export async function markFinancialEntryAsPaid(id: number) {
 
 export async function deleteFinancialEntry(id: number) {
   return supabase.from("financial_entries").delete().eq("id", id);
+}
+export async function deleteFinancialEntriesByAppointmentId(
+  appointmentId: number,
+) {
+  return supabase
+    .from("financial_entries")
+    .delete()
+    .eq("origem", "appointment")
+    .eq("referencia_id", appointmentId);
 }
 
 export async function fetchWeeklyPaidRevenue() {

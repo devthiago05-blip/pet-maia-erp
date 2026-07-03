@@ -18,6 +18,7 @@ import {
   fetchWeeklyPendingRevenue,
 } from "@/services/financial";
 import type { Appointment, FinancialEntry } from "@/types/domain";
+
 type DashboardDetail =
   | "pets"
   | "tutors"
@@ -35,276 +36,129 @@ export default function HomePage() {
   const [pendingAppointments, setPendingAppointments] = useState(0);
   const [recebido, setRecebido] = useState(0);
   const [receber, setReceber] = useState(0);
-  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<Appointment[]>([]);
-  const [ultimosRecebimentos, setUltimosRecebimentos] = useState<FinancialEntry[]>([]);
+
+  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<
+    Appointment[]
+  >([]);
+  const [ultimosRecebimentos, setUltimosRecebimentos] = useState<
+    FinancialEntry[]
+  >([]);
+
   const [weeklyAppointmentsList, setWeeklyAppointmentsList] = useState<
-  Appointment[]
->([]);
+    Appointment[]
+  >([]);
+  const [completedAppointmentsList, setCompletedAppointmentsList] = useState<
+    Appointment[]
+  >([]);
+  const [pendingAppointmentsList, setPendingAppointmentsList] = useState<
+    Appointment[]
+  >([]);
 
-const [completedAppointmentsList, setCompletedAppointmentsList] = useState<
-  Appointment[]
->([]);
+  const [weeklyPaidRevenueList, setWeeklyPaidRevenueList] = useState<
+    FinancialEntry[]
+  >([]);
+  const [weeklyPendingRevenueList, setWeeklyPendingRevenueList] = useState<
+    FinancialEntry[]
+  >([]);
 
-const [pendingAppointmentsList, setPendingAppointmentsList] = useState<
-  Appointment[]
->([]);
-
-const [weeklyPaidRevenueList, setWeeklyPaidRevenueList] = useState<
-  FinancialEntry[]
->([]);
-
-const [weeklyPendingRevenueList, setWeeklyPendingRevenueList] = useState<
-  FinancialEntry[]
->([]);
-
-const [activeDetail, setActiveDetail] =
-  useState<DashboardDetail>("weeklyAppointments");
+  const [activeDetail, setActiveDetail] =
+  useState<DashboardDetail | null>(null);
 
   useEffect(() => {
-  async function loadData() {
-    try {
-      const [
-        counts,
-        appointmentsResponse,
-        recebimentos,
-        receitas,
-        pendentes,
-        weeklyAppointments,
-        completed,
-        pending,
-      ] = await Promise.all([
-        fetchDashboardCounts(),
-        fetchRecentAppointments(),
-        fetchRecentFinancialEntries(),
-        fetchWeeklyPaidRevenue(),
-        fetchWeeklyPendingRevenue(),
-        fetchWeeklyAppointments(),
-        fetchWeeklyAppointmentsByStatus("Finalizado"),
-        fetchWeeklyAppointmentsByStatus("Agendado"),
-      ]);
+    async function loadData() {
+      try {
+        const [
+          counts,
+          appointmentsResponse,
+          recebimentos,
+          receitas,
+          pendentes,
+          weeklyAppointments,
+          completed,
+          pending,
+        ] = await Promise.all([
+          fetchDashboardCounts(),
+          fetchRecentAppointments(),
+          fetchRecentFinancialEntries(),
+          fetchWeeklyPaidRevenue(),
+          fetchWeeklyPendingRevenue(),
+          fetchWeeklyAppointments(),
+          fetchWeeklyAppointmentsByStatus("Finalizado"),
+          fetchWeeklyAppointmentsByStatus("Agendado"),
+        ]);
 
-      const totalRecebido =
-        receitas.data?.reduce(
+        const weeklyAppointmentsData = weeklyAppointments.data || [];
+        const completedAppointmentsData = completed.data || [];
+        const pendingAppointmentsData = pending.data || [];
+        const weeklyPaidRevenueData = receitas.data || [];
+        const weeklyPendingRevenueData = pendentes.data || [];
+
+        const totalRecebido = weeklyPaidRevenueData.reduce(
           (total, entry) => total + Number(entry.valor || 0),
           0,
-        ) || 0;
+        );
 
-      const totalReceber =
-        pendentes.data?.reduce(
+        const totalReceber = weeklyPendingRevenueData.reduce(
           (total, entry) => total + Number(entry.valor || 0),
           0,
-        ) || 0;
+        );
 
-      const weeklyAppointmentsData = weeklyAppointments.data || [];
-      const completedAppointmentsData = completed.data || [];
-      const pendingAppointmentsData = pending.data || [];
-      const weeklyPaidRevenueData = receitas.data || [];
-      const weeklyPendingRevenueData = pendentes.data || [];
+        setPets(counts.petsCount);
+        setTutors(counts.tutorsCount);
 
-      setPets(counts.petsCount);
-      setTutors(counts.tutorsCount);
+        setAppointments(weeklyAppointmentsData.length);
+        setCompletedAppointments(completedAppointmentsData.length);
+        setPendingAppointments(pendingAppointmentsData.length);
 
-      setAppointments(weeklyAppointmentsData.length);
-      setCompletedAppointments(completedAppointmentsData.length);
-      setPendingAppointments(pendingAppointmentsData.length);
+        setWeeklyAppointmentsList(weeklyAppointmentsData);
+        setCompletedAppointmentsList(completedAppointmentsData);
+        setPendingAppointmentsList(pendingAppointmentsData);
+        setWeeklyPaidRevenueList(weeklyPaidRevenueData);
+        setWeeklyPendingRevenueList(weeklyPendingRevenueData);
 
-      setWeeklyAppointmentsList(weeklyAppointmentsData);
-      setCompletedAppointmentsList(completedAppointmentsData);
-      setPendingAppointmentsList(pendingAppointmentsData);
-      setWeeklyPaidRevenueList(weeklyPaidRevenueData);
-      setWeeklyPendingRevenueList(weeklyPendingRevenueData);
-
-      setUltimosAgendamentos(appointmentsResponse.data || []);
-      setUltimosRecebimentos(recebimentos.data || []);
-      setRecebido(totalRecebido);
-      setReceber(totalReceber);
-    } catch (error) {
-      console.error(error);
+        setUltimosAgendamentos(appointmentsResponse.data || []);
+        setUltimosRecebimentos(recebimentos.data || []);
+        setRecebido(totalRecebido);
+        setReceber(totalReceber);
+      } catch (error) {
+        console.error(error);
+      }
     }
-  }
 
-  loadData();
-}, []);
+    loadData();
+  }, []);
+
   function handleSelectDetail(detail: DashboardDetail) {
-  setActiveDetail(detail);
+  setActiveDetail((currentDetail) =>
+    currentDetail === detail ? null : detail,
+  );
 }
 
-function formatCurrency(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function getActiveDetailTitle() {
-  const titles: Record<DashboardDetail, string> = {
-    pets: "Pets cadastrados",
-    tutors: "Tutores cadastrados",
-    weeklyAppointments: "Agendamentos da semana",
-    completedAppointments: "Atendimentos concluídos na semana",
-    pendingAppointments: "Agendamentos pendentes na semana",
-    pendingRevenue: "Valores a receber na semana",
-    paidRevenue: "Recebimentos da semana",
-  };
-
-  return titles[activeDetail];
-}
-
-function getActiveAppointments() {
-  if (activeDetail === "weeklyAppointments") {
-    return weeklyAppointmentsList;
+  function formatCurrency(value: number) {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
   }
 
-  if (activeDetail === "completedAppointments") {
-    return completedAppointmentsList;
-  }
-
-  if (activeDetail === "pendingAppointments") {
-    return pendingAppointmentsList;
-  }
-
-  return [];
-}
-
-function getActiveFinancialEntries() {
-  if (activeDetail === "paidRevenue") {
-    return weeklyPaidRevenueList;
-  }
-
-  if (activeDetail === "pendingRevenue") {
-    return weeklyPendingRevenueList;
-  }
-
-  return [];
-}
-
-  return (
-    <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
-      <Sidebar />
-
-      <main className="min-w-0 flex-1 bg-slate-50">
-        <Header />
-
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-  <button
-  type="button"
-  onClick={() => handleSelectDetail("pets")}
-  className="h-full w-full text-left"
->
-    <StatCard title="Pets" value={String(pets)} icon={<PawPrint size={24} />} />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("tutors")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard title="Tutores" value={String(tutors)} icon={<Users size={24} />} />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("weeklyAppointments")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard
-      title="Agendamentos da Semana"
-      value={String(appointments)}
-      icon={<CalendarDays size={24} />}
-    />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("completedAppointments")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard
-      title="Concluídos"
-      value={String(completedAppointments)}
-      icon={<CalendarDays size={24} />}
-    />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("pendingAppointments")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard
-      title="Pendentes"
-      value={String(pendingAppointments)}
-      icon={<CalendarDays size={24} />}
-    />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("pendingRevenue")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard
-      title="A Receber"
-      value={formatCurrency(receber)}
-      icon={<Wallet size={24} />}
-    />
-  </button>
-
-  <button
-    type="button"
-    onClick={() => handleSelectDetail("paidRevenue")}
-    className="h-full w-full rounded-2xl text-left transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[#8A0EEA] focus:ring-offset-2"
-  >
-    <StatCard
-      title="Recebido da Semana"
-      value={formatCurrency(recebido)}
-      icon={<Wallet size={24} />}
-    />
-  </button>
-</div>
-          </div>
-          <div className="mt-6 rounded-2xl border bg-white p-4 sm:p-6">
-  <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-    <div>
-      <h2 className="text-lg font-bold sm:text-xl">
-        {getActiveDetailTitle()}
-      </h2>
-
-      <p className="text-sm text-slate-500">
-        Detalhes do indicador selecionado no Dashboard.
-      </p>
-    </div>
-  </div>
-
-  {activeDetail === "pets" && (
-    <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-      Existem <strong>{pets}</strong> pets cadastrados no sistema.
-      Para ver a lista completa, acesse o menu <strong>Pets</strong>.
-    </div>
-  )}
-
-  {activeDetail === "tutors" && (
-    <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-      Existem <strong>{tutors}</strong> tutores cadastrados no sistema.
-      Para ver a lista completa, acesse o menu <strong>Tutores</strong>.
-    </div>
-  )}
-
-  {["weeklyAppointments", "completedAppointments", "pendingAppointments"].includes(
-    activeDetail,
-  ) && (
-    <div className="space-y-3">
-      {getActiveAppointments().length === 0 ? (
+  function renderAppointmentsList(
+    appointmentsList: Appointment[],
+    emptyMessage: string,
+  ) {
+    if (appointmentsList.length === 0) {
+      return (
         <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
-          Nenhum agendamento encontrado para este indicador.
+          {emptyMessage}
         </div>
-      ) : (
-        getActiveAppointments().map((appointment) => (
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {appointmentsList.map((appointment) => (
           <div
             key={appointment.id}
-            className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[1fr_auto]"
+            className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
           >
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">
@@ -322,7 +176,8 @@ function getActiveFinancialEntries() {
 
             <div className="text-left text-sm sm:text-right">
               <p className="font-medium text-slate-700">
-                {appointment.data || "Sem data"} às {appointment.hora || "--:--"}
+                {appointment.data || "Sem data"} às{" "}
+                {appointment.hora || "--:--"}
               </p>
 
               <p
@@ -338,22 +193,29 @@ function getActiveFinancialEntries() {
               </p>
             </div>
           </div>
-        ))
-      )}
-    </div>
-  )}
+        ))}
+      </div>
+    );
+  }
 
-  {["paidRevenue", "pendingRevenue"].includes(activeDetail) && (
-    <div className="space-y-3">
-      {getActiveFinancialEntries().length === 0 ? (
+  function renderFinancialEntriesList(
+    financialEntries: FinancialEntry[],
+    emptyMessage: string,
+  ) {
+    if (financialEntries.length === 0) {
+      return (
         <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
-          Nenhum lançamento financeiro encontrado para este indicador.
+          {emptyMessage}
         </div>
-      ) : (
-        getActiveFinancialEntries().map((entry) => (
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {financialEntries.map((entry) => (
           <div
             key={entry.id}
-            className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[1fr_auto]"
+            className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
           >
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">
@@ -381,14 +243,118 @@ function getActiveFinancialEntries() {
               </p>
             </div>
           </div>
-        ))
-      )}
-    </div>
-  )}
-</div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
+      <Sidebar />
+
+      <main className="min-w-0 flex-1 bg-slate-50">
+        <Header />
+
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <StatCard
+              title="Pets"
+              value={String(pets)}
+              icon={<PawPrint size={24} />}
+              active={activeDetail === "pets"}
+              onClick={() => handleSelectDetail("pets")}
+            >
+              <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                Existem <strong>{pets}</strong> pets cadastrados no sistema. Para
+                ver a lista completa, acesse o menu <strong>Pets</strong>.
+              </div>
+            </StatCard>
+
+            <StatCard
+              title="Tutores"
+              value={String(tutors)}
+              icon={<Users size={24} />}
+              active={activeDetail === "tutors"}
+              onClick={() => handleSelectDetail("tutors")}
+            >
+              <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
+                Existem <strong>{tutors}</strong> tutores cadastrados no sistema.
+                Para ver a lista completa, acesse o menu{" "}
+                <strong>Tutores</strong>.
+              </div>
+            </StatCard>
+
+            <StatCard
+              title="Agendamentos da Semana"
+              value={String(appointments)}
+              icon={<CalendarDays size={24} />}
+              active={activeDetail === "weeklyAppointments"}
+              onClick={() => handleSelectDetail("weeklyAppointments")}
+            >
+              {renderAppointmentsList(
+                weeklyAppointmentsList,
+                "Nenhum agendamento encontrado nesta semana.",
+              )}
+            </StatCard>
+
+            <StatCard
+              title="Concluídos"
+              value={String(completedAppointments)}
+              icon={<CalendarDays size={24} />}
+              active={activeDetail === "completedAppointments"}
+              onClick={() => handleSelectDetail("completedAppointments")}
+            >
+              {renderAppointmentsList(
+                completedAppointmentsList,
+                "Nenhum atendimento concluído nesta semana.",
+              )}
+            </StatCard>
+
+            <StatCard
+              title="Pendentes"
+              value={String(pendingAppointments)}
+              icon={<CalendarDays size={24} />}
+              active={activeDetail === "pendingAppointments"}
+              onClick={() => handleSelectDetail("pendingAppointments")}
+            >
+              {renderAppointmentsList(
+                pendingAppointmentsList,
+                "Nenhum agendamento pendente nesta semana.",
+              )}
+            </StatCard>
+
+            <StatCard
+              title="A Receber"
+              value={formatCurrency(receber)}
+              icon={<Wallet size={24} />}
+              active={activeDetail === "pendingRevenue"}
+              onClick={() => handleSelectDetail("pendingRevenue")}
+            >
+              {renderFinancialEntriesList(
+                weeklyPendingRevenueList,
+                "Nenhum valor pendente encontrado nesta semana.",
+              )}
+            </StatCard>
+
+            <StatCard
+              title="Recebido da Semana"
+              value={formatCurrency(recebido)}
+              icon={<Wallet size={24} />}
+              active={activeDetail === "paidRevenue"}
+              onClick={() => handleSelectDetail("paidRevenue")}
+            >
+              {renderFinancialEntriesList(
+                weeklyPaidRevenueList,
+                "Nenhum recebimento encontrado nesta semana.",
+              )}
+            </StatCard>
+          </div>
+
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
             <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold sm:text-xl">Últimos Agendamentos</h2>
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">
+                Últimos Agendamentos
+              </h2>
 
               <div className="space-y-3">
                 {ultimosAgendamentos.map((appointment) => (
@@ -400,6 +366,7 @@ function getActiveFinancialEntries() {
                       <p className="truncate font-medium">
                         {appointment.pets?.nome || "-"}
                       </p>
+
                       <p className="break-words text-sm text-slate-500">
                         {appointment.servico}
                       </p>
@@ -407,15 +374,26 @@ function getActiveFinancialEntries() {
 
                     <div className="shrink-0 text-left sm:text-right">
                       <p>{appointment.hora}</p>
-                      <p className="text-sm text-slate-500">{appointment.status}</p>
+
+                      <p className="text-sm text-slate-500">
+                        {appointment.status}
+                      </p>
                     </div>
                   </div>
                 ))}
+
+                {ultimosAgendamentos.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+                    Nenhum agendamento recente encontrado.
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="rounded-2xl border bg-white p-4 sm:p-6">
-              <h2 className="mb-4 text-lg font-bold sm:text-xl">Últimos Recebimentos</h2>
+              <h2 className="mb-4 text-lg font-bold sm:text-xl">
+                Últimos Recebimentos
+              </h2>
 
               <div className="space-y-3">
                 {ultimosRecebimentos.map((item) => (
@@ -425,13 +403,20 @@ function getActiveFinancialEntries() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">
-                        {item.descricao.replace(/^Consulta\b/i, "Atendimento")}
+                        {item.descricao.replace(
+                          /^Consulta\b/i,
+                          "Atendimento",
+                        )}
                       </p>
-                      <p className="text-sm text-slate-500">{item.forma_pagamento}</p>
+
+                      <p className="text-sm text-slate-500">
+                        {item.forma_pagamento}
+                      </p>
                     </div>
 
                     <div className="shrink-0 text-left sm:text-right">
-                      <p>R$ {item.valor}</p>
+                      <p>{formatCurrency(Number(item.valor))}</p>
+
                       <p
                         className={`text-sm ${
                           item.status_pagamento === "Pago"
@@ -444,6 +429,12 @@ function getActiveFinancialEntries() {
                     </div>
                   </div>
                 ))}
+
+                {ultimosRecebimentos.length === 0 && (
+                  <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+                    Nenhum recebimento recente encontrado.
+                  </div>
+                )}
               </div>
             </div>
           </div>

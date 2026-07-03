@@ -16,6 +16,7 @@ import {
   createAppointment,
   deleteAppointment,
   deleteAppointmentServicesByAppointmentId,
+  fetchAppointmentServicesByAppointmentId,
   fetchAppointments,
   replaceAppointmentServices,
   updateAppointmentStatus,
@@ -23,6 +24,7 @@ import {
 import {
   createAppointmentFinancialEntry,
   deleteFinancialEntriesByAppointmentId,
+  fetchFinancialEntriesByAppointmentId,
 } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
 import { fetchServices } from "@/services/services";
@@ -32,6 +34,7 @@ import type {
   Appointment,
   ClinicSettings,
   CompletedAppointmentService,
+  FinancialEntry,
   NewAppointmentInput,
   Pet,
   Service,
@@ -44,6 +47,23 @@ function normalizeText(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .trim()
     .toLowerCase();
+}
+function extractReceiptObservations(description?: string, petName?: string) {
+  if (!description?.includes("| Obs:")) {
+    return undefined;
+  }
+
+  const observationPart = description.split("| Obs:")[1]?.trim();
+
+  if (!observationPart) {
+    return undefined;
+  }
+
+  if (!petName) {
+    return observationPart;
+  }
+
+  return observationPart.replace(new RegExp(` - ${petName}$`, "i"), "").trim();
 }
 
 
@@ -298,6 +318,50 @@ if (statusError) {
   setAppointmentToFinish(null);
   await loadAppointments();
 }
+async function handleViewReceipt(appointment: Appointment) {
+  const [servicesResponse, financialResponse] = await Promise.all([
+    fetchAppointmentServicesByAppointmentId(appointment.id),
+    fetchFinancialEntriesByAppointmentId(appointment.id),
+  ]);
+
+  if (servicesResponse.error) {
+    console.error(servicesResponse.error);
+    toast.error("Não foi possível carregar os serviços do recibo.");
+    return;
+  }
+
+  if (financialResponse.error) {
+    console.error(financialResponse.error);
+    toast.error("Não foi possível carregar o financeiro do recibo.");
+    return;
+  }
+
+  const financialEntry = (financialResponse.data?.[0] || null) as
+    | FinancialEntry
+    | null;
+
+  if (!financialEntry) {
+    toast.error("Nenhum lançamento financeiro encontrado para este atendimento.");
+    return;
+  }
+
+  const receiptServices: CompletedAppointmentService[] =
+    servicesResponse.data?.map((service) => ({
+      serviceName: service.service_name,
+      price: Number(service.price || 0),
+    })) || [];
+
+  setCompletedReceipt({
+    appointment,
+    valor: Number(financialEntry.valor || 0),
+    formaPagamento: financialEntry.forma_pagamento || "PIX",
+    services: receiptServices,
+    observacoes: extractReceiptObservations(
+      financialEntry.descricao,
+      appointment.pets?.nome,
+    ),
+  });
+}
 
 return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
@@ -390,18 +454,20 @@ return (
           </div>
 
           {viewMode === "kanban" ? (
-            <KanbanBoard
-              appointments={filteredAppointments}
-              onFinish={setAppointmentToFinish}
-              onCancel={handleCancelAppointment}
-              onDelete={handleDeleteAppointment}
-            />
+           <KanbanBoard
+  appointments={filteredAppointments}
+  onFinish={setAppointmentToFinish}
+  onViewReceipt={handleViewReceipt}
+  onCancel={handleCancelAppointment}
+  onDelete={handleDeleteAppointment}
+/>
           ) : (
             <AppointmentTable
-              appointments={filteredAppointments}
-              onFinish={setAppointmentToFinish}
-              onDelete={handleDeleteAppointment}
-            />
+  appointments={filteredAppointments}
+  onFinish={setAppointmentToFinish}
+  onViewReceipt={handleViewReceipt}
+  onDelete={handleDeleteAppointment}
+/>
           )}
         </div>
 

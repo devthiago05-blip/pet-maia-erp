@@ -274,7 +274,9 @@ export interface Service {
 export interface CompletedAppointmentService {
   serviceName: string;
   price: number;
-}export interface AppointmentService {
+}
+
+export interface AppointmentService {
   id: number;
   appointment_id: number;
   service_name: string;

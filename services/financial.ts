@@ -109,6 +109,17 @@ export async function deleteFinancialEntriesByAppointmentId(
     .eq("origem", "appointment")
     .eq("referencia_id", appointmentId);
 }
+export async function fetchFinancialEntriesByAppointmentId(
+  appointmentId: number,
+) {
+  return supabase
+    .from("financial_entries")
+    .select(financialEntrySelect)
+    .eq("origem", "appointment")
+    .eq("referencia_id", appointmentId)
+    .order("id", { ascending: false })
+    .limit(1);
+}
 
 export async function fetchWeeklyPaidRevenue() {
   const inicioSemana = new Date();

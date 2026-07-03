@@ -9,12 +9,14 @@ interface AppointmentTableProps {
   appointments: Appointment[];
   onDelete: (id: number) => void;
   onFinish: (appointment: Appointment) => void;
+  onViewReceipt: (appointment: Appointment) => void;
 }
 
 export function AppointmentTable({
   appointments,
   onDelete,
   onFinish,
+  onViewReceipt,
 }: AppointmentTableProps) {
   const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
@@ -22,7 +24,7 @@ export function AppointmentTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[760px]">
+        <table className="w-full min-w-[820px]">
           <thead className="bg-slate-50">
             <tr>
               <th className="p-3 text-left sm:p-4">Hora</th>
@@ -47,10 +49,13 @@ export function AppointmentTable({
               appointments.map((appointment) => (
                 <tr key={appointment.id} className="border-t">
                   <td className="p-3 sm:p-4">{appointment.hora}</td>
+
                   <td className="p-3 sm:p-4">
                     {appointment.pets?.nome || "-"}
                   </td>
+
                   <td className="p-3 sm:p-4">{appointment.servico}</td>
+
                   <td className="p-3 sm:p-4">
                     <span
                       className={`rounded-full px-3 py-1 text-sm font-medium ${
@@ -64,14 +69,28 @@ export function AppointmentTable({
                       {appointment.status}
                     </span>
                   </td>
+
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => onFinish(appointment)}
-                        className="text-green-600"
-                      >
-                        Finalizar
-                      </button>
+                      {appointment.status === "Agendado" && (
+                        <button
+                          type="button"
+                          onClick={() => onFinish(appointment)}
+                          className="text-green-600"
+                        >
+                          Finalizar
+                        </button>
+                      )}
+
+                      {appointment.status === "Finalizado" && (
+                        <button
+                          type="button"
+                          onClick={() => onViewReceipt(appointment)}
+                          className="text-[#8A0EEA]"
+                        >
+                          Ver recibo
+                        </button>
+                      )}
 
                       <button
                         type="button"

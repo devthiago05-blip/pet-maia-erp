@@ -4,6 +4,7 @@ import type { Appointment } from "@/types/domain";
 interface KanbanBoardProps {
   appointments: Appointment[];
   onFinish: (appointment: Appointment) => void;
+  onViewReceipt: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
 }
@@ -11,6 +12,7 @@ interface KanbanBoardProps {
 export function KanbanBoard({
   appointments,
   onFinish,
+  onViewReceipt,
   onCancel,
   onDelete,
 }: KanbanBoardProps) {
@@ -22,6 +24,7 @@ export function KanbanBoard({
           status="Agendado"
           appointments={appointments}
           onFinish={onFinish}
+          onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
         />
@@ -31,6 +34,7 @@ export function KanbanBoard({
           status="Finalizado"
           appointments={appointments}
           onFinish={onFinish}
+          onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
         />
@@ -40,6 +44,7 @@ export function KanbanBoard({
           status="Cancelado"
           appointments={appointments}
           onFinish={onFinish}
+          onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
         />

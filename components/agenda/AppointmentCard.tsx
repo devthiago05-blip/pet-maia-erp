@@ -6,6 +6,7 @@ import type { Appointment } from "@/types/domain";
 interface AppointmentCardProps {
   appointment: Appointment;
   onFinish: (appointment: Appointment) => void;
+  onViewReceipt: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
 }
@@ -13,6 +14,7 @@ interface AppointmentCardProps {
 export function AppointmentCard({
   appointment,
   onFinish,
+  onViewReceipt,
   onCancel,
   onDelete,
 }: AppointmentCardProps) {
@@ -53,6 +55,7 @@ export function AppointmentCard({
               >
                 Finalizar
               </button>
+
               <button
                 type="button"
                 onClick={() => onCancel(appointment.id)}
@@ -61,6 +64,16 @@ export function AppointmentCard({
                 Cancelar
               </button>
             </>
+          )}
+
+          {appointment.status === "Finalizado" && (
+            <button
+              type="button"
+              onClick={() => onViewReceipt(appointment)}
+              className="rounded-xl bg-[#8A0EEA] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[#7600d1]"
+            >
+              Ver recibo
+            </button>
           )}
 
           <button

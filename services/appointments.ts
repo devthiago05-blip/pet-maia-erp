@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type {
+  AppointmentService,
   AppointmentStatus,
   CompletedAppointmentService,
   NewAppointmentInput,
@@ -94,4 +95,14 @@ export async function deleteAppointmentServicesByAppointmentId(
     .from("appointment_services")
     .delete()
     .eq("appointment_id", appointmentId);
+}
+export async function fetchAppointmentServicesByAppointmentId(
+  appointmentId: number,
+) {
+  return supabase
+    .from("appointment_services")
+    .select("*")
+    .eq("appointment_id", appointmentId)
+    .order("id", { ascending: true })
+    .returns<AppointmentService[]>();
 }

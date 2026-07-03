@@ -80,7 +80,7 @@ export default function FinanceiroPage() {
 
   const lucro = totalRecebido - totalDespesas;
 
-  async function loadFinancial() {
+ async function loadFinancial() {
   setLoading(true);
   setLoadError("");
 

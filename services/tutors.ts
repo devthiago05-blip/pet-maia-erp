@@ -6,14 +6,18 @@ export async function fetchTutors() {
 }
 
 export async function createTutor(tutor: NewTutorInput) {
-  return supabase.from("tutors").insert([
-    {
-      nome: tutor.nome,
-      telefone: tutor.telefone,
-      email: tutor.email,
-      endereco: tutor.endereco,
-    },
-  ]);
+  return supabase
+    .from("tutors")
+    .insert([
+      {
+        nome: tutor.nome,
+        telefone: tutor.telefone,
+        email: tutor.email,
+        endereco: tutor.endereco,
+      },
+    ])
+    .select("*")
+    .single();
 }
 
 export async function updateTutor(tutor: Tutor) {

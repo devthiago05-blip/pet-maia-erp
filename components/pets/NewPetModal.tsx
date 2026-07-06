@@ -1,66 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type { NewPetInput, Tutor } from "@/types/domain";
 
 interface NewPetModalProps {
   tutors: Tutor[];
-  onSave: (pet: NewPetInput & { id: number }) => void;
+  onSave: (pet: NewPetInput) => Promise<boolean | void> | boolean | void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  defaultTutorId?: string;
+  hideTrigger?: boolean;
 }
 
-export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
-  const [open, setOpen] = useState(false);
+export function NewPetModal({
+  tutors,
+  onSave,
+  open,
+  onOpenChange,
+  defaultTutorId = "",
+  hideTrigger = false,
+}: NewPetModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [especie, setEspecie] = useState("");
   const [raca, setRaca] = useState("");
   const [sexo, setSexo] = useState("");
   const [idade, setIdade] = useState("");
   const [porte, setPorte] = useState("Pequeno");
-  const [tutorId, setTutorId] = useState("");
+  const [tutorId, setTutorId] = useState(defaultTutorId);
 
-  function handleSave() {
-    const tutorSelecionado = tutors.find(
-      (tutor) => tutor.id === Number(tutorId),
-    );
+  const modalOpen = open ?? internalOpen;
 
-    if (!nome || !especie || !tutorSelecionado) {
-      toast.error("Preencha os campos obrigatórios");
-      return;
+  useEffect(() => {
+    if (modalOpen && defaultTutorId) {
+      setTutorId(defaultTutorId);
+    }
+  }, [defaultTutorId, modalOpen]);
+
+  function setModalOpen(value: boolean) {
+    if (open === undefined) {
+      setInternalOpen(value);
     }
 
-    onSave({
-      id: Date.now(),
-      nome,
-      especie,
-      raca,
-      tutorId,
-      sexo,
-      idade,
-      porte,
-    });
+    onOpenChange?.(value);
+  }
 
-    setOpen(false);
+  function resetForm() {
     setNome("");
     setEspecie("");
     setRaca("");
     setSexo("");
     setIdade("");
-    setTutorId("");
+    setPorte("Pequeno");
+    setTutorId(defaultTutorId || "");
+  }
+
+  function handleClose() {
+    resetForm();
+    setModalOpen(false);
+  }
+
+  async function handleSave() {
+    const tutorSelecionado = tutors.find(
+      (tutor) => String(tutor.id) === tutorId,
+    );
+
+    if (!nome.trim() || !especie || !tutorSelecionado) {
+      toast.error("Preencha os campos obrigatórios");
+      return;
+    }
+
+    const result = await onSave({
+      nome: nome.trim(),
+      especie,
+      raca: raca.trim(),
+      tutorId,
+      sexo,
+      idade: idade.trim(),
+      porte,
+    });
+
+    if (result === false) {
+      return;
+    }
+
+    handleClose();
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
-      >
-        Novo Pet
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+        >
+          Novo Pet
+        </button>
+      )}
 
-      {open && (
+      {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
             <h2 className="mb-4 text-xl font-bold sm:text-2xl">Novo Pet</h2>
@@ -136,7 +177,7 @@ export function NewPetModal({ tutors, onSave }: NewPetModalProps) {
               <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={handleClose}
                   className="w-full rounded-xl border py-2 sm:flex-1"
                 >
                   Cancelar

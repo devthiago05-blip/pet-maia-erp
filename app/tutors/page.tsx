@@ -1,5 +1,13 @@
 "use client";
-
+import { NewPetModal } from "@/components/pets/NewPetModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { createPet } from "@/services/pets";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -15,16 +23,25 @@ import {
   fetchTutors,
   updateTutor,
 } from "@/services/tutors";
-import type { NewTutorInput, Tutor } from "@/types/domain";
+import type { NewPetInput, NewTutorInput, Tutor } from "@/types/domain";
 
 export default function TutorsPage() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
+  const [createdTutorForPet, setCreatedTutorForPet] = useState<Tutor | null>(
+  null,
+);
+const [petModalOpen, setPetModalOpen] = useState(false);
   const [search, setSearch] = useState("");
 
   const filteredTutors = tutors.filter((tutor) =>
     tutor.nome.toLowerCase().includes(search.toLowerCase()),
   );
+  const tutorsForPetModal =
+  createdTutorForPet &&
+  !tutors.some((tutor) => tutor.id === createdTutorForPet.id)
+    ? [...tutors, createdTutorForPet]
+    : tutors;
 
   async function loadTutors() {
     const { data, error } = await fetchTutors();
@@ -41,18 +58,57 @@ export default function TutorsPage() {
     loadTutors();
   });
 
-  async function handleCreateTutor(novoTutor: NewTutorInput) {
-    const { error } = await createTutor(novoTutor);
+  async function handleCreateTutor(
+  novoTutor: NewTutorInput,
+  
+): Promise<boolean> {
+  const { data, error } = await createTutor(novoTutor);
 
-    if (error) {
-      console.error(error);
-      toast.error("Erro ao salvar tutor");
-      return;
-    }
-
-    await loadTutors();
-    toast.success("Tutor salvo com sucesso!");
+  if (error) {
+    console.error(error);
+    toast.error("Erro ao salvar tutor");
+    return false;
   }
+
+  await loadTutors();
+
+  const savedTutor = data as Tutor | null;
+
+  if (savedTutor) {
+    setCreatedTutorForPet(savedTutor);
+  }
+
+  toast.success("Tutor salvo com sucesso!");
+  return true;
+}
+async function handleCreatePetForCreatedTutor(
+  novoPet: NewPetInput,
+): Promise<boolean> {
+  const { error } = await createPet(novoPet);
+
+  if (error) {
+    console.error(error);
+    toast.error("Erro ao salvar pet");
+    return false;
+  }
+
+  await loadTutors();
+  toast.success("Pet salvo com sucesso!");
+  return true;
+}
+
+function handleClosePetQuestion() {
+  setCreatedTutorForPet(null);
+  setPetModalOpen(false);
+}
+
+function handlePetModalOpenChange(open: boolean) {
+  setPetModalOpen(open);
+
+  if (!open) {
+    setCreatedTutorForPet(null);
+  }
+}
 
   async function handleUpdateTutor(tutorAtualizado: Tutor) {
     const { error } = await updateTutor(tutorAtualizado);
@@ -110,6 +166,53 @@ export default function TutorsPage() {
             {editingTutor && (
               <EditTutorModal tutor={editingTutor} onSave={handleUpdateTutor} />
             )}
+            <Dialog
+  open={Boolean(createdTutorForPet) && !petModalOpen}
+  onOpenChange={(open) => {
+    if (!open) {
+      handleClosePetQuestion();
+    }
+  }}
+>
+  <DialogContent className="sm:max-w-md">
+    <DialogHeader>
+      <DialogTitle>Cadastrar pet?</DialogTitle>
+      <DialogDescription>
+        Tutor cadastrado com sucesso. Deseja cadastrar um pet para{" "}
+        <strong>{createdTutorForPet?.nome}</strong> agora?
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+      <button
+        type="button"
+        onClick={handleClosePetQuestion}
+        className="rounded-xl border px-4 py-2 font-medium text-slate-700 hover:bg-slate-100"
+      >
+        Não agora
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setPetModalOpen(true)}
+        className="rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white hover:bg-[#7600d1]"
+      >
+        Sim, cadastrar pet
+      </button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+{createdTutorForPet && (
+  <NewPetModal
+    tutors={tutorsForPetModal}
+    onSave={handleCreatePetForCreatedTutor}
+    open={petModalOpen}
+    onOpenChange={handlePetModalOpenChange}
+    defaultTutorId={String(createdTutorForPet.id)}
+    hideTrigger
+  />
+)}
           </div>
 
           <TutorTable

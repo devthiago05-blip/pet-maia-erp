@@ -12,7 +12,7 @@ import {
 import type { NewTutorInput } from "@/types/domain";
 
 interface NewTutorModalProps {
-  onSave: (tutor: NewTutorInput & { id: number; pets: number }) => void;
+  onSave: (tutor: NewTutorInput) => Promise<boolean>;
 }
 
 export function NewTutorModal({ onSave }: NewTutorModalProps) {
@@ -21,8 +21,16 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   const [telefone, setTelefone] = useState("");
   const [email, setEmail] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  function handleSave() {
+  function resetForm() {
+    setNome("");
+    setTelefone("");
+    setEmail("");
+    setEndereco("");
+  }
+
+  async function handleSave() {
     if (!nome.trim()) {
       toast.error("Informe o nome do tutor");
       return;
@@ -45,20 +53,21 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
       return;
     }
 
-    onSave({
-      id: Date.now(),
-      nome,
+    setSaving(true);
+
+    const success = await onSave({
+      nome: nome.trim(),
       telefone,
-      email,
-      endereco,
-      pets: 0,
+      email: email.trim(),
+      endereco: endereco.trim(),
     });
 
-    setOpen(false);
-    setNome("");
-    setTelefone("");
-    setEmail("");
-    setEndereco("");
+    setSaving(false);
+
+    if (success) {
+      resetForm();
+      setOpen(false);
+    }
   }
 
   return (
@@ -129,9 +138,10 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
             <button
               type="button"
               onClick={handleSave}
-              className="mt-2 w-full rounded-xl bg-[#8A0EEA] py-2 text-white"
+              disabled={saving}
+              className="mt-2 w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60"
             >
-              Salvar Tutor
+              {saving ? "Salvando..." : "Salvar Tutor"}
             </button>
           </div>
         </DialogContent>

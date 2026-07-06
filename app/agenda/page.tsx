@@ -48,6 +48,15 @@ function normalizeText(value: string) {
     .trim()
     .toLowerCase();
 }
+function getTodayDateString() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -109,6 +118,28 @@ export default function AgendaPage() {
       return matchesSearch && matchesDate && matchesStatus;
     });
   }, [appointments, endDate, filterStatus, search, startDate]);
+  const todayAppointments = useMemo(() => {
+  const today = getTodayDateString();
+
+  return appointments.filter((appointment) => appointment.data === today);
+}, [appointments]);
+
+const filteredTodayAppointments = useMemo(() => {
+  const term = normalizeText(search);
+
+  return todayAppointments.filter((appointment) => {
+    const matchesSearch =
+      !term ||
+      normalizeText(appointment.pets?.nome || "").includes(term) ||
+      normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
+      normalizeText(appointment.servico).includes(term);
+
+    const matchesStatus =
+      filterStatus === "Todos" || appointment.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
+  });
+}, [filterStatus, search, todayAppointments]);
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -453,22 +484,29 @@ return (
             </select>
           </div>
 
-          {viewMode === "kanban" ? (
-           <KanbanBoard
-  appointments={filteredAppointments}
-  onFinish={setAppointmentToFinish}
-  onViewReceipt={handleViewReceipt}
-  onCancel={handleCancelAppointment}
-  onDelete={handleDeleteAppointment}
-/>
-          ) : (
-            <AppointmentTable
-  appointments={filteredAppointments}
-  onFinish={setAppointmentToFinish}
-  onViewReceipt={handleViewReceipt}
-  onDelete={handleDeleteAppointment}
-/>
-          )}
+         {viewMode === "kanban" ? (
+  <div className="space-y-3">
+    <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
+      Kanban exibindo apenas os agendamentos de hoje.
+    </div>
+
+    <KanbanBoard
+      appointments={filteredTodayAppointments}
+      onFinish={setAppointmentToFinish}
+      onViewReceipt={handleViewReceipt}
+      onCancel={handleCancelAppointment}
+      onDelete={handleDeleteAppointment}
+    />
+  </div>
+) : (
+  <AppointmentTable
+    appointments={filteredAppointments}
+    onFinish={setAppointmentToFinish}
+    onViewReceipt={handleViewReceipt}
+    onDelete={handleDeleteAppointment}
+  />
+)}
+          
         </div>
 
         {appointmentToFinish && (

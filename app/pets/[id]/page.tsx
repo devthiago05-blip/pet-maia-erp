@@ -229,7 +229,20 @@ const [completedReceipt, setCompletedReceipt] = useState<{
       setLoading(false);
     }
 
-    loadPet();
+    async function loadAvailableServices() {
+  const { data, error: servicesError } = await fetchServices();
+
+  if (servicesError) {
+    console.error(servicesError);
+    toast.error("Não foi possível carregar os serviços.");
+    return;
+  }
+
+  setServices(data || []);
+}
+
+loadPet();
+loadAvailableServices();
   });
   const groomingAppointments = appointments.filter((appointment) => {
     const service = normalizeText(appointment.servico);
@@ -294,7 +307,7 @@ async function handleViewReceipt(appointment: Appointment) {
     return;
   }
 
-  const [servicesResponse, financialResponse] = await Promise.all([
+  const [financialResponse] = await Promise.all([
     fetchAppointmentServicesByAppointmentId(appointment.id),
     fetchFinancialEntriesByAppointmentId(appointment.id),
   ]);

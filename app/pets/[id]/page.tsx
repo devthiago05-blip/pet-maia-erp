@@ -307,13 +307,13 @@ async function handleViewReceipt(appointment: Appointment) {
     return;
   }
 
-  const [financialResponse] = await Promise.all([
+  const [appointmentServicesResponse, financialResponse] = await Promise.all([
     fetchAppointmentServicesByAppointmentId(appointment.id),
     fetchFinancialEntriesByAppointmentId(appointment.id),
   ]);
 
-  if (servicesResponse.error) {
-    console.error(servicesResponse.error);
+  if (appointmentServicesResponse.error) {
+    console.error(appointmentServicesResponse.error);
     toast.error("Não foi possível carregar os serviços do recibo.");
     return;
   }
@@ -345,7 +345,7 @@ async function handleViewReceipt(appointment: Appointment) {
   }
 
   const receiptServices: CompletedAppointmentService[] =
-    servicesResponse.data?.map((service) => ({
+    appointmentServicesResponse.data?.map((service) => ({
       serviceName: service.service_name,
       price: Number(service.price || 0),
     })) || [];

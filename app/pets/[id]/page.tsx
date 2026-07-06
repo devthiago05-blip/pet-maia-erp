@@ -119,7 +119,7 @@ export default function PetPage() {
         documentsResponse,
       ] = await Promise.all([
         fetchAppointmentsByPet(petId),
-        fetchFinancialEntriesByPet(data.nome),
+        fetchFinancialEntriesByPet(petId, data.nome),
         fetchClinicalRecordsByPet(petId),
         fetchPetVaccinations(petId),
         fetchClinicalExamsByPet(petId),

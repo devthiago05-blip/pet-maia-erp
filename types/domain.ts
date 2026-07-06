@@ -232,7 +232,9 @@ export interface Appointment {
   pets?: {
     nome: string;
     porte?: string;
+    tutor_id?: number;
     tutors?: {
+      id?: number;
       nome: string;
       telefone?: string;
     };

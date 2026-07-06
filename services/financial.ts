@@ -29,11 +29,20 @@ export async function fetchRecentFinancialEntries() {
     .limit(5);
 }
 
-export async function fetchFinancialEntriesByPet(petName: string) {
+export async function fetchFinancialEntriesByPet(
+  petId: number,
+  petName?: string,
+) {
+  const filters = [`pet_id.eq.${petId}`];
+
+  if (petName?.trim()) {
+    filters.push(`descricao.ilike.% - ${petName.trim()}%`);
+  }
+
   return supabase
     .from("financial_entries")
     .select(financialEntrySelect)
-    .or(`pets.nome.ilike.%${petName}%,descricao.ilike.% - ${petName}`)
+    .or(filters.join(","))
     .order("created_at", { ascending: false });
 }
 
@@ -75,6 +84,8 @@ export async function createAppointmentFinancialEntry(
   serviceDescription: string,
   valor: number,
   formaPagamento: string,
+  petId?: number,
+  tutorId?: number,
 ) {
   return supabase.from("financial_entries").insert([
     {
@@ -85,6 +96,8 @@ export async function createAppointmentFinancialEntry(
       status_pagamento: "Pendente",
       origem: "appointment",
       referencia_id: appointmentId,
+      pet_id: petId ?? null,
+      tutor_id: tutorId ?? null,
     },
   ]);
 }

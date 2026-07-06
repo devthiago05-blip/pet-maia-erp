@@ -293,6 +293,8 @@ async function handleFinishAppointment({
   descricaoCompleta,
   valor,
   formaPagamento,
+  completedAppointment.pet_id,
+  completedAppointment.pets?.tutor_id,
 );
 
 if (error) {

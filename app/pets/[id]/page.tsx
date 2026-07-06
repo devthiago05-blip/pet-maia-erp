@@ -61,6 +61,15 @@ function normalizeText(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
+function getTodayDateString() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 export default function PetPage() {
   const params = useParams<{ id: string }>();
@@ -176,6 +185,44 @@ export default function PetPage() {
       service.includes(term),
     );
   });
+  const todayDate = getTodayDateString();
+
+const completedAppointments = appointments.filter(
+  (appointment) => appointment.status === "Finalizado",
+);
+
+const lastAppointment = [...completedAppointments].sort((a, b) =>
+  `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`),
+)[0];
+
+const nextAppointment = appointments
+  .filter(
+    (appointment) =>
+      appointment.status === "Agendado" && appointment.data >= todayDate,
+  )
+  .sort((a, b) =>
+    `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`),
+  )[0];
+
+const totalPaid = financialEntries
+  .filter(
+    (entry) =>
+      entry.tipo === "Receita" && entry.status_pagamento === "Pago",
+  )
+  .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+
+const pendingValue = financialEntries
+  .filter(
+    (entry) =>
+      entry.tipo === "Receita" && entry.status_pagamento !== "Pago",
+  )
+  .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+
+const nextVaccine = vaccinations
+  .filter((vaccination) => vaccination.next_dose_date)
+  .sort((a, b) =>
+    String(a.next_dose_date).localeCompare(String(b.next_dose_date)),
+  )[0];
 
   async function handleCreateClinicalRecord(record: NewClinicalRecordInput) {
     const { error: createError } = await createClinicalRecord(record);
@@ -325,7 +372,15 @@ export default function PetPage() {
                 <PetSummary pet={pet} />
 
                 <div className="min-w-0 lg:col-span-2">
-                  <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
+  <PetQuickStats
+    lastAppointment={lastAppointment}
+    nextAppointment={nextAppointment}
+    totalPaid={totalPaid}
+    pendingValue={pendingValue}
+    nextVaccine={nextVaccine}
+  />
+
+  <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
                     <div className="flex gap-2 overflow-x-auto pb-1">
                       {tabs.map((item) => (
                         <button
@@ -943,6 +998,83 @@ function InfoItem({ label, value }: { label: string; value?: string | null }) {
     <div className="rounded-xl border bg-slate-50 p-3">
       <p className="text-xs uppercase text-slate-500">{label}</p>
       <p className="mt-1 break-words font-medium">{value || "-"}</p>
+    </div>
+  );
+}
+function PetQuickStats({
+  lastAppointment,
+  nextAppointment,
+  totalPaid,
+  pendingValue,
+  nextVaccine,
+}: {
+  lastAppointment?: Appointment;
+  nextAppointment?: Appointment;
+  totalPaid: number;
+  pendingValue: number;
+  nextVaccine?: PetVaccination;
+}) {
+  return (
+    <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <PetStatCard
+        label="Último atendimento"
+        value={
+          lastAppointment
+            ? `${formatDate(lastAppointment.data)} às ${lastAppointment.hora}`
+            : "Sem registro"
+        }
+        detail={lastAppointment?.servico || "Nenhum atendimento finalizado"}
+      />
+
+      <PetStatCard
+        label="Próximo agendamento"
+        value={
+          nextAppointment
+            ? `${formatDate(nextAppointment.data)} às ${nextAppointment.hora}`
+            : "Nenhum"
+        }
+        detail={nextAppointment?.servico || "Sem agendamento futuro"}
+      />
+
+      <PetStatCard
+        label="Total recebido"
+        value={formatCurrency(totalPaid)}
+        detail="Receitas pagas"
+      />
+
+      <PetStatCard
+        label="Valor pendente"
+        value={formatCurrency(pendingValue)}
+        detail="Receitas em aberto"
+      />
+
+      <PetStatCard
+        label="Próxima vacina"
+        value={
+          nextVaccine?.next_dose_date
+            ? formatDate(nextVaccine.next_dose_date)
+            : "Nenhuma"
+        }
+        detail={nextVaccine?.vaccine_name || "Sem próxima dose"}
+      />
+    </section>
+  );
+}
+
+function PetStatCard({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-xl border bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
+      <p className="mt-2 text-lg font-bold text-[#8A0EEA]">{value}</p>
+      <p className="mt-1 text-sm text-slate-500">{detail}</p>
     </div>
   );
 }

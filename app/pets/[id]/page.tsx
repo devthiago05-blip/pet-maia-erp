@@ -294,12 +294,16 @@ async function handleViewReceipt(appointment: Appointment) {
     return;
   }
 
-  const [financialResponse] = await Promise.all([
+  const [servicesResponse, financialResponse] = await Promise.all([
     fetchAppointmentServicesByAppointmentId(appointment.id),
     fetchFinancialEntriesByAppointmentId(appointment.id),
   ]);
 
-  
+  if (servicesResponse.error) {
+    console.error(servicesResponse.error);
+    toast.error("Não foi possível carregar os serviços do recibo.");
+    return;
+  }
 
   if (financialResponse.error) {
     console.error(financialResponse.error);
@@ -308,26 +312,30 @@ async function handleViewReceipt(appointment: Appointment) {
   }
 
   const linkedFinancialEntry = (financialResponse.data?.[0] || null) as
-  | FinancialEntry
-  | null;
+    | FinancialEntry
+    | null;
 
-const fallbackFinancialEntry =
-  financialEntries.find(
-    (entry) =>
-      entry.origem === "appointment" &&
-      Number(entry.referencia_id) === Number(appointment.id),
-  ) || null;
+  const fallbackFinancialEntry =
+    financialEntries.find(
+      (entry) =>
+        entry.origem === "appointment" &&
+        Number(entry.referencia_id) === Number(appointment.id),
+    ) || null;
 
-const financialEntry = linkedFinancialEntry || fallbackFinancialEntry;
+  const financialEntry = linkedFinancialEntry || fallbackFinancialEntry;
 
-if (!financialEntry) {
-  toast.error(
-    "Este atendimento está finalizado, mas não possui recibo financeiro salvo.",
-  );
-  return;
-}
+  if (!financialEntry) {
+    toast.error(
+      "Este atendimento está finalizado, mas não possui recibo financeiro salvo.",
+    );
+    return;
+  }
 
-  
+  const receiptServices: CompletedAppointmentService[] =
+    servicesResponse.data?.map((service) => ({
+      serviceName: service.service_name,
+      price: Number(service.price || 0),
+    })) || [];
 
   setCompletedReceipt({
     appointment: {

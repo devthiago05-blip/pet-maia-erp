@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type {
@@ -15,7 +15,16 @@ interface NewAppointmentModalProps {
   tutors: Tutor[];
   pets: Pet[];
   services: Service[];
-  onSave: (appointment: NewAppointmentInput) => void;
+  onSave:
+    | ((appointment: NewAppointmentInput) => void)
+    | ((appointment: NewAppointmentInput) => boolean)
+    | ((appointment: NewAppointmentInput) => Promise<void>)
+    | ((appointment: NewAppointmentInput) => Promise<boolean>);
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  defaultTutorId?: string;
+  defaultPetId?: string;
+  hideTrigger?: boolean;
 }
 
 export function NewAppointmentModal({
@@ -23,31 +32,70 @@ export function NewAppointmentModal({
   pets,
   services,
   onSave,
+  open,
+  onOpenChange,
+  defaultTutorId = "",
+  defaultPetId = "",
+  hideTrigger = false,
 }: NewAppointmentModalProps) {
-  const [open, setOpen] = useState(false);
-  const [petId, setPetId] = useState("");
-  const [tutorId, setTutorId] = useState("");
+  const [internalOpen, setInternalOpen] = useState(false);
+  const [petId, setPetId] = useState(defaultPetId);
+  const [tutorId, setTutorId] = useState(defaultTutorId);
   const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [status, setStatus] = useState<AppointmentStatus>("Agendado");
+  const [saving, setSaving] = useState(false);
 
-  const petsFiltrados = pets.filter(
-    (petItem) => String(petItem.tutor_id) === tutorId,
-  );
+  const modalOpen = open ?? internalOpen;
+
+  const petsFiltrados = tutorId
+    ? pets.filter((petItem) => String(petItem.tutor_id) === tutorId)
+    : pets;
+
+  useEffect(() => {
+    if (modalOpen) {
+      setTutorId(defaultTutorId);
+      setPetId(defaultPetId);
+    }
+  }, [defaultPetId, defaultTutorId, modalOpen]);
+
+  function setModalOpen(value: boolean) {
+    if (open === undefined) {
+      setInternalOpen(value);
+    }
+
+    onOpenChange?.(value);
+  }
+
+  function resetForm() {
+    setPetId(defaultPetId);
+    setTutorId(defaultTutorId);
+    setServicos([]);
+    setData("");
+    setHora("");
+    setStatus("Agendado");
+  }
 
   function handleTutorChange(nextTutorId: string) {
     setTutorId(nextTutorId);
     setPetId("");
   }
 
-  function handleSave() {
+  function handleClose() {
+    resetForm();
+    setModalOpen(false);
+  }
+
+  async function handleSave() {
     if (!petId || servicos.length === 0 || !data || !hora) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
-    onSave({
+    setSaving(true);
+
+    const result = await onSave({
       petId,
       servico: servicos.join(" + "),
       data,
@@ -55,26 +103,28 @@ export function NewAppointmentModal({
       status,
     });
 
-    setOpen(false);
-    setPetId("");
-    setTutorId("");
-    setServicos([]);
-    setData("");
-    setHora("");
-    setStatus("Agendado");
+    setSaving(false);
+
+    if (result === false) {
+      return;
+    }
+
+    handleClose();
   }
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
-      >
-        Novo Agendamento
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+        >
+          Novo Agendamento
+        </button>
+      )}
 
-      {open && (
+      {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
             <h2 className="mb-6 text-xl font-bold sm:text-2xl">
@@ -184,7 +234,7 @@ export function NewAppointmentModal({
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={handleClose}
                   className="w-full rounded-xl border py-2 sm:flex-1"
                 >
                   Cancelar
@@ -193,9 +243,10 @@ export function NewAppointmentModal({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
+                  disabled={saving}
+                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
                 >
-                  Salvar
+                  {saving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

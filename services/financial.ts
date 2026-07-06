@@ -29,20 +29,11 @@ export async function fetchRecentFinancialEntries() {
     .limit(5);
 }
 
-export async function fetchFinancialEntriesByPet(
-  petId: number,
-  petName?: string,
-) {
-  const filters = [`pet_id.eq.${petId}`];
-
-  if (petName?.trim()) {
-    filters.push(`descricao.ilike.% - ${petName.trim()}%`);
-  }
-
+export async function fetchFinancialEntriesByPet(petId: number) {
   return supabase
     .from("financial_entries")
     .select(financialEntrySelect)
-    .or(filters.join(","))
+    .eq("pet_id", petId)
     .order("created_at", { ascending: false });
 }
 

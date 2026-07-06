@@ -1,10 +1,11 @@
 "use client";
-
+import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-
+import { fetchServices } from "@/services/services";
 import { useAccess } from "@/components/auth/AccessContext";
+import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
@@ -15,7 +16,11 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
-import { fetchAppointmentsByPet } from "@/services/appointments";
+import {
+  createAppointment,
+  fetchAppointmentServicesByAppointmentId,
+  fetchAppointmentsByPet,
+} from "@/services/appointments";
 import {
   createClinicalDocument,
   createClinicalPrescription,
@@ -27,21 +32,30 @@ import {
   fetchPetVaccinations,
   saveClinicalExam,
 } from "@/services/clinical";
-import { fetchFinancialEntriesByPet } from "@/services/financial";
+import {
+  fetchFinancialEntriesByAppointmentId,
+  fetchFinancialEntriesByPet,
+} from "@/services/financial";
 import { fetchPetById } from "@/services/pets";
+import { fetchClinicSettings } from "@/services/settings";
 import type {
   Appointment,
+  ClinicSettings,
   ClinicalDocument,
   ClinicalDocumentInput,
   ClinicalExam,
   ClinicalExamInput,
   ClinicalRecord,
+  CompletedAppointmentService,
   FinancialEntry,
+  NewAppointmentInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
   NewPetVaccinationInput,
   Pet,
   PetVaccination,
+  Service,
+  Tutor,
 } from "@/types/domain";
 
 const tabs = [
@@ -70,6 +84,23 @@ function getTodayDateString() {
 
   return `${year}-${month}-${day}`;
 }
+function extractReceiptObservations(description?: string, petName?: string) {
+  if (!description?.includes("| Obs:")) {
+    return undefined;
+  }
+
+  const observationPart = description.split("| Obs:")[1]?.trim();
+
+  if (!observationPart) {
+    return undefined;
+  }
+
+  if (!petName) {
+    return observationPart;
+  }
+
+  return observationPart.replace(new RegExp(` - ${petName}$`, "i"), "").trim();
+}
 
 export default function PetPage() {
   const params = useParams<{ id: string }>();
@@ -77,6 +108,8 @@ export default function PetPage() {
   const [tab, setTab] = useState("dados");
   const [pet, setPet] = useState<Pet | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
   const [clinicalError, setClinicalError] = useState("");
   const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
@@ -88,6 +121,16 @@ export default function PetPage() {
   const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>(
     [],
   );
+  const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(
+  null,
+);
+const [completedReceipt, setCompletedReceipt] = useState<{
+  appointment: Appointment;
+  valor: number;
+  formaPagamento: string;
+  services: CompletedAppointmentService[];
+  observacoes?: string;
+} | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -110,21 +153,23 @@ export default function PetPage() {
         return;
       }
 
-      const [
-        appointmentsResponse,
-        financialResponse,
-        clinicalResponse,
-        vaccinationsResponse,
-        examsResponse,
-        documentsResponse,
-      ] = await Promise.all([
-        fetchAppointmentsByPet(petId),
-        fetchFinancialEntriesByPet(petId, data.nome),
-        fetchClinicalRecordsByPet(petId),
-        fetchPetVaccinations(petId),
-        fetchClinicalExamsByPet(petId),
-        fetchClinicalDocumentsByPet(petId),
-      ]);
+     const [
+  appointmentsResponse,
+  financialResponse,
+  clinicalResponse,
+  vaccinationsResponse,
+  examsResponse,
+  documentsResponse,
+  clinicSettingsResponse,
+] = await Promise.all([
+  fetchAppointmentsByPet(petId),
+  fetchFinancialEntriesByPet(petId),
+  fetchClinicalRecordsByPet(petId),
+  fetchPetVaccinations(petId),
+  fetchClinicalExamsByPet(petId),
+  fetchClinicalDocumentsByPet(petId),
+  fetchClinicSettings(),
+]);
 
       if (appointmentsResponse.error) {
         console.error(appointmentsResponse.error);
@@ -169,6 +214,14 @@ export default function PetPage() {
       } else {
         setDocuments(documentsResponse.data || []);
       }
+      if (clinicSettingsResponse.error) {
+  console.error(clinicSettingsResponse.error);
+} else {
+  setClinicSettings(clinicSettingsResponse.data as ClinicSettings);
+}
+
+
+
 
       setPet(data);
       setAppointments(appointmentsResponse.data || []);
@@ -178,7 +231,6 @@ export default function PetPage() {
 
     loadPet();
   });
-
   const groomingAppointments = appointments.filter((appointment) => {
     const service = normalizeText(appointment.servico);
     return ["banho", "tosa", "hidratacao", "unhas", "ouvido"].some((term) =>
@@ -223,7 +275,103 @@ const nextVaccine = vaccinations
   .sort((a, b) =>
     String(a.next_dose_date).localeCompare(String(b.next_dose_date)),
   )[0];
+  const appointmentTutors: Tutor[] =
+  pet?.tutor_id
+    ? [
+        {
+          id: pet.tutor_id,
+          nome: pet.tutors?.nome || "Tutor não informado",
+          telefone: pet.tutors?.telefone,
+          email: pet.tutors?.email,
+          endereco: "",
+        },
+      ]
+    : [];
 
+const appointmentPets = pet ? [pet] : [];
+async function handleViewReceipt(appointment: Appointment) {
+  if (!pet) {
+    return;
+  }
+
+  const [financialResponse] = await Promise.all([
+    fetchAppointmentServicesByAppointmentId(appointment.id),
+    fetchFinancialEntriesByAppointmentId(appointment.id),
+  ]);
+
+  
+
+  if (financialResponse.error) {
+    console.error(financialResponse.error);
+    toast.error("Não foi possível carregar o financeiro do recibo.");
+    return;
+  }
+
+  const linkedFinancialEntry = (financialResponse.data?.[0] || null) as
+  | FinancialEntry
+  | null;
+
+const fallbackFinancialEntry =
+  financialEntries.find(
+    (entry) =>
+      entry.origem === "appointment" &&
+      Number(entry.referencia_id) === Number(appointment.id),
+  ) || null;
+
+const financialEntry = linkedFinancialEntry || fallbackFinancialEntry;
+
+if (!financialEntry) {
+  toast.error(
+    "Este atendimento está finalizado, mas não possui recibo financeiro salvo.",
+  );
+  return;
+}
+
+  
+
+  setCompletedReceipt({
+    appointment: {
+      ...appointment,
+      pets: {
+        nome: pet.nome,
+        porte: pet.porte,
+        tutors: pet.tutors,
+      },
+    },
+    valor: Number(financialEntry.valor || 0),
+    formaPagamento: financialEntry.forma_pagamento || "PIX",
+    services: receiptServices,
+    observacoes: extractReceiptObservations(financialEntry.descricao, pet.nome),
+  });
+}
+async function handleCreateAppointmentFromPet(
+  novoAgendamento: NewAppointmentInput,
+): Promise<boolean> {
+  if (!pet) {
+    toast.error("Pet não encontrado");
+    return false;
+  }
+
+  const { error } = await createAppointment(novoAgendamento, pet.id);
+
+  if (error) {
+    console.error(error);
+    toast.error("Erro ao criar agendamento");
+    return false;
+  }
+
+  const { data, error: reloadError } = await fetchAppointmentsByPet(pet.id);
+
+  if (reloadError) {
+    console.error(reloadError);
+    toast.warning("Agendamento criado, mas o histórico não foi atualizado.");
+  } else {
+    setAppointments(data || []);
+  }
+
+  toast.success("Agendamento criado com sucesso!");
+  return true;
+}
   async function handleCreateClinicalRecord(record: NewClinicalRecordInput) {
     const { error: createError } = await createClinicalRecord(record);
 
@@ -361,12 +509,22 @@ const nextVaccine = vaccinations
             </div>
           ) : (
             <>
-              <div>
-                <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
-                  Ficha do Pet
-                </h1>
-                <p className="text-slate-500">Informações do paciente</p>
-              </div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+  <div>
+    <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+      Ficha do Pet
+    </h1>
+    <p className="text-slate-500">Informações do paciente</p>
+  </div>
+
+  <button
+    type="button"
+    onClick={() => setAppointmentModalOpen(true)}
+    className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white hover:bg-[#7600d1] sm:w-auto"
+  >
+    Novo agendamento
+  </button>
+</div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 <PetSummary pet={pet} />
@@ -401,11 +559,13 @@ const nextVaccine = vaccinations
 
                   {tab === "dados" && <PetData pet={pet} />}
                   {tab === "historico" && (
-                    <AppointmentHistory
-                      title="Histórico de atendimentos"
-                      appointments={appointments}
-                    />
-                  )}
+  <AppointmentHistory
+  title="Histórico de atendimentos"
+  appointments={appointments}
+  financialEntries={financialEntries}
+  onViewReceipt={handleViewReceipt}
+/>
+)}
                   {tab === "clinica" && (
                     <ClinicalHistory
                       pet={pet}
@@ -444,11 +604,13 @@ const nextVaccine = vaccinations
                     />
                   )}
                   {tab === "banhos" && (
-                    <AppointmentHistory
-                      title="Banhos e Tosas"
-                      appointments={groomingAppointments}
-                    />
-                  )}
+<AppointmentHistory
+  title="Banhos e Tosas"
+  appointments={groomingAppointments}
+  financialEntries={financialEntries}
+  onViewReceipt={handleViewReceipt}
+/>
+)}
                   {tab === "financeiro" && (
                     <FinancialHistory entries={financialEntries} />
                   )}
@@ -457,6 +619,30 @@ const nextVaccine = vaccinations
             </>
           )}
         </div>
+        {completedReceipt && (
+  <AppointmentReceiptModal
+    appointment={completedReceipt.appointment}
+    clinicSettings={clinicSettings}
+    valor={completedReceipt.valor}
+    formaPagamento={completedReceipt.formaPagamento}
+    services={completedReceipt.services}
+    observacoes={completedReceipt.observacoes}
+    onClose={() => setCompletedReceipt(null)}
+  />
+)}
+{pet && (
+  <NewAppointmentModal
+    tutors={appointmentTutors}
+    pets={appointmentPets}
+    services={services}
+    onSave={handleCreateAppointmentFromPet}
+    open={appointmentModalOpen}
+    onOpenChange={setAppointmentModalOpen}
+    defaultTutorId={pet.tutor_id ? String(pet.tutor_id) : ""}
+    defaultPetId={String(pet.id)}
+    hideTrigger
+  />
+)}
       </main>
     </div>
   );
@@ -906,9 +1092,13 @@ function PetData({ pet }: { pet: Pet }) {
 function AppointmentHistory({
   title,
   appointments,
+  financialEntries = [],
+  onViewReceipt,
 }: {
   title: string;
   appointments: Appointment[];
+  financialEntries?: FinancialEntry[];
+  onViewReceipt?: (appointment: Appointment) => void;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -917,17 +1107,18 @@ function AppointmentHistory({
         <table className="w-full min-w-[620px]">
           <thead className="bg-slate-50">
             <tr>
-              <th className="p-4 text-left">Data</th>
-              <th className="p-4 text-left">Horário</th>
-              <th className="p-4 text-left">Serviços</th>
-              <th className="p-4 text-left">Status</th>
-            </tr>
+  <th className="p-4 text-left">Data</th>
+  <th className="p-4 text-left">Horário</th>
+  <th className="p-4 text-left">Serviços</th>
+  <th className="p-4 text-left">Status</th>
+  <th className="p-4 text-left">Ações</th>
+</tr>
           </thead>
           <tbody>
             {appointments.length === 0 ? (
               <tr>
                 <td
-                  colSpan={4}
+                  colSpan={5}
                   className="p-6 text-center text-sm text-slate-500"
                 >
                   Nenhum registro encontrado.
@@ -940,6 +1131,27 @@ function AppointmentHistory({
                   <td className="p-4">{appointment.hora}</td>
                   <td className="p-4">{appointment.servico}</td>
                   <td className="p-4">{appointment.status}</td>
+               <td className="p-4">
+  {appointment.status === "Finalizado" &&
+  financialEntries.some(
+    (entry) =>
+      entry.origem === "appointment" &&
+      Number(entry.referencia_id) === Number(appointment.id),
+  ) &&
+  onViewReceipt ? (
+    <button
+      type="button"
+      onClick={() => onViewReceipt(appointment)}
+      className="font-medium text-[#8A0EEA] hover:underline"
+    >
+      Ver recibo
+    </button>
+  ) : appointment.status === "Finalizado" ? (
+    <span className="text-sm text-slate-400">Sem recibo</span>
+  ) : (
+    "-"
+  )}
+</td>
                 </tr>
               ))
             )}

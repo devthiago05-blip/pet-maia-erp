@@ -39,6 +39,7 @@ type DashboardDetail =
 
 interface BathReminder {
   petId: number;
+  tutorId?: number;
   petName: string;
   tutorName: string;
   tutorPhone?: string;
@@ -194,9 +195,10 @@ function calculateDaysSince(date: Date) {
 
 function buildBathReminders(
   petsList: Array<{
-    id: number;
-    nome: string;
-    tutors?:
+  id: number;
+  nome: string;
+  tutor_id?: number | null;
+  tutors?:
       | {
           nome?: string;
           telefone?: string;
@@ -219,12 +221,13 @@ function buildBathReminders(
 
     if (!lastBath) {
       reminders.push({
-        petId: Number(pet.id),
-        petName: pet.nome,
-        tutorName: tutor?.nome || "Tutor não informado",
-        tutorPhone: tutor?.telefone,
-        daysWithoutBath: null,
-      });
+  petId: Number(pet.id),
+  tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
+  petName: pet.nome,
+  tutorName: tutor?.nome || "Tutor não informado",
+  tutorPhone: tutor?.telefone,
+  daysWithoutBath: null,
+});
 
       continue;
     }
@@ -241,14 +244,15 @@ function buildBathReminders(
       continue;
     }
 
-    reminders.push({
-      petId: Number(pet.id),
-      petName: pet.nome,
-      tutorName: tutor?.nome || "Tutor não informado",
-      tutorPhone: tutor?.telefone,
-      daysWithoutBath,
-      lastBathDate: lastBath.data || undefined,
-    });
+   reminders.push({
+  petId: Number(pet.id),
+  tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
+  petName: pet.nome,
+  tutorName: tutor?.nome || "Tutor não informado",
+  tutorPhone: tutor?.telefone,
+  daysWithoutBath,
+  lastBathDate: lastBath.data || undefined,
+});
   }
 
   return reminders;
@@ -286,6 +290,17 @@ Estamos com agenda aberta.
 Equipe Pet Maia Banho e Tosa.`;
 
   return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+}
+function createBathReminderAppointmentLink(reminder: BathReminder) {
+  const params = new URLSearchParams();
+
+  params.set("petId", String(reminder.petId));
+
+  if (reminder.tutorId) {
+    params.set("tutorId", String(reminder.tutorId));
+  }
+
+  return `/agenda?${params.toString()}`;
 }
   function formatCurrency(value: number) {
     return value.toLocaleString("pt-BR", {
@@ -457,12 +472,12 @@ function renderBathRemindersList() {
                 </span>
               )}
 
-              <a
-                href="/agenda"
-                className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-              >
-                Agendar
-              </a>
+             <a
+  href={createBathReminderAppointmentLink(reminder)}
+  className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+>
+  Agendar
+</a>
             </div>
           </div>
         );

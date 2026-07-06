@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
@@ -78,6 +79,10 @@ function extractReceiptObservations(description?: string, petName?: string) {
 
 
 export default function AgendaPage() {
+  const searchParams = useSearchParams();
+  const preselectedPetId = searchParams.get("petId") || "";
+  const preselectedTutorId = searchParams.get("tutorId") || "";
+
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [services, setServices] = useState<Service[]>([]);
@@ -88,17 +93,21 @@ export default function AgendaPage() {
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
   const [completedReceipt, setCompletedReceipt] = useState<{
-  appointment: Appointment;
-  valor: number;
-  formaPagamento: string;
-  services: CompletedAppointmentService[];
-  observacoes?: string;
-} | null>(null);
+    appointment: Appointment;
+    valor: number;
+    formaPagamento: string;
+    services: CompletedAppointmentService[];
+    observacoes?: string;
+  } | null>(null);
+
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [filterStatus, setFilterStatus] = useState("Todos");
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(
+    Boolean(preselectedPetId),
+  );
 
   const filteredAppointments = useMemo(() => {
     const term = normalizeText(search);
@@ -109,35 +118,48 @@ export default function AgendaPage() {
         normalizeText(appointment.pets?.nome || "").includes(term) ||
         normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
         normalizeText(appointment.servico).includes(term);
+
       const matchesDate =
         (!startDate || appointment.data >= startDate) &&
         (!endDate || appointment.data <= endDate);
+
       const matchesStatus =
         filterStatus === "Todos" || appointment.status === filterStatus;
 
       return matchesSearch && matchesDate && matchesStatus;
     });
   }, [appointments, endDate, filterStatus, search, startDate]);
+
   const kanbanDate = startDate || getTodayDateString();
 
-const filteredKanbanAppointments = useMemo(() => {
-  const term = normalizeText(search);
+  const filteredKanbanAppointments = useMemo(() => {
+    const term = normalizeText(search);
 
-  return appointments.filter((appointment) => {
-    const matchesDate = appointment.data === kanbanDate;
+    return appointments.filter((appointment) => {
+      const matchesDate = appointment.data === kanbanDate;
 
-    const matchesSearch =
-      !term ||
-      normalizeText(appointment.pets?.nome || "").includes(term) ||
-      normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
-      normalizeText(appointment.servico).includes(term);
+      const matchesSearch =
+        !term ||
+        normalizeText(appointment.pets?.nome || "").includes(term) ||
+        normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
+        normalizeText(appointment.servico).includes(term);
 
-    const matchesStatus =
-      filterStatus === "Todos" || appointment.status === filterStatus;
+      const matchesStatus =
+        filterStatus === "Todos" || appointment.status === filterStatus;
 
-    return matchesDate && matchesSearch && matchesStatus;
-  });
-}, [appointments, filterStatus, kanbanDate, search]);
+      return matchesDate && matchesSearch && matchesStatus;
+    });
+  }, [appointments, filterStatus, kanbanDate, search]);
+
+  const preselectedPet = pets.find(
+    (pet) => String(pet.id) === preselectedPetId,
+  );
+
+  const defaultAppointmentTutorId =
+    preselectedTutorId ||
+    (preselectedPet?.tutor_id ? String(preselectedPet.tutor_id) : "");
+
+
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -411,11 +433,15 @@ return (
             </div>
 
             <NewAppointmentModal
-              tutors={tutors}
-              pets={pets}
-              services={services}
-              onSave={handleCreateAppointment}
-            />
+  tutors={tutors}
+  pets={pets}
+  services={services}
+  onSave={handleCreateAppointment}
+  open={appointmentModalOpen}
+  onOpenChange={setAppointmentModalOpen}
+  defaultTutorId={defaultAppointmentTutorId}
+  defaultPetId={preselectedPetId}
+/>
           </div>
 
           <div className="flex w-full rounded-2xl bg-white p-1 shadow-sm sm:w-fit">

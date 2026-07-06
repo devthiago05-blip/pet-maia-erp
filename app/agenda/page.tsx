@@ -118,16 +118,14 @@ export default function AgendaPage() {
       return matchesSearch && matchesDate && matchesStatus;
     });
   }, [appointments, endDate, filterStatus, search, startDate]);
-  const todayAppointments = useMemo(() => {
-  const today = getTodayDateString();
+  const kanbanDate = startDate || getTodayDateString();
 
-  return appointments.filter((appointment) => appointment.data === today);
-}, [appointments]);
-
-const filteredTodayAppointments = useMemo(() => {
+const filteredKanbanAppointments = useMemo(() => {
   const term = normalizeText(search);
 
-  return todayAppointments.filter((appointment) => {
+  return appointments.filter((appointment) => {
+    const matchesDate = appointment.data === kanbanDate;
+
     const matchesSearch =
       !term ||
       normalizeText(appointment.pets?.nome || "").includes(term) ||
@@ -137,9 +135,9 @@ const filteredTodayAppointments = useMemo(() => {
     const matchesStatus =
       filterStatus === "Todos" || appointment.status === filterStatus;
 
-    return matchesSearch && matchesStatus;
+    return matchesDate && matchesSearch && matchesStatus;
   });
-}, [filterStatus, search, todayAppointments]);
+}, [appointments, filterStatus, kanbanDate, search]);
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -487,16 +485,16 @@ return (
          {viewMode === "kanban" ? (
   <div className="space-y-3">
     <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-      Kanban exibindo apenas os agendamentos de hoje.
+      Kanban exibindo apenas os agendamentos de {kanbanDate.split("-").reverse().join("/")}.
     </div>
 
     <KanbanBoard
-      appointments={filteredTodayAppointments}
-      onFinish={setAppointmentToFinish}
-      onViewReceipt={handleViewReceipt}
-      onCancel={handleCancelAppointment}
-      onDelete={handleDeleteAppointment}
-    />
+  appointments={filteredKanbanAppointments}
+  onFinish={setAppointmentToFinish}
+  onViewReceipt={handleViewReceipt}
+  onCancel={handleCancelAppointment}
+  onDelete={handleDeleteAppointment}
+/>
   </div>
 ) : (
   <AppointmentTable

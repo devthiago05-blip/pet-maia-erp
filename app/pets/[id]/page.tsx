@@ -84,6 +84,53 @@ function getTodayDateString() {
 
   return `${year}-${month}-${day}`;
 }
+function parseDateOnly(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function calculateDaysSinceDate(value?: string | null) {
+  const date = parseDateOnly(value);
+
+  if (!date) {
+    return null;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  date.setHours(0, 0, 0, 0);
+
+  const differenceInMs = today.getTime() - date.getTime();
+
+  return Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
+}
+
+function calculateDaysUntilDate(value?: string | null) {
+  const date = parseDateOnly(value);
+
+  if (!date) {
+    return null;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  date.setHours(0, 0, 0, 0);
+
+  const differenceInMs = date.getTime() - today.getTime();
+
+  return Math.ceil(differenceInMs / (1000 * 60 * 60 * 24));
+}
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -288,6 +335,17 @@ const nextVaccine = vaccinations
   .sort((a, b) =>
     String(a.next_dose_date).localeCompare(String(b.next_dose_date)),
   )[0];
+  const lastBathAppointment = groomingAppointments
+  .filter((appointment) => appointment.status === "Finalizado")
+  .sort((a, b) =>
+    `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`),
+  )[0];
+
+const daysSinceLastBath = calculateDaysSinceDate(lastBathAppointment?.data);
+
+const daysUntilNextVaccine = calculateDaysUntilDate(
+  nextVaccine?.next_dose_date,
+);
   const appointmentTutors: Tutor[] =
   pet?.tutor_id
     ? [
@@ -558,6 +616,15 @@ async function handleCreateAppointmentFromPet(
     pendingValue={pendingValue}
     nextVaccine={nextVaccine}
   />
+  <PetAlerts
+  lastBathAppointment={lastBathAppointment}
+  daysSinceLastBath={daysSinceLastBath}
+  pendingValue={pendingValue}
+  nextAppointment={nextAppointment}
+  nextVaccine={nextVaccine}
+  daysUntilNextVaccine={daysUntilNextVaccine}
+  onSchedule={() => setAppointmentModalOpen(true)}
+/>
 
   <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
                     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -1308,6 +1375,147 @@ function PetStatCard({
       <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
       <p className="mt-2 text-lg font-bold text-[#8A0EEA]">{value}</p>
       <p className="mt-1 text-sm text-slate-500">{detail}</p>
+    </div>
+  );
+}
+function PetAlerts({
+  lastBathAppointment,
+  daysSinceLastBath,
+  pendingValue,
+  nextAppointment,
+  nextVaccine,
+  daysUntilNextVaccine,
+  onSchedule,
+}: {
+  lastBathAppointment?: Appointment;
+  daysSinceLastBath: number | null;
+  pendingValue: number;
+  nextAppointment?: Appointment;
+  nextVaccine?: PetVaccination;
+  daysUntilNextVaccine: number | null;
+  onSchedule: () => void;
+}) {
+  const bathIsOverdue =
+    !lastBathAppointment ||
+    daysSinceLastBath === null ||
+    daysSinceLastBath > 30;
+
+  const hasPendingValue = pendingValue > 0;
+  const hasNextAppointment = Boolean(nextAppointment);
+
+  const vaccineNeedsAttention =
+    Boolean(nextVaccine?.next_dose_date) &&
+    daysUntilNextVaccine !== null &&
+    daysUntilNextVaccine <= 30;
+
+  const hasAnyAlert =
+    bathIsOverdue ||
+    hasPendingValue ||
+    hasNextAppointment ||
+    vaccineNeedsAttention;
+
+  if (!hasAnyAlert) {
+    return (
+      <section className="mb-6 rounded-xl border border-green-100 bg-green-50 p-4">
+        <p className="font-semibold text-green-700">Tudo certo no momento</p>
+        <p className="mt-1 text-sm text-green-700">
+          Nenhum alerta importante encontrado para este pet.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mb-6 space-y-3 rounded-xl border bg-white p-4 shadow-sm">
+      <div>
+        <h3 className="font-bold text-slate-800">Alertas inteligentes</h3>
+        <p className="text-sm text-slate-500">
+          Pontos importantes para acompanhar este pet.
+        </p>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        {bathIsOverdue && (
+          <PetAlertCard
+            title="Banho atrasado"
+            description={
+              lastBathAppointment && daysSinceLastBath !== null
+                ? `Último banho há ${daysSinceLastBath} dias.`
+                : "Nenhum banho finalizado registrado."
+            }
+            actionLabel="Agendar banho"
+            onAction={onSchedule}
+          />
+        )}
+
+        {hasPendingValue && (
+          <PetAlertCard
+            title="Valor pendente"
+            description={`Existe ${formatCurrency(
+              pendingValue,
+            )} em aberto para este pet.`}
+          />
+        )}
+
+        {hasNextAppointment && nextAppointment && (
+          <PetAlertCard
+            title="Agendamento futuro"
+            description={`${nextAppointment.servico} em ${formatDate(
+              nextAppointment.data,
+            )} às ${nextAppointment.hora}.`}
+          />
+        )}
+
+        {vaccineNeedsAttention && nextVaccine && (
+          <PetAlertCard
+            title={
+              daysUntilNextVaccine !== null && daysUntilNextVaccine < 0
+                ? "Vacina vencida"
+                : "Vacina próxima"
+            }
+            description={
+              daysUntilNextVaccine !== null && daysUntilNextVaccine < 0
+                ? `${nextVaccine.vaccine_name} venceu há ${Math.abs(
+                    daysUntilNextVaccine,
+                  )} dias.`
+                : `${nextVaccine.vaccine_name} vence em ${
+                    daysUntilNextVaccine === 0
+                      ? "hoje"
+                      : `${daysUntilNextVaccine} dias`
+                  }.`
+            }
+          />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function PetAlertCard({
+  title,
+  description,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  description: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+      <p className="font-semibold text-amber-800">{title}</p>
+      <p className="mt-1 text-sm text-amber-700">{description}</p>
+
+      {actionLabel && onAction && (
+        <button
+          type="button"
+          onClick={onAction}
+          className="mt-3 rounded-xl bg-[#8A0EEA] px-3 py-2 text-sm font-semibold text-white hover:bg-[#7600d1]"
+        >
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }

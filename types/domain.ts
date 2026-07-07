@@ -86,6 +86,7 @@ export interface ClinicalPrescription {
 }
 
 export interface NewClinicalRecordInput {
+  id?: number;
   petId: number;
   professionalName: string;
   consultationDate: string;
@@ -101,6 +102,7 @@ export interface NewClinicalRecordInput {
 }
 
 export interface NewClinicalPrescriptionInput {
+  id?: number;
   clinicalRecordId: number;
   medication: string;
   dosage: string;

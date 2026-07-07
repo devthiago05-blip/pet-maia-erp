@@ -3,33 +3,41 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewClinicalRecordInput } from "@/types/domain";
+import type { ClinicalRecord, NewClinicalRecordInput } from "@/types/domain";
 
 export function NewClinicalRecordModal({
   petId,
   defaultProfessionalName,
   onSave,
+  record,
 }: {
   petId: number;
   defaultProfessionalName: string;
   onSave: (record: NewClinicalRecordInput) => Promise<void>;
+  record?: ClinicalRecord;
 }) {
   const [open, setOpen] = useState(false);
   const [consultationDate, setConsultationDate] = useState(
-    new Date().toLocaleDateString("en-CA"),
+    record?.consultation_date || new Date().toLocaleDateString("en-CA"),
   );
   const [professionalName, setProfessionalName] = useState(
-    defaultProfessionalName,
+    record?.professional_name || defaultProfessionalName,
   );
-  const [weightKg, setWeightKg] = useState("");
-  const [temperatureC, setTemperatureC] = useState("");
-  const [mainComplaint, setMainComplaint] = useState("");
-  const [anamnesis, setAnamnesis] = useState("");
-  const [allergies, setAllergies] = useState("");
-  const [currentMedications, setCurrentMedications] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [conduct, setConduct] = useState("");
-  const [returnDate, setReturnDate] = useState("");
+  const [weightKg, setWeightKg] = useState(String(record?.weight_kg || ""));
+  const [temperatureC, setTemperatureC] = useState(
+    String(record?.temperature_c || ""),
+  );
+  const [mainComplaint, setMainComplaint] = useState(
+    record?.main_complaint || "",
+  );
+  const [anamnesis, setAnamnesis] = useState(record?.anamnesis || "");
+  const [allergies, setAllergies] = useState(record?.allergies || "");
+  const [currentMedications, setCurrentMedications] = useState(
+    record?.current_medications || "",
+  );
+  const [diagnosis, setDiagnosis] = useState(record?.diagnosis || "");
+  const [conduct, setConduct] = useState(record?.conduct || "");
+  const [returnDate, setReturnDate] = useState(record?.return_date || "");
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -60,6 +68,7 @@ export function NewClinicalRecordModal({
     setSaving(true);
     try {
       await onSave({
+        id: record?.id,
         petId,
         professionalName: professionalName.trim(),
         consultationDate,
@@ -74,15 +83,17 @@ export function NewClinicalRecordModal({
         returnDate,
       });
       setOpen(false);
-      setWeightKg("");
-      setTemperatureC("");
-      setMainComplaint("");
-      setAnamnesis("");
-      setAllergies("");
-      setCurrentMedications("");
-      setDiagnosis("");
-      setConduct("");
-      setReturnDate("");
+      if (!record) {
+        setWeightKg("");
+        setTemperatureC("");
+        setMainComplaint("");
+        setAnamnesis("");
+        setAllergies("");
+        setCurrentMedications("");
+        setDiagnosis("");
+        setConduct("");
+        setReturnDate("");
+      }
     } catch {
       return;
     } finally {
@@ -95,15 +106,21 @@ export function NewClinicalRecordModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+        className={
+          record
+            ? "rounded-lg border px-3 py-1.5 text-sm font-medium text-[#8A0EEA]"
+            : "w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white sm:w-auto"
+        }
       >
-        Nova consulta
+        {record ? "Editar consulta" : "Nova consulta"}
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-3xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
-            <h2 className="text-xl font-bold">Nova consulta clínica</h2>
+            <h2 className="text-xl font-bold">
+              {record ? "Editar consulta clínica" : "Nova consulta clínica"}
+            </h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <ClinicalInput
                 label="Data da consulta"
@@ -181,7 +198,11 @@ export function NewClinicalRecordModal({
                 disabled={saving}
                 className="rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
               >
-                {saving ? "Salvando..." : "Salvar consulta"}
+                {saving
+                  ? "Salvando..."
+                  : record
+                    ? "Salvar alterações"
+                    : "Salvar consulta"}
               </button>
             </div>
           </div>

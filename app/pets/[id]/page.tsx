@@ -24,8 +24,6 @@ import {
 } from "@/services/appointments";
 import {
   createClinicalDocument,
-  createClinicalPrescription,
-  createClinicalRecord,
   createPetVaccination,
   deleteClinicalDocument,
   deleteClinicalExam,
@@ -35,6 +33,8 @@ import {
   fetchClinicalRecordsByPet,
   fetchPetVaccinations,
   saveClinicalExam,
+  saveClinicalPrescription,
+  saveClinicalRecord,
 } from "@/services/clinical";
 import {
   fetchFinancialEntriesByAppointmentId,
@@ -473,7 +473,7 @@ export default function PetPage() {
     return true;
   }
   async function handleCreateClinicalRecord(record: NewClinicalRecordInput) {
-    const { error: createError } = await createClinicalRecord(record);
+    const { error: createError } = await saveClinicalRecord(record);
 
     if (createError) {
       toast.error(createError.message);
@@ -491,14 +491,15 @@ export default function PetPage() {
 
     setClinicalRecords(data || []);
     setClinicalError("");
-    toast.success("Consulta adicionada ao prontuário!");
+    toast.success(
+      record.id ? "Consulta atualizada!" : "Consulta adicionada ao prontuário!",
+    );
   }
 
   async function handleCreatePrescription(
     prescription: NewClinicalPrescriptionInput,
   ) {
-    const { error: createError } =
-      await createClinicalPrescription(prescription);
+    const { error: createError } = await saveClinicalPrescription(prescription);
 
     if (createError) {
       toast.error(createError.message);
@@ -519,7 +520,9 @@ export default function PetPage() {
     }
 
     setClinicalRecords(data || []);
-    toast.success("Prescrição adicionada!");
+    toast.success(
+      prescription.id ? "Prescrição atualizada!" : "Prescrição adicionada!",
+    );
   }
 
   async function handleCreateVaccination(vaccination: NewPetVaccinationInput) {
@@ -858,98 +861,158 @@ function ClinicalHistory({
           Nenhuma consulta clínica registrada.
         </p>
       ) : (
-        <div className="divide-y">
-          {records.map((record) => (
-            <article key={record.id} className="space-y-4 p-4 sm:p-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="font-bold">
-                    Consulta de {formatDate(record.consultation_date)}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {record.professional_name}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  {record.weight_kg && (
-                    <span className="rounded-lg bg-slate-100 px-3 py-1">
-                      {record.weight_kg} kg
-                    </span>
-                  )}
-                  {record.temperature_c && (
-                    <span className="rounded-lg bg-slate-100 px-3 py-1">
-                      {record.temperature_c} °C
-                    </span>
-                  )}
-                  {record.return_date && (
-                    <span className="rounded-lg bg-purple-50 px-3 py-1 text-[#8A0EEA]">
-                      Retorno: {formatDate(record.return_date)}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <ClinicalText
-                label="Queixa principal"
-                value={record.main_complaint}
-              />
-              <ClinicalText label="Anamnese" value={record.anamnesis} />
-              <ClinicalText label="Alergias" value={record.allergies} />
-              <ClinicalText
-                label="Medicamentos em uso"
-                value={record.current_medications}
-              />
-              <ClinicalText label="Diagnóstico" value={record.diagnosis} />
-              <ClinicalText
-                label="Conduta e orientações"
-                value={record.conduct}
-              />
-              <div className="rounded-xl border bg-slate-50 p-4">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h4 className="font-semibold">Prescrições</h4>
-                  <PrescriptionModal
-                    clinicalRecordId={record.id}
-                    onSave={onPrescriptionSave}
-                  />
-                </div>
-                {record.clinical_prescriptions?.length ? (
-                  <div className="mt-3 space-y-3">
-                    <div className="divide-y rounded-xl border bg-white">
-                      {record.clinical_prescriptions.map((prescription) => (
-                        <div key={prescription.id} className="p-3 text-sm">
-                          <p className="font-semibold">
-                            {prescription.medication}
-                          </p>
-                          <p className="text-slate-600">
-                            {prescription.dosage} · {prescription.frequency}
-                            {prescription.duration
-                              ? ` · ${prescription.duration}`
-                              : ""}
-                          </p>
-                          {prescription.instructions && (
-                            <p className="mt-1 whitespace-pre-wrap text-slate-500">
-                              {prescription.instructions}
-                            </p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                    <PrescriptionDocumentModal
-                      pet={pet}
+        <div>
+          <WeightEvolution records={records} />
+          <div className="divide-y">
+            {records.map((record) => (
+              <article key={record.id} className="space-y-4 p-4 sm:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="font-bold">
+                      Consulta de {formatDate(record.consultation_date)}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {record.professional_name}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs">
+                    <NewClinicalRecordModal
+                      petId={pet.id}
                       record={record}
-                      prescriptions={record.clinical_prescriptions}
+                      defaultProfessionalName={professionalName}
+                      onSave={onSave}
+                    />
+                    {record.weight_kg && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        {record.weight_kg} kg
+                      </span>
+                    )}
+                    {record.temperature_c && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        {record.temperature_c} °C
+                      </span>
+                    )}
+                    {record.return_date && (
+                      <span className="rounded-lg bg-purple-50 px-3 py-1 text-[#8A0EEA]">
+                        Retorno: {formatDate(record.return_date)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <ClinicalText
+                  label="Queixa principal"
+                  value={record.main_complaint}
+                />
+                <ClinicalText label="Anamnese" value={record.anamnesis} />
+                <ClinicalText label="Alergias" value={record.allergies} />
+                <ClinicalText
+                  label="Medicamentos em uso"
+                  value={record.current_medications}
+                />
+                <ClinicalText label="Diagnóstico" value={record.diagnosis} />
+                <ClinicalText
+                  label="Conduta e orientações"
+                  value={record.conduct}
+                />
+                <div className="rounded-xl border bg-slate-50 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h4 className="font-semibold">Prescrições</h4>
+                    <PrescriptionModal
+                      clinicalRecordId={record.id}
+                      onSave={onPrescriptionSave}
                     />
                   </div>
-                ) : (
-                  <p className="mt-3 text-sm text-slate-500">
-                    Nenhuma prescrição registrada.
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
+                  {record.clinical_prescriptions?.length ? (
+                    <div className="mt-3 space-y-3">
+                      <div className="divide-y rounded-xl border bg-white">
+                        {record.clinical_prescriptions.map((prescription) => (
+                          <div key={prescription.id} className="p-3 text-sm">
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="font-semibold">
+                                {prescription.medication}
+                              </p>
+                              <PrescriptionModal
+                                clinicalRecordId={record.id}
+                                prescription={prescription}
+                                onSave={onPrescriptionSave}
+                              />
+                            </div>
+                            <p className="text-slate-600">
+                              {prescription.dosage} · {prescription.frequency}
+                              {prescription.duration
+                                ? ` · ${prescription.duration}`
+                                : ""}
+                            </p>
+                            {prescription.instructions && (
+                              <p className="mt-1 whitespace-pre-wrap text-slate-500">
+                                {prescription.instructions}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <PrescriptionDocumentModal
+                        pet={pet}
+                        record={record}
+                        prescriptions={record.clinical_prescriptions}
+                      />
+                    </div>
+                  ) : (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Nenhuma prescrição registrada.
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       )}
     </section>
+  );
+}
+
+function WeightEvolution({ records }: { records: ClinicalRecord[] }) {
+  const entries = records
+    .filter((record) => Number(record.weight_kg) > 0)
+    .slice()
+    .sort((a, b) => a.consultation_date.localeCompare(b.consultation_date))
+    .slice(-8);
+
+  if (entries.length < 2) {
+    return null;
+  }
+
+  const maxWeight = Math.max(
+    ...entries.map((record) => Number(record.weight_kg)),
+  );
+
+  return (
+    <div className="border-b bg-slate-50 p-4 sm:p-6">
+      <h4 className="text-sm font-semibold">Evolução de peso</h4>
+      <div className="mt-4 flex h-40 items-end gap-2 sm:gap-4">
+        {entries.map((record) => {
+          const weight = Number(record.weight_kg);
+          const height = Math.max((weight / maxWeight) * 100, 8);
+
+          return (
+            <div
+              key={record.id}
+              className="flex min-w-0 flex-1 flex-col items-center justify-end gap-2"
+            >
+              <span className="text-xs font-semibold">{weight} kg</span>
+              <div
+                className="w-full max-w-12 rounded-t bg-[#8A0EEA]"
+                style={{ height: `${height}%` }}
+              />
+              <span className="text-[10px] text-slate-500 sm:text-xs">
+                {formatDate(record.consultation_date)}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

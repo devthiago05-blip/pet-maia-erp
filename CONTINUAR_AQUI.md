@@ -46,6 +46,8 @@
 - Clínica com emissão central de documentos e receitas por tutor e pet.
 - Seis modelos pré-prontos de atestado, declaração, autorização e orientação.
 - Receita com seleção inicial de medicamentos e dose obrigatoriamente manual.
+- Prontuário com edição de consultas e prescrições existentes.
+- Evolução visual dos últimos pesos registrados no paciente.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -72,6 +74,7 @@
 - `app/clinica/page.tsx`
 - `components/clinic/ClinicalDocumentModal.tsx`
 - `components/clinic/PrescriptionModal.tsx`
+- `components/clinic/NewClinicalRecordModal.tsx`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -161,6 +164,7 @@ Arquivos padrão removidos:
 36. Clínica: definir auditoria antes de liberar exclusão de consultas e prescrições.
 37. Clínica: adicionar anexos de exames via Supabase Storage.
 38. Clínica: permitir administrar o catálogo de medicamentos e modelos de documentos.
+39. Clínica: criar auditoria de alterações clínicas antes de liberar exclusão de consultas.
 
 ## Próximos passos
 

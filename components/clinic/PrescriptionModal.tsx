@@ -3,7 +3,10 @@
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewClinicalPrescriptionInput } from "@/types/domain";
+import type {
+  ClinicalPrescription,
+  NewClinicalPrescriptionInput,
+} from "@/types/domain";
 
 const medicationOptions = [
   "Amoxicilina",
@@ -23,17 +26,32 @@ const medicationOptions = [
 export function PrescriptionModal({
   clinicalRecordId,
   onSave,
+  prescription,
 }: {
   clinicalRecordId: number;
   onSave: (prescription: NewClinicalPrescriptionInput) => Promise<void>;
+  prescription?: ClinicalPrescription;
 }) {
   const [open, setOpen] = useState(false);
-  const [medication, setMedication] = useState("");
-  const [customMedication, setCustomMedication] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [frequency, setFrequency] = useState("");
-  const [duration, setDuration] = useState("");
-  const [instructions, setInstructions] = useState("");
+  const knownMedication = medicationOptions.includes(
+    prescription?.medication || "",
+  );
+  const [medication, setMedication] = useState(
+    prescription
+      ? knownMedication
+        ? prescription.medication
+        : "Outro medicamento"
+      : "",
+  );
+  const [customMedication, setCustomMedication] = useState(
+    prescription && !knownMedication ? prescription.medication : "",
+  );
+  const [dosage, setDosage] = useState(prescription?.dosage || "");
+  const [frequency, setFrequency] = useState(prescription?.frequency || "");
+  const [duration, setDuration] = useState(prescription?.duration || "");
+  const [instructions, setInstructions] = useState(
+    prescription?.instructions || "",
+  );
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
@@ -48,6 +66,7 @@ export function PrescriptionModal({
     setSaving(true);
     try {
       await onSave({
+        id: prescription?.id,
         clinicalRecordId,
         medication: selectedMedication.trim(),
         dosage: dosage.trim(),
@@ -56,12 +75,14 @@ export function PrescriptionModal({
         instructions: instructions.trim(),
       });
       setOpen(false);
-      setMedication("");
-      setCustomMedication("");
-      setDosage("");
-      setFrequency("");
-      setDuration("");
-      setInstructions("");
+      if (!prescription) {
+        setMedication("");
+        setCustomMedication("");
+        setDosage("");
+        setFrequency("");
+        setDuration("");
+        setInstructions("");
+      }
     } catch {
       return;
     } finally {
@@ -76,13 +97,15 @@ export function PrescriptionModal({
         onClick={() => setOpen(true)}
         className="rounded-lg border px-3 py-1.5 text-sm font-medium text-[#8A0EEA]"
       >
-        Adicionar prescrição
+        {prescription ? "Editar" : "Adicionar prescrição"}
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-xl rounded-xl bg-white p-4 sm:p-6">
-            <h2 className="text-xl font-bold">Nova prescrição</h2>
+            <h2 className="text-xl font-bold">
+              {prescription ? "Editar prescrição" : "Nova prescrição"}
+            </h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium">
                 Medicamento
@@ -143,7 +166,11 @@ export function PrescriptionModal({
                 disabled={saving}
                 className="rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-50 sm:flex-1"
               >
-                {saving ? "Salvando..." : "Salvar prescrição"}
+                {saving
+                  ? "Salvando..."
+                  : prescription
+                    ? "Salvar alterações"
+                    : "Salvar prescrição"}
               </button>
             </div>
           </div>

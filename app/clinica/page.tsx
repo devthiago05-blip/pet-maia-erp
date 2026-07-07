@@ -14,8 +14,8 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatDate } from "@/lib/formatters";
 import {
   createClinicalDocument,
-  createClinicalPrescription,
   fetchClinicPatients,
+  saveClinicalPrescription,
 } from "@/services/clinical";
 import type {
   ClinicalDocumentInput,
@@ -144,7 +144,7 @@ export default function ClinicPage() {
   }
 
   async function handleCreatePrescription(input: NewClinicalPrescriptionInput) {
-    const { error } = await createClinicalPrescription(input);
+    const { error } = await saveClinicalPrescription(input);
 
     if (error) {
       toast.error(error.message);

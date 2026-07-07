@@ -21,43 +21,51 @@ export async function fetchClinicalRecordsByPet(petId: number) {
     .order("created_at", { ascending: false });
 }
 
-export async function createClinicalRecord(record: NewClinicalRecordInput) {
+export async function saveClinicalRecord(record: NewClinicalRecordInput) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return supabase.from("clinical_records").insert([
-    {
-      pet_id: record.petId,
-      professional_id: user?.id || null,
-      professional_name: record.professionalName,
-      consultation_date: record.consultationDate,
-      weight_kg: record.weightKg || null,
-      temperature_c: record.temperatureC || null,
-      main_complaint: record.mainComplaint,
-      anamnesis: record.anamnesis || null,
-      allergies: record.allergies || null,
-      current_medications: record.currentMedications || null,
-      diagnosis: record.diagnosis || null,
-      conduct: record.conduct || null,
-      return_date: record.returnDate || null,
-    },
-  ]);
+  const values = {
+    pet_id: record.petId,
+    professional_id: user?.id || null,
+    professional_name: record.professionalName,
+    consultation_date: record.consultationDate,
+    weight_kg: record.weightKg || null,
+    temperature_c: record.temperatureC || null,
+    main_complaint: record.mainComplaint,
+    anamnesis: record.anamnesis || null,
+    allergies: record.allergies || null,
+    current_medications: record.currentMedications || null,
+    diagnosis: record.diagnosis || null,
+    conduct: record.conduct || null,
+    return_date: record.returnDate || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  return record.id
+    ? supabase.from("clinical_records").update(values).eq("id", record.id)
+    : supabase.from("clinical_records").insert([values]);
 }
 
-export async function createClinicalPrescription(
+export async function saveClinicalPrescription(
   prescription: NewClinicalPrescriptionInput,
 ) {
-  return supabase.from("clinical_prescriptions").insert([
-    {
-      clinical_record_id: prescription.clinicalRecordId,
-      medication: prescription.medication,
-      dosage: prescription.dosage,
-      frequency: prescription.frequency,
-      duration: prescription.duration || null,
-      instructions: prescription.instructions || null,
-    },
-  ]);
+  const values = {
+    clinical_record_id: prescription.clinicalRecordId,
+    medication: prescription.medication,
+    dosage: prescription.dosage,
+    frequency: prescription.frequency,
+    duration: prescription.duration || null,
+    instructions: prescription.instructions || null,
+  };
+
+  return prescription.id
+    ? supabase
+        .from("clinical_prescriptions")
+        .update(values)
+        .eq("id", prescription.id)
+    : supabase.from("clinical_prescriptions").insert([values]);
 }
 
 export async function fetchPetVaccinations(petId: number) {

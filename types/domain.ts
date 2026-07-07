@@ -177,6 +177,18 @@ export interface ClinicalExamInput {
   professionalName: string;
 }
 
+export interface ClinicalAttachment {
+  id: number;
+  pet_id: number;
+  clinical_exam_id?: number;
+  file_name: string;
+  storage_path: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_by?: string;
+  created_at: string;
+}
+
 export interface CrmInteraction {
   id: number;
   tutor_id: number;

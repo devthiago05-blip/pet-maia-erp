@@ -49,6 +49,7 @@
 - Prontuário com edição de consultas e prescrições existentes.
 - Evolução visual dos últimos pesos registrados no paciente.
 - Sino com lembretes de vacinas atrasadas, para hoje, em 7 dias e em 30 dias.
+- Exames clínicos com anexos privados de PDF e imagens no Supabase Storage.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -78,6 +79,8 @@
 - `components/clinic/NewClinicalRecordModal.tsx`
 - `components/layout/Header.tsx`
 - `services/notifications.ts`
+- `components/clinic/ExamAttachments.tsx`
+- `supabase/sql/015_clinical_attachments.sql`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -126,6 +129,11 @@ Arquivos padrão removidos:
 - `public/next.svg`
 - `public/vercel.svg`
 - `public/window.svg`
+
+## Pendências imediatas
+
+- Executar `supabase/sql/015_clinical_attachments.sql` no SQL Editor do Supabase.
+- Testar upload, abertura e exclusão de PDF ou imagem em um exame clínico.
 
 ## Pendências
 

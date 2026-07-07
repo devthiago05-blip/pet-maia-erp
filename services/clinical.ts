@@ -1,11 +1,14 @@
 import { supabase } from "@/lib/supabase";
 import type {
+  ClinicalAttachment,
   ClinicalDocumentInput,
   ClinicalExamInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
   NewPetVaccinationInput,
 } from "@/types/domain";
+
+const clinicalAttachmentsBucket = "clinical-attachments";
 
 export async function fetchClinicalRecordsByPet(petId: number) {
   return supabase
@@ -151,6 +154,78 @@ export async function saveClinicalExam(input: ClinicalExamInput) {
 
 export async function deleteClinicalExam(id: number) {
   return supabase.from("clinical_exams").delete().eq("id", id);
+}
+
+export async function fetchClinicalAttachments(examId: number) {
+  return supabase
+    .from("clinical_attachments")
+    .select("*")
+    .eq("clinical_exam_id", examId)
+    .order("created_at", { ascending: false })
+    .returns<ClinicalAttachment[]>();
+}
+
+export async function uploadClinicalAttachment({
+  petId,
+  examId,
+  file,
+}: {
+  petId: number;
+  examId: number;
+  file: File;
+}) {
+  const extension = file.name.split(".").pop()?.toLowerCase() || "file";
+  const storagePath = `${petId}/${crypto.randomUUID()}.${extension}`;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const uploadResponse = await supabase.storage
+    .from(clinicalAttachmentsBucket)
+    .upload(storagePath, file, { contentType: file.type, upsert: false });
+
+  if (uploadResponse.error) {
+    return { data: null, error: uploadResponse.error };
+  }
+
+  const databaseResponse = await supabase
+    .from("clinical_attachments")
+    .insert({
+      pet_id: petId,
+      clinical_exam_id: examId,
+      file_name: file.name,
+      storage_path: storagePath,
+      mime_type: file.type,
+      size_bytes: file.size,
+      uploaded_by: user?.id || null,
+    })
+    .select("*")
+    .single<ClinicalAttachment>();
+
+  if (databaseResponse.error) {
+    await supabase.storage
+      .from(clinicalAttachmentsBucket)
+      .remove([storagePath]);
+  }
+
+  return databaseResponse;
+}
+
+export async function createClinicalAttachmentUrl(storagePath: string) {
+  return supabase.storage
+    .from(clinicalAttachmentsBucket)
+    .createSignedUrl(storagePath, 300);
+}
+
+export async function deleteClinicalAttachment(attachment: ClinicalAttachment) {
+  const storageResponse = await supabase.storage
+    .from(clinicalAttachmentsBucket)
+    .remove([attachment.storage_path]);
+
+  if (storageResponse.error) {
+    return storageResponse;
+  }
+
+  return supabase.from("clinical_attachments").delete().eq("id", attachment.id);
 }
 
 export async function fetchClinicalDocumentsByPet(petId: number) {

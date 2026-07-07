@@ -7,6 +7,7 @@ import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptM
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { useAccess } from "@/components/auth/AccessContext";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
+import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
 import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
@@ -1206,6 +1207,7 @@ function ExamHistory({
               </div>
               <ClinicalText label="Resultado" value={exam.result} />
               <ClinicalText label="Observações" value={exam.notes} />
+              <ExamAttachments petId={pet.id} examId={exam.id} />
             </article>
           ))}
         </div>

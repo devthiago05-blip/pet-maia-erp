@@ -39,6 +39,10 @@
   produtos vendidos e estoque crítico.
 - Leitura de código de barras no PDV com leitor USB e tecla Enter.
 - Lint corrigido em Dashboard, Agenda, Financeiro, Pets, Tutores e Produtos.
+- Agenda com edição de agendamentos e bloqueio de conflito no mesmo horário.
+- Vínculo de tutor no Kanban tornado explícito pela chave estrangeira.
+- Clínica com exclusão confirmada de vacinas, exames e documentos.
+- Endereço do tutor carregado na ficha detalhada do pet.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -54,6 +58,14 @@
 - `app/bi/page.tsx`
 - `app/page.tsx`
 - `app/agenda/page.tsx`
+- `services/appointments.ts`
+- `services/clinical.ts`
+- `services/pets.ts`
+- `components/agenda/NewAppointmentModal.tsx`
+- `components/agenda/AppointmentTable.tsx`
+- `components/agenda/AppointmentCard.tsx`
+- `components/agenda/KanbanBoard.tsx`
+- `components/agenda/KanbanColumn.tsx`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -140,6 +152,8 @@ Arquivos padrão removidos:
 33. PDV: adicionar pagamentos divididos, descontos e acréscimos controlados.
 34. PDV: adicionar inventário, ajustes e histórico de movimentação de estoque.
 35. PDV: criar testes automatizados dos fluxos de venda, orçamento, compra e cancelamento.
+36. Clínica: definir auditoria antes de liberar exclusão de consultas e prescrições.
+37. Clínica: adicionar anexos de exames via Supabase Storage.
 
 ## Próximos passos
 

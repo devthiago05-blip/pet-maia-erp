@@ -10,6 +10,7 @@ interface AppointmentTableProps {
   onDelete: (id: number) => void;
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
+  onEdit: (appointment: Appointment) => void;
 }
 
 export function AppointmentTable({
@@ -17,6 +18,7 @@ export function AppointmentTable({
   onDelete,
   onFinish,
   onViewReceipt,
+  onEdit,
 }: AppointmentTableProps) {
   const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
@@ -73,13 +75,22 @@ export function AppointmentTable({
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">
                       {appointment.status === "Agendado" && (
-                        <button
-                          type="button"
-                          onClick={() => onFinish(appointment)}
-                          className="text-green-600"
-                        >
-                          Finalizar
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onEdit(appointment)}
+                            className="text-blue-600"
+                          >
+                            Editar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onFinish(appointment)}
+                            className="text-green-600"
+                          >
+                            Finalizar
+                          </button>
+                        </>
                       )}
 
                       {appointment.status === "Finalizado" && (

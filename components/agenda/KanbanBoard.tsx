@@ -7,6 +7,7 @@ interface KanbanBoardProps {
   onViewReceipt: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
+  onEdit: (appointment: Appointment) => void;
 }
 
 export function KanbanBoard({
@@ -15,6 +16,7 @@ export function KanbanBoard({
   onViewReceipt,
   onCancel,
   onDelete,
+  onEdit,
 }: KanbanBoardProps) {
   return (
     <div className="overflow-x-auto pb-2">
@@ -27,6 +29,7 @@ export function KanbanBoard({
           onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
 
         <KanbanColumn
@@ -37,6 +40,7 @@ export function KanbanBoard({
           onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
 
         <KanbanColumn
@@ -47,6 +51,7 @@ export function KanbanBoard({
           onViewReceipt={onViewReceipt}
           onCancel={onCancel}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       </div>
     </div>

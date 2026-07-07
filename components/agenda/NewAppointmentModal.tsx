@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import type {
+  Appointment,
   AppointmentStatus,
   NewAppointmentInput,
   Pet,
@@ -25,6 +26,7 @@ interface NewAppointmentModalProps {
   defaultTutorId?: string;
   defaultPetId?: string;
   hideTrigger?: boolean;
+  appointment?: Appointment | null;
 }
 
 export function NewAppointmentModal({
@@ -37,6 +39,7 @@ export function NewAppointmentModal({
   defaultTutorId = "",
   defaultPetId = "",
   hideTrigger = false,
+  appointment = null,
 }: NewAppointmentModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [petId, setPetId] = useState(defaultPetId);
@@ -56,13 +59,29 @@ export function NewAppointmentModal({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (modalOpen) {
-        setTutorId(defaultTutorId);
-        setPetId(defaultPetId);
+        const selectedPet = appointment
+          ? pets.find((pet) => pet.id === appointment.pet_id)
+          : null;
+
+        setTutorId(
+          selectedPet?.tutor_id ? String(selectedPet.tutor_id) : defaultTutorId,
+        );
+        setPetId(
+          appointment?.pet_id ? String(appointment.pet_id) : defaultPetId,
+        );
+        setServicos(
+          appointment?.servico
+            ? appointment.servico.split(" + ").filter(Boolean)
+            : [],
+        );
+        setData(appointment?.data || "");
+        setHora(appointment?.hora || "");
+        setStatus(appointment?.status || "Agendado");
       }
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [defaultPetId, defaultTutorId, modalOpen]);
+  }, [appointment, defaultPetId, defaultTutorId, modalOpen, pets]);
 
   function setModalOpen(value: boolean) {
     if (open === undefined) {
@@ -132,7 +151,7 @@ export function NewAppointmentModal({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
             <h2 className="mb-6 text-xl font-bold sm:text-2xl">
-              Novo Agendamento
+              {appointment ? "Editar Agendamento" : "Novo Agendamento"}
             </h2>
 
             <div className="grid gap-4">
@@ -250,7 +269,11 @@ export function NewAppointmentModal({
                   disabled={saving}
                   className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
                 >
-                  {saving ? "Salvando..." : "Salvar"}
+                  {saving
+                    ? "Salvando..."
+                    : appointment
+                      ? "Salvar alterações"
+                      : "Salvar"}
                 </button>
               </div>
             </div>

@@ -85,6 +85,10 @@ export async function createPetVaccination(
   ]);
 }
 
+export async function deletePetVaccination(id: number) {
+  return supabase.from("pet_vaccinations").delete().eq("id", id);
+}
+
 export async function fetchClinicPatients() {
   return supabase
     .from("pets")
@@ -136,6 +140,10 @@ export async function saveClinicalExam(input: ClinicalExamInput) {
     : supabase.from("clinical_exams").insert([values]);
 }
 
+export async function deleteClinicalExam(id: number) {
+  return supabase.from("clinical_exams").delete().eq("id", id);
+}
+
 export async function fetchClinicalDocumentsByPet(petId: number) {
   return supabase
     .from("clinical_documents")
@@ -155,4 +163,8 @@ export async function createClinicalDocument(input: ClinicalDocumentInput) {
       professional_name: input.professionalName,
     },
   ]);
+}
+
+export async function deleteClinicalDocument(id: number) {
+  return supabase.from("clinical_documents").delete().eq("id", id);
 }

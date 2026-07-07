@@ -9,6 +9,7 @@ interface AppointmentCardProps {
   onViewReceipt: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
+  onEdit: (appointment: Appointment) => void;
 }
 
 export function AppointmentCard({
@@ -17,6 +18,7 @@ export function AppointmentCard({
   onViewReceipt,
   onCancel,
   onDelete,
+  onEdit,
 }: AppointmentCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const petName = appointment.pets?.nome || "Pet não informado";
@@ -48,6 +50,14 @@ export function AppointmentCard({
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
           {appointment.status === "Agendado" && (
             <>
+              <button
+                type="button"
+                onClick={() => onEdit(appointment)}
+                className="rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+              >
+                Editar
+              </button>
+
               <button
                 type="button"
                 onClick={() => onFinish(appointment)}

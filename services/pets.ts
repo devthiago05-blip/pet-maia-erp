@@ -21,7 +21,8 @@ export async function fetchPetById(id: number) {
       tutors (
         nome,
         telefone,
-        email
+        email,
+        endereco
       )
     `,
     )

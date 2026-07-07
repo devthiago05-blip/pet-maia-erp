@@ -14,7 +14,7 @@ export async function fetchAppointments() {
         nome,
         porte,
         tutor_id,
-        tutors (
+        tutors!pets_tutor_id_fkey (
           id,
           nome,
           telefone
@@ -46,6 +46,23 @@ export async function createAppointment(
       status: appointment.status,
     },
   ]);
+}
+
+export async function updateAppointment(
+  id: number,
+  appointment: NewAppointmentInput,
+  petId: number,
+) {
+  return supabase
+    .from("appointments")
+    .update({
+      pet_id: petId,
+      servico: appointment.servico,
+      data: appointment.data,
+      hora: appointment.hora,
+      status: appointment.status,
+    })
+    .eq("id", id);
 }
 
 export async function updateAppointmentStatus(

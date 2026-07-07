@@ -20,6 +20,7 @@ import {
   fetchAppointments,
   fetchAppointmentServicesByAppointmentId,
   replaceAppointmentServices,
+  updateAppointment,
   updateAppointmentStatus,
 } from "@/services/appointments";
 import {
@@ -106,6 +107,8 @@ export default function AgendaPage() {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(
     Boolean(preselectedPetId),
   );
+  const [appointmentToEdit, setAppointmentToEdit] =
+    useState<Appointment | null>(null);
 
   const filteredAppointments = useMemo(() => {
     const term = normalizeText(search);
@@ -230,6 +233,40 @@ export default function AgendaPage() {
       return;
     }
 
+    const conflictingAppointment = appointments.find(
+      (appointment) =>
+        appointment.id !== appointmentToEdit?.id &&
+        appointment.status !== "Cancelado" &&
+        appointment.data === novoAgendamento.data &&
+        appointment.hora === novoAgendamento.hora,
+    );
+
+    if (conflictingAppointment) {
+      toast.error(
+        `Já existe um agendamento para ${conflictingAppointment.pets?.nome || "outro pet"} nesse horário.`,
+      );
+      return false;
+    }
+
+    if (appointmentToEdit) {
+      const { error } = await updateAppointment(
+        appointmentToEdit.id,
+        novoAgendamento,
+        petId,
+      );
+
+      if (error) {
+        console.error(error);
+        toast.error(error.message);
+        return false;
+      }
+
+      toast.success("Agendamento atualizado com sucesso!");
+      setAppointmentToEdit(null);
+      await loadAppointments();
+      return true;
+    }
+
     const { error } = await createAppointment(novoAgendamento, petId);
 
     if (error) {
@@ -240,6 +277,12 @@ export default function AgendaPage() {
 
     toast.success("Agendamento criado com sucesso!");
     await loadAppointments();
+    return true;
+  }
+
+  function handleEditAppointment(appointment: Appointment) {
+    setAppointmentToEdit(appointment);
+    setAppointmentModalOpen(true);
   }
 
   async function handleDeleteAppointment(id: number) {
@@ -435,9 +478,16 @@ export default function AgendaPage() {
               services={services}
               onSave={handleCreateAppointment}
               open={appointmentModalOpen}
-              onOpenChange={setAppointmentModalOpen}
+              onOpenChange={(open) => {
+                setAppointmentModalOpen(open);
+
+                if (!open) {
+                  setAppointmentToEdit(null);
+                }
+              }}
               defaultTutorId={defaultAppointmentTutorId}
               defaultPetId={preselectedPetId}
+              appointment={appointmentToEdit}
             />
           </div>
 
@@ -520,6 +570,7 @@ export default function AgendaPage() {
                 onViewReceipt={handleViewReceipt}
                 onCancel={handleCancelAppointment}
                 onDelete={handleDeleteAppointment}
+                onEdit={handleEditAppointment}
               />
             </div>
           ) : (
@@ -528,6 +579,7 @@ export default function AgendaPage() {
               onFinish={setAppointmentToFinish}
               onViewReceipt={handleViewReceipt}
               onDelete={handleDeleteAppointment}
+              onEdit={handleEditAppointment}
             />
           )}
         </div>

@@ -9,6 +9,7 @@ interface KanbanColumnProps {
   onViewReceipt: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
+  onEdit: (appointment: Appointment) => void;
 }
 
 export function KanbanColumn({
@@ -19,6 +20,7 @@ export function KanbanColumn({
   onViewReceipt,
   onCancel,
   onDelete,
+  onEdit,
 }: KanbanColumnProps) {
   const filteredAppointments = appointments.filter(
     (appointment) => appointment.status === status,
@@ -44,6 +46,7 @@ export function KanbanColumn({
               onViewReceipt={onViewReceipt}
               onCancel={onCancel}
               onDelete={onDelete}
+              onEdit={onEdit}
             />
           ))
         ) : (

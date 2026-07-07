@@ -14,6 +14,7 @@ import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { VaccinationModal } from "@/components/clinic/VaccinationModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
@@ -26,6 +27,9 @@ import {
   createClinicalPrescription,
   createClinicalRecord,
   createPetVaccination,
+  deleteClinicalDocument,
+  deleteClinicalExam,
+  deletePetVaccination,
   fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
   fetchClinicalRecordsByPet,
@@ -366,7 +370,7 @@ export default function PetPage() {
           nome: pet.tutors?.nome || "Tutor não informado",
           telefone: pet.tutors?.telefone,
           email: pet.tutors?.email,
-          endereco: "",
+          endereco: pet.tutors?.endereco,
         },
       ]
     : [];
@@ -445,6 +449,18 @@ export default function PetPage() {
   ): Promise<boolean> {
     if (!pet) {
       toast.error("Pet não encontrado");
+      return false;
+    }
+
+    const conflictingAppointment = appointments.find(
+      (appointment) =>
+        appointment.status !== "Cancelado" &&
+        appointment.data === novoAgendamento.data &&
+        appointment.hora === novoAgendamento.hora,
+    );
+
+    if (conflictingAppointment) {
+      toast.error("Já existe um agendamento ativo nesse dia e horário.");
       return false;
     }
 
@@ -584,6 +600,42 @@ export default function PetPage() {
     toast.success("Documento clínico salvo!");
   }
 
+  async function handleDeleteVaccination(id: number) {
+    const { error: deleteError } = await deletePetVaccination(id);
+
+    if (deleteError) {
+      toast.error(deleteError.message);
+      return;
+    }
+
+    setVaccinations((current) => current.filter((item) => item.id !== id));
+    toast.success("Vacina excluída.");
+  }
+
+  async function handleDeleteExam(id: number) {
+    const { error: deleteError } = await deleteClinicalExam(id);
+
+    if (deleteError) {
+      toast.error(deleteError.message);
+      return;
+    }
+
+    setExams((current) => current.filter((item) => item.id !== id));
+    toast.success("Exame excluído.");
+  }
+
+  async function handleDeleteDocument(id: number) {
+    const { error: deleteError } = await deleteClinicalDocument(id);
+
+    if (deleteError) {
+      toast.error(deleteError.message);
+      return;
+    }
+
+    setDocuments((current) => current.filter((item) => item.id !== id));
+    toast.success("Documento excluído.");
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -708,6 +760,7 @@ export default function PetPage() {
                       error={vaccinationError}
                       professionalName={profile?.nome || ""}
                       onSave={handleCreateVaccination}
+                      onDelete={handleDeleteVaccination}
                     />
                   )}
                   {tab === "exames" && (
@@ -717,6 +770,7 @@ export default function PetPage() {
                       error={examError}
                       professionalName={profile?.nome || ""}
                       onSave={handleSaveExam}
+                      onDelete={handleDeleteExam}
                     />
                   )}
                   {tab === "documentos" && (
@@ -726,6 +780,7 @@ export default function PetPage() {
                       error={documentError}
                       professionalName={profile?.nome || ""}
                       onSave={handleCreateDocument}
+                      onDelete={handleDeleteDocument}
                     />
                   )}
                   {tab === "banhos" && (
@@ -935,12 +990,14 @@ function VaccinationHistory({
   error,
   professionalName,
   onSave,
+  onDelete,
 }: {
   pet: Pet;
   vaccinations: PetVaccination[];
   error: string;
   professionalName: string;
   onSave: (vaccination: NewPetVaccinationInput) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -976,6 +1033,7 @@ function VaccinationHistory({
                 <th className="p-4 text-left">Próxima dose</th>
                 <th className="p-4 text-left">Fabricante / lote</th>
                 <th className="p-4 text-left">Profissional</th>
+                <th className="p-4 text-left">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -1001,6 +1059,12 @@ function VaccinationHistory({
                       .join(" · ") || "-"}
                   </td>
                   <td className="p-4">{vaccination.professional_name}</td>
+                  <td className="p-4">
+                    <ClinicalDeleteButton
+                      itemName={vaccination.vaccine_name}
+                      onDelete={() => onDelete(vaccination.id)}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1017,12 +1081,14 @@ function ExamHistory({
   error,
   professionalName,
   onSave,
+  onDelete,
 }: {
   pet: Pet;
   exams: ClinicalExam[];
   error: string;
   professionalName: string;
   onSave: (input: ClinicalExamInput) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -1070,6 +1136,10 @@ function ExamHistory({
                     defaultProfessionalName={professionalName}
                     onSave={onSave}
                   />
+                  <ClinicalDeleteButton
+                    itemName={exam.exam_name}
+                    onDelete={() => onDelete(exam.id)}
+                  />
                 </div>
               </div>
               <div className="grid gap-2 text-sm sm:grid-cols-3">
@@ -1099,12 +1169,14 @@ function ClinicalDocuments({
   error,
   professionalName,
   onSave,
+  onDelete,
 }: {
   pet: Pet;
   documents: ClinicalDocument[];
   error: string;
   professionalName: string;
   onSave: (input: ClinicalDocumentInput) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -1150,11 +1222,17 @@ function ClinicalDocuments({
                   <td className="p-4">{document.title}</td>
                   <td className="p-4">{document.professional_name}</td>
                   <td className="p-4">
-                    <ClinicalDocumentModal
-                      pet={pet}
-                      document={document}
-                      defaultProfessionalName={professionalName}
-                    />
+                    <div className="flex items-center gap-3">
+                      <ClinicalDocumentModal
+                        pet={pet}
+                        document={document}
+                        defaultProfessionalName={professionalName}
+                      />
+                      <ClinicalDeleteButton
+                        itemName={document.title}
+                        onDelete={() => onDelete(document.id)}
+                      />
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1163,6 +1241,39 @@ function ClinicalDocuments({
         </div>
       )}
     </section>
+  );
+}
+
+function ClinicalDeleteButton({
+  itemName,
+  onDelete,
+}: {
+  itemName: string;
+  onDelete: () => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-sm font-medium text-red-600 hover:text-red-700"
+      >
+        Excluir
+      </button>
+      <ConfirmationDialog
+        isOpen={open}
+        title="Excluir registro clínico"
+        description={`Deseja excluir ${itemName}? Essa ação não poderá ser desfeita.`}
+        confirmText="Excluir"
+        onCancel={() => setOpen(false)}
+        onConfirm={() => {
+          void onDelete();
+          setOpen(false);
+        }}
+      />
+    </>
   );
 }
 

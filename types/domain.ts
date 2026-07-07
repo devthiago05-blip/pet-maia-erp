@@ -51,6 +51,7 @@ export interface Pet {
     nome: string;
     telefone?: string;
     email?: string;
+    endereco?: string;
   };
 }
 
@@ -237,6 +238,8 @@ export interface Appointment {
       id?: number;
       nome: string;
       telefone?: string;
+      email?: string;
+      endereco?: string;
     };
   };
 }

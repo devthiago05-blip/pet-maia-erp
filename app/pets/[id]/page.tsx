@@ -131,6 +131,23 @@ function calculateDaysUntilDate(value?: string | null) {
 
   return Math.ceil(differenceInMs / (1000 * 60 * 60 * 24));
 }
+function createTutorWhatsAppLink(phone?: string | null, petName?: string) {
+  if (!phone) {
+    return "";
+  }
+
+  const digits = phone.replace(/\D/g, "");
+
+  if (!digits) {
+    return "";
+  }
+
+  const normalizedPhone = digits.startsWith("55") ? digits : `55${digits}`;
+
+  const message = `Olá, tudo bem? Aqui é da Pet Maia Banho & Tosa. Gostaria de falar sobre o atendimento do ${petName || "pet"}.`;
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+}
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -360,6 +377,9 @@ const daysUntilNextVaccine = calculateDaysUntilDate(
     : [];
 
 const appointmentPets = pet ? [pet] : [];
+const tutorWhatsAppLink = pet
+  ? createTutorWhatsAppLink(pet.tutors?.telefone, pet.nome)
+  : "";
 async function handleViewReceipt(appointment: Appointment) {
   if (!pet) {
     return;
@@ -596,6 +616,22 @@ async function handleCreateAppointmentFromPet(
     <p className="text-slate-500">Informações do paciente</p>
   </div>
 
+  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+  {tutorWhatsAppLink ? (
+    <a
+      href={tutorWhatsAppLink}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-4 py-2 font-medium text-green-700 hover:bg-green-100 sm:w-auto"
+    >
+      Chamar tutor
+    </a>
+  ) : (
+    <span className="inline-flex w-full items-center justify-center rounded-xl border bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 sm:w-auto">
+      Tutor sem telefone
+    </span>
+  )}
+
   <button
     type="button"
     onClick={() => setAppointmentModalOpen(true)}
@@ -603,6 +639,7 @@ async function handleCreateAppointmentFromPet(
   >
     Novo agendamento
   </button>
+</div>
 </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">

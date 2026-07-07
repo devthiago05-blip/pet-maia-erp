@@ -6,6 +6,8 @@ import { toast } from "sonner";
 
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
+import { formatCurrency } from "@/lib/formatters";
+
 interface ProductModalProps {
   product?: Product;
   categories: ProductCategory[];
@@ -17,23 +19,53 @@ interface ProductVariationForm {
   tamanho: string;
   cor: string;
   sabor: string;
+  barcode: string;
   precoCusto: string;
+  margem: string;
   precoVenda: string;
   estoque: string;
   estoqueMinimo: string;
 }
 
 function createVariation(product?: Product): ProductVariationForm {
+  const costPrice = Number(product?.preco_custo || 0);
+  const salePrice = Number(product?.preco_venda || 0);
+  const margin =
+    product?.profit_margin !== undefined
+      ? Number(product.profit_margin)
+      : calculateMargin(costPrice, salePrice);
+
   return {
     id: 1,
     tamanho: product?.tamanho || "",
     cor: product?.cor || "",
     sabor: product?.sabor || "",
+    barcode: product?.barcode || product?.sku || "",
     precoCusto: String(product?.preco_custo || ""),
+    margem: costPrice > 0 && salePrice > 0 ? formatDecimal(margin) : "",
     precoVenda: String(product?.preco_venda || ""),
     estoque: String(product?.estoque ?? 0),
     estoqueMinimo: String(product?.estoque_minimo ?? 0),
   };
+}
+function formatDecimal(value: number) {
+  if (!Number.isFinite(value)) {
+    return "";
+  }
+
+  return value.toFixed(2);
+}
+
+function calculateSalePrice(costPrice: number, margin: number) {
+  return costPrice + costPrice * (margin / 100);
+}
+
+function calculateMargin(costPrice: number, salePrice: number) {
+  if (costPrice <= 0) {
+    return 0;
+  }
+
+  return ((salePrice - costPrice) / costPrice) * 100;
 }
 
 export function ProductModal({
@@ -53,16 +85,53 @@ export function ProductModal({
   const [saving, setSaving] = useState(false);
 
   function updateVariation(
-    id: number,
-    field: keyof Omit<ProductVariationForm, "id">,
-    value: string,
-  ) {
-    setVariations((current) =>
-      current.map((variation) =>
-        variation.id === id ? { ...variation, [field]: value } : variation,
-      ),
-    );
-  }
+  id: number,
+  field: keyof Omit<ProductVariationForm, "id">,
+  value: string,
+) {
+  setVariations((current) =>
+    current.map((variation) => {
+      if (variation.id !== id) {
+        return variation;
+      }
+
+      const next = { ...variation, [field]: value };
+
+      const costPrice = Number(
+        field === "precoCusto" ? value : next.precoCusto,
+      );
+
+      if (field === "margem") {
+        const margin = Number(value);
+
+        if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
+          next.precoVenda = formatDecimal(calculateSalePrice(costPrice, margin));
+        }
+      }
+
+      if (field === "precoCusto") {
+        const margin = Number(next.margem);
+        const salePrice = Number(next.precoVenda);
+
+        if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
+          next.precoVenda = formatDecimal(calculateSalePrice(costPrice, margin));
+        } else if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
+          next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+        }
+      }
+
+      if (field === "precoVenda") {
+        const salePrice = Number(value);
+
+        if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
+          next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+        }
+      }
+
+      return next;
+    }),
+  );
+}
 
   function addVariation() {
     setVariations((current) => [
@@ -86,12 +155,14 @@ export function ProductModal({
     }
 
     const parsedVariations = variations.map((variation) => ({
-      ...variation,
-      precoCustoNumber: Number(variation.precoCusto),
-      precoVendaNumber: Number(variation.precoVenda),
-      estoqueNumber: Number(variation.estoque),
-      estoqueMinimoNumber: Number(variation.estoqueMinimo),
-    }));
+  ...variation,
+  barcodeValue: variation.barcode.trim(),
+  precoCustoNumber: Number(variation.precoCusto),
+  margemNumber: Number(variation.margem || 0),
+  precoVendaNumber: Number(variation.precoVenda),
+  estoqueNumber: Number(variation.estoque),
+  estoqueMinimoNumber: Number(variation.estoqueMinimo),
+}));
 
     if (
       parsedVariations.some(
@@ -129,8 +200,10 @@ export function ProductModal({
       (variation): NewProductInput | Product => ({
         ...(product ? { id: product.id } : {}),
         nome: nome.trim(),
-        sku: product?.sku,
-        category_id: Number(categoryId),
+sku: variation.barcodeValue || product?.sku,
+barcode: variation.barcodeValue || product?.barcode || product?.sku,
+profit_margin: variation.margemNumber,
+category_id: Number(categoryId),
         categoria: selectedCategory?.nome,
         tamanho: variation.tamanho.trim() || undefined,
         cor: variation.cor.trim() || undefined,
@@ -268,32 +341,39 @@ export function ProductModal({
                         updateVariation(variation.id, "sabor", value)
                       }
                     />
-                    <label className="grid gap-2 text-sm font-medium">
-                      Código
-                      <input
-                        readOnly
-                        value={
-                          product?.sku || "Gerado automaticamente ao salvar"
-                        }
-                        className="min-w-0 rounded-xl border bg-white p-3 font-normal text-slate-500"
-                      />
-                    </label>
                     <ProductInput
-                      label="Preço de custo"
-                      type="number"
-                      value={variation.precoCusto}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "precoCusto", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Preço de venda"
-                      type="number"
-                      value={variation.precoVenda}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "precoVenda", value)
-                      }
-                    />
+  label="Código de barras"
+  value={variation.barcode}
+  onChange={(value) =>
+    updateVariation(variation.id, "barcode", value)
+  }
+/>
+                   <ProductInput
+  label="Valor de compra"
+  type="number"
+  value={variation.precoCusto}
+  onChange={(value) =>
+    updateVariation(variation.id, "precoCusto", value)
+  }
+/>
+
+<ProductInput
+  label="Margem %"
+  type="number"
+  value={variation.margem}
+  onChange={(value) =>
+    updateVariation(variation.id, "margem", value)
+  }
+/>
+
+<ProductInput
+  label="Valor de venda"
+  type="number"
+  value={variation.precoVenda}
+  onChange={(value) =>
+    updateVariation(variation.id, "precoVenda", value)
+  }
+/>
                     <ProductInput
                       label="Estoque atual"
                       type="number"
@@ -313,6 +393,19 @@ export function ProductModal({
                       }
                     />
                   </div>
+                  <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
+  <span className="font-semibold">Lucro por unidade:</span>{" "}
+  {formatCurrency(
+    Math.max(
+      0,
+      Number(variation.precoVenda || 0) -
+        Number(variation.precoCusto || 0),
+    ),
+  )}{" "}
+  <span className="text-slate-400">
+    | Margem: {variation.margem || "0"}%
+  </span>
+</div>
                 </div>
               ))}
             </div>

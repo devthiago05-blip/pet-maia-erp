@@ -289,6 +289,8 @@ export interface Product {
   id: number;
   nome: string;
   sku?: string;
+  barcode?: string;
+  profit_margin?: number;
   categoria?: string;
   category_id?: number;
   tamanho?: string;

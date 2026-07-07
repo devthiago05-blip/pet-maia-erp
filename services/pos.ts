@@ -31,7 +31,9 @@ export async function createProducts(products: NewProductInput[]) {
   return supabase.from("products").insert(
     products.map((product) => ({
       ...product,
-      sku: product.sku || null,
+      sku: product.sku || product.barcode || null,
+      barcode: product.barcode || product.sku || null,
+      profit_margin: product.profit_margin ?? 0,
     })),
   );
 }
@@ -41,7 +43,9 @@ export async function updateProduct(product: Product) {
     .from("products")
     .update({
       nome: product.nome,
-      sku: product.sku || null,
+      sku: product.sku || product.barcode || null,
+barcode: product.barcode || product.sku || null,
+profit_margin: product.profit_margin ?? 0,
       categoria: product.categoria || null,
       category_id: product.category_id || null,
       tamanho: product.tamanho || null,

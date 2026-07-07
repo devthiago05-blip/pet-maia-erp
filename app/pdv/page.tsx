@@ -95,6 +95,7 @@ export default function PosPage() {
         (!term ||
           product.nome.toLowerCase().includes(term) ||
           product.sku?.toLowerCase().includes(term) ||
+          product.barcode?.toLowerCase().includes(term) ||
           product.categoria?.toLowerCase().includes(term) ||
           product.tamanho?.toLowerCase().includes(term) ||
           product.cor?.toLowerCase().includes(term) ||
@@ -863,7 +864,7 @@ function ProductsView({
                         {formatProductName(product)}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {product.sku || "Sem código"}
+                        {product.barcode || product.sku || "Sem código"}
                       </p>
                     </td>
                     <td className="p-4">{product.categoria || "-"}</td>

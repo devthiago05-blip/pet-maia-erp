@@ -37,6 +37,7 @@
 - Módulo BI com indicadores financeiros, operacionais, PDV e estoque.
 - BI visual com gráficos de evolução financeira, atendimentos, pagamentos,
   produtos vendidos e estoque crítico.
+- Leitura de código de barras no PDV com leitor USB e tecla Enter.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 

@@ -212,6 +212,30 @@ export default function PosPage() {
     });
   }
 
+  function handleBarcodeScan(value: string) {
+    const code = value.trim().toLowerCase();
+
+    if (!code) {
+      return;
+    }
+
+    const product = products.find(
+      (item) =>
+        item.ativo &&
+        (item.barcode?.trim().toLowerCase() === code ||
+          item.sku?.trim().toLowerCase() === code),
+    );
+
+    if (!product) {
+      toast.error("Produto não encontrado");
+      return;
+    }
+
+    addToCart(product);
+    setSearch("");
+    toast.success(`${formatProductName(product)} adicionado ao carrinho`);
+  }
+
   function updateQuantity(productId: number, delta: number) {
     setCart((current) =>
       current
@@ -498,6 +522,7 @@ export default function PosPage() {
               total={cartTotal}
               processing={processing}
               onSearch={setSearch}
+              onBarcodeScan={handleBarcodeScan}
               onAdd={addToCart}
               onQuantity={updateQuantity}
               onTutor={setTutorId}
@@ -609,6 +634,7 @@ function SaleView({
   total,
   processing,
   onSearch,
+  onBarcodeScan,
   onAdd,
   onQuantity,
   onTutor,
@@ -630,6 +656,7 @@ function SaleView({
   total: number;
   processing: boolean;
   onSearch: (value: string) => void;
+  onBarcodeScan: (value: string) => void;
   onAdd: (product: Product, quantity?: number) => void;
   onQuantity: (id: number, delta: number) => void;
   onTutor: (value: string) => void;
@@ -646,9 +673,16 @@ function SaleView({
         <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
           <Search size={18} className="text-slate-400" />
           <input
+            autoFocus
             value={search}
             onChange={(event) => onSearch(event.target.value)}
-            placeholder="Buscar produto, código ou categoria"
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                onBarcodeScan(event.currentTarget.value);
+              }
+            }}
+            placeholder="Buscar ou bipar código de barras"
             className="min-w-0 flex-1 py-3 outline-none"
           />
         </label>

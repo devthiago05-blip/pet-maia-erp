@@ -1,8 +1,8 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
@@ -17,8 +17,8 @@ import {
   createAppointment,
   deleteAppointment,
   deleteAppointmentServicesByAppointmentId,
-  fetchAppointmentServicesByAppointmentId,
   fetchAppointments,
+  fetchAppointmentServicesByAppointmentId,
   replaceAppointmentServices,
   updateAppointmentStatus,
 } from "@/services/appointments";
@@ -75,8 +75,6 @@ function extractReceiptObservations(description?: string, petName?: string) {
 
   return observationPart.replace(new RegExp(` - ${petName}$`, "i"), "").trim();
 }
-
-
 
 export default function AgendaPage() {
   const searchParams = useSearchParams();
@@ -158,8 +156,6 @@ export default function AgendaPage() {
   const defaultAppointmentTutorId =
     preselectedTutorId ||
     (preselectedPet?.tutor_id ? String(preselectedPet.tutor_id) : "");
-
-
 
   async function loadPets() {
     const { data, error } = await fetchPets();
@@ -246,31 +242,31 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
- async function handleDeleteAppointment(id: number) {
-  const { error } = await deleteAppointment(id);
+  async function handleDeleteAppointment(id: number) {
+    const { error } = await deleteAppointment(id);
 
-  if (error) {
-    console.error(error);
-    toast.error("Erro ao excluir agendamento");
-    return;
-  }
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir agendamento");
+      return;
+    }
 
-  const { error: financialError } =
-    await deleteFinancialEntriesByAppointmentId(id);
+    const { error: financialError } =
+      await deleteFinancialEntriesByAppointmentId(id);
 
-  if (financialError) {
-    console.error(financialError);
-    toast.warning(
-      "Agendamento excluído, mas não foi possível excluir o financeiro vinculado.",
+    if (financialError) {
+      console.error(financialError);
+      toast.warning(
+        "Agendamento excluído, mas não foi possível excluir o financeiro vinculado.",
+      );
+    } else {
+      toast.success("Agendamento e financeiro vinculado excluídos!");
+    }
+
+    setAppointments((currentAppointments) =>
+      currentAppointments.filter((appointment) => appointment.id !== id),
     );
-  } else {
-    toast.success("Agendamento e financeiro vinculado excluídos!");
   }
-
-  setAppointments((currentAppointments) =>
-    currentAppointments.filter((appointment) => appointment.id !== id),
-  );
-}
 
   async function handleCancelAppointment(id: number) {
     const { error } = await updateAppointmentStatus(id, "Cancelado");
@@ -285,138 +281,139 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
-async function handleFinishAppointment({
-  valor,
-  formaPagamento,
-  servicoDescricao,
-  observacoes,
-  services: completedServices,
-}: {
-  valor: number;
-  formaPagamento: string;
-  servicoDescricao: string;
-  observacoes?: string;
-  services: CompletedAppointmentService[];
-}) {
-  if (!appointmentToFinish) {
-    return;
+  async function handleFinishAppointment({
+    valor,
+    formaPagamento,
+    servicoDescricao,
+    observacoes,
+    services: completedServices,
+  }: {
+    valor: number;
+    formaPagamento: string;
+    servicoDescricao: string;
+    observacoes?: string;
+    services: CompletedAppointmentService[];
+  }) {
+    if (!appointmentToFinish) {
+      return;
+    }
+
+    const completedAppointment = appointmentToFinish;
+    const petName = completedAppointment.pets?.nome || "";
+
+    const descricaoCompleta = observacoes
+      ? `${servicoDescricao} | Obs: ${observacoes}`
+      : servicoDescricao;
+
+    const { error } = await createAppointmentFinancialEntry(
+      completedAppointment.id,
+      petName,
+      descricaoCompleta,
+      valor,
+      formaPagamento,
+      completedAppointment.pet_id,
+      completedAppointment.pets?.tutor_id,
+    );
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message);
+      return;
+    }
+
+    const { error: servicesError } = await replaceAppointmentServices(
+      completedAppointment.id,
+      completedServices,
+    );
+
+    if (servicesError) {
+      console.error(servicesError);
+
+      await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+
+      toast.error(
+        "Erro ao salvar os serviços realizados. O lançamento financeiro foi desfeito.",
+      );
+      return;
+    }
+
+    const { error: statusError } = await updateAppointmentStatus(
+      completedAppointment.id,
+      "Finalizado",
+    );
+
+    if (statusError) {
+      console.error(statusError);
+
+      await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+      await deleteAppointmentServicesByAppointmentId(completedAppointment.id);
+
+      toast.error(
+        "Erro ao finalizar atendimento. O financeiro e os serviços foram desfeitos.",
+      );
+      return;
+    }
+
+    toast.success("Atendimento finalizado!");
+
+    setCompletedReceipt({
+      appointment: completedAppointment,
+      valor,
+      formaPagamento,
+      services: completedServices,
+      observacoes,
+    });
+
+    setAppointmentToFinish(null);
+    await loadAppointments();
+  }
+  async function handleViewReceipt(appointment: Appointment) {
+    const [servicesResponse, financialResponse] = await Promise.all([
+      fetchAppointmentServicesByAppointmentId(appointment.id),
+      fetchFinancialEntriesByAppointmentId(appointment.id),
+    ]);
+
+    if (servicesResponse.error) {
+      console.error(servicesResponse.error);
+      toast.error("Não foi possível carregar os serviços do recibo.");
+      return;
+    }
+
+    if (financialResponse.error) {
+      console.error(financialResponse.error);
+      toast.error("Não foi possível carregar o financeiro do recibo.");
+      return;
+    }
+
+    const financialEntry = (financialResponse.data?.[0] ||
+      null) as FinancialEntry | null;
+
+    if (!financialEntry) {
+      toast.error(
+        "Nenhum lançamento financeiro encontrado para este atendimento.",
+      );
+      return;
+    }
+
+    const receiptServices: CompletedAppointmentService[] =
+      servicesResponse.data?.map((service) => ({
+        serviceName: service.service_name,
+        price: Number(service.price || 0),
+      })) || [];
+
+    setCompletedReceipt({
+      appointment,
+      valor: Number(financialEntry.valor || 0),
+      formaPagamento: financialEntry.forma_pagamento || "PIX",
+      services: receiptServices,
+      observacoes: extractReceiptObservations(
+        financialEntry.descricao,
+        appointment.pets?.nome,
+      ),
+    });
   }
 
-  const completedAppointment = appointmentToFinish;
-  const petName = completedAppointment.pets?.nome || "";
-
-  const descricaoCompleta = observacoes
-    ? `${servicoDescricao} | Obs: ${observacoes}`
-    : servicoDescricao;
-
-  const { error } = await createAppointmentFinancialEntry(
-  completedAppointment.id,
-  petName,
-  descricaoCompleta,
-  valor,
-  formaPagamento,
-  completedAppointment.pet_id,
-  completedAppointment.pets?.tutor_id,
-);
-
-if (error) {
-  console.error(error);
-  toast.error(error.message);
-  return;
-}
-
-const { error: servicesError } = await replaceAppointmentServices(
-  completedAppointment.id,
-  completedServices,
-);
-
-if (servicesError) {
-  console.error(servicesError);
-
-  await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
-
-  toast.error(
-    "Erro ao salvar os serviços realizados. O lançamento financeiro foi desfeito.",
-  );
-  return;
-}
-
-const { error: statusError } = await updateAppointmentStatus(
-  completedAppointment.id,
-  "Finalizado",
-);
-
-if (statusError) {
-  console.error(statusError);
-
-  await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
-  await deleteAppointmentServicesByAppointmentId(completedAppointment.id);
-
-  toast.error(
-    "Erro ao finalizar atendimento. O financeiro e os serviços foram desfeitos.",
-  );
-  return;
-}
-
-  toast.success("Atendimento finalizado!");
-
-  setCompletedReceipt({
-  appointment: completedAppointment,
-  valor,
-  formaPagamento,
-  services: completedServices,
-  observacoes,
-});
-
-  setAppointmentToFinish(null);
-  await loadAppointments();
-}
-async function handleViewReceipt(appointment: Appointment) {
-  const [servicesResponse, financialResponse] = await Promise.all([
-    fetchAppointmentServicesByAppointmentId(appointment.id),
-    fetchFinancialEntriesByAppointmentId(appointment.id),
-  ]);
-
-  if (servicesResponse.error) {
-    console.error(servicesResponse.error);
-    toast.error("Não foi possível carregar os serviços do recibo.");
-    return;
-  }
-
-  if (financialResponse.error) {
-    console.error(financialResponse.error);
-    toast.error("Não foi possível carregar o financeiro do recibo.");
-    return;
-  }
-
-  const financialEntry = (financialResponse.data?.[0] || null) as
-    | FinancialEntry
-    | null;
-
-  if (!financialEntry) {
-    toast.error("Nenhum lançamento financeiro encontrado para este atendimento.");
-    return;
-  }
-
-  const receiptServices: CompletedAppointmentService[] =
-    servicesResponse.data?.map((service) => ({
-      serviceName: service.service_name,
-      price: Number(service.price || 0),
-    })) || [];
-
-  setCompletedReceipt({
-    appointment,
-    valor: Number(financialEntry.valor || 0),
-    formaPagamento: financialEntry.forma_pagamento || "PIX",
-    services: receiptServices,
-    observacoes: extractReceiptObservations(
-      financialEntry.descricao,
-      appointment.pets?.nome,
-    ),
-  });
-}
-
-return (
+  return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
 
@@ -433,15 +430,15 @@ return (
             </div>
 
             <NewAppointmentModal
-  tutors={tutors}
-  pets={pets}
-  services={services}
-  onSave={handleCreateAppointment}
-  open={appointmentModalOpen}
-  onOpenChange={setAppointmentModalOpen}
-  defaultTutorId={defaultAppointmentTutorId}
-  defaultPetId={preselectedPetId}
-/>
+              tutors={tutors}
+              pets={pets}
+              services={services}
+              onSave={handleCreateAppointment}
+              open={appointmentModalOpen}
+              onOpenChange={setAppointmentModalOpen}
+              defaultTutorId={defaultAppointmentTutorId}
+              defaultPetId={preselectedPetId}
+            />
           </div>
 
           <div className="flex w-full rounded-2xl bg-white p-1 shadow-sm sm:w-fit">
@@ -510,52 +507,52 @@ return (
             </select>
           </div>
 
-         {viewMode === "kanban" ? (
-  <div className="space-y-3">
-    <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-      Kanban exibindo apenas os agendamentos de {kanbanDate.split("-").reverse().join("/")}.
-    </div>
+          {viewMode === "kanban" ? (
+            <div className="space-y-3">
+              <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
+                Kanban exibindo apenas os agendamentos de{" "}
+                {kanbanDate.split("-").reverse().join("/")}.
+              </div>
 
-    <KanbanBoard
-  appointments={filteredKanbanAppointments}
-  onFinish={setAppointmentToFinish}
-  onViewReceipt={handleViewReceipt}
-  onCancel={handleCancelAppointment}
-  onDelete={handleDeleteAppointment}
-/>
-  </div>
-) : (
-  <AppointmentTable
-    appointments={filteredAppointments}
-    onFinish={setAppointmentToFinish}
-    onViewReceipt={handleViewReceipt}
-    onDelete={handleDeleteAppointment}
-  />
-)}
-          
+              <KanbanBoard
+                appointments={filteredKanbanAppointments}
+                onFinish={setAppointmentToFinish}
+                onViewReceipt={handleViewReceipt}
+                onCancel={handleCancelAppointment}
+                onDelete={handleDeleteAppointment}
+              />
+            </div>
+          ) : (
+            <AppointmentTable
+              appointments={filteredAppointments}
+              onFinish={setAppointmentToFinish}
+              onViewReceipt={handleViewReceipt}
+              onDelete={handleDeleteAppointment}
+            />
+          )}
         </div>
 
         {appointmentToFinish && (
           <FinishAppointmentModal
-  pet={appointmentToFinish.pets?.nome || ""}
-  porte={appointmentToFinish.pets?.porte}
-  servico={appointmentToFinish.servico}
-  services={services}
-  onClose={() => setAppointmentToFinish(null)}
-  onSave={handleFinishAppointment}
-/>
+            pet={appointmentToFinish.pets?.nome || ""}
+            porte={appointmentToFinish.pets?.porte}
+            servico={appointmentToFinish.servico}
+            services={services}
+            onClose={() => setAppointmentToFinish(null)}
+            onSave={handleFinishAppointment}
+          />
         )}
 
         {completedReceipt && (
           <AppointmentReceiptModal
-  appointment={completedReceipt.appointment}
-  clinicSettings={clinicSettings}
-  valor={completedReceipt.valor}
-  formaPagamento={completedReceipt.formaPagamento}
-  services={completedReceipt.services}
-  observacoes={completedReceipt.observacoes}
-  onClose={() => setCompletedReceipt(null)}
-/>
+            appointment={completedReceipt.appointment}
+            clinicSettings={clinicSettings}
+            valor={completedReceipt.valor}
+            formaPagamento={completedReceipt.formaPagamento}
+            services={completedReceipt.services}
+            observacoes={completedReceipt.observacoes}
+            onClose={() => setCompletedReceipt(null)}
+          />
         )}
       </main>
     </div>

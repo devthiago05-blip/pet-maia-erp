@@ -51,6 +51,89 @@ interface BathAppointmentForReminder {
   data?: string | null;
 }
 
+function parseDateOnly(value?: string) {
+  if (!value) {
+    return null;
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return null;
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function calculateDaysSince(date: Date) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const targetDate = new Date(date);
+  targetDate.setHours(0, 0, 0, 0);
+
+  return Math.floor(
+    (today.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+}
+
+function buildBathReminders(
+  petsList: Array<{
+    id: number;
+    nome: string;
+    tutor_id?: number | null;
+    tutors?:
+      | { nome?: string; telefone?: string }
+      | Array<{ nome?: string; telefone?: string }>;
+  }>,
+  finalizedBaths: BathAppointmentForReminder[],
+): BathReminder[] {
+  const reminders: BathReminder[] = [];
+
+  for (const pet of petsList) {
+    const tutor = Array.isArray(pet.tutors) ? pet.tutors[0] : pet.tutors;
+    const lastBath = finalizedBaths.find(
+      (appointment) => Number(appointment.pet_id) === Number(pet.id),
+    );
+
+    if (!lastBath) {
+      reminders.push({
+        petId: Number(pet.id),
+        tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
+        petName: pet.nome,
+        tutorName: tutor?.nome || "Tutor não informado",
+        tutorPhone: tutor?.telefone,
+        daysWithoutBath: null,
+      });
+      continue;
+    }
+
+    const lastBathDate = parseDateOnly(lastBath.data || undefined);
+
+    if (!lastBathDate) {
+      continue;
+    }
+
+    const daysWithoutBath = calculateDaysSince(lastBathDate);
+
+    if (daysWithoutBath <= 30) {
+      continue;
+    }
+
+    reminders.push({
+      petId: Number(pet.id),
+      tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
+      petName: pet.nome,
+      tutorName: tutor?.nome || "Tutor não informado",
+      tutorPhone: tutor?.telefone,
+      daysWithoutBath,
+      lastBathDate: lastBath.data || undefined,
+    });
+  }
+
+  return reminders;
+}
+
 export default function HomePage() {
   const [pets, setPets] = useState(0);
   const [tutors, setTutors] = useState(0);
@@ -60,9 +143,9 @@ export default function HomePage() {
   const [recebido, setRecebido] = useState(0);
   const [receber, setReceber] = useState(0);
 
-  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<
-    Appointment[]
-  >([]);
+  const [ultimosAgendamentos, setUltimosAgendamentos] = useState<Appointment[]>(
+    [],
+  );
   const [ultimosRecebimentos, setUltimosRecebimentos] = useState<
     FinancialEntry[]
   >([]);
@@ -85,35 +168,36 @@ export default function HomePage() {
   >([]);
   const [bathReminders, setBathReminders] = useState<BathReminder[]>([]);
 
-  const [activeDetail, setActiveDetail] =
-  useState<DashboardDetail | null>(null);
+  const [activeDetail, setActiveDetail] = useState<DashboardDetail | null>(
+    null,
+  );
 
   useEffect(() => {
     async function loadData() {
       try {
         const [
-  counts,
-  appointmentsResponse,
-  recebimentos,
-  receitas,
-  pendentes,
-  weeklyAppointments,
-  completed,
-  pending,
-  petsForReminders,
-  finalizedBathAppointments,
-] = await Promise.all([
-  fetchDashboardCounts(),
-  fetchRecentAppointments(),
-  fetchRecentFinancialEntries(),
-  fetchWeeklyPaidRevenue(),
-  fetchWeeklyPendingRevenue(),
-  fetchWeeklyAppointments(),
-  fetchWeeklyAppointmentsByStatus("Finalizado"),
-  fetchWeeklyAppointmentsByStatus("Agendado"),
-  fetchPetsForBathReminders(),
-  fetchFinalizedBathAppointmentsForReminders(),
-]);
+          counts,
+          appointmentsResponse,
+          recebimentos,
+          receitas,
+          pendentes,
+          weeklyAppointments,
+          completed,
+          pending,
+          petsForReminders,
+          finalizedBathAppointments,
+        ] = await Promise.all([
+          fetchDashboardCounts(),
+          fetchRecentAppointments(),
+          fetchRecentFinancialEntries(),
+          fetchWeeklyPaidRevenue(),
+          fetchWeeklyPendingRevenue(),
+          fetchWeeklyAppointments(),
+          fetchWeeklyAppointmentsByStatus("Finalizado"),
+          fetchWeeklyAppointmentsByStatus("Agendado"),
+          fetchPetsForBathReminders(),
+          fetchFinalizedBathAppointmentsForReminders(),
+        ]);
 
         const weeklyAppointmentsData = weeklyAppointments.data || [];
         const completedAppointmentsData = completed.data || [];
@@ -149,11 +233,11 @@ export default function HomePage() {
         setRecebido(totalRecebido);
         setReceber(totalReceber);
         setBathReminders(
-  buildBathReminders(
-    petsForReminders.data || [],
-    finalizedBathAppointments.data || [],
-  ),
-);
+          buildBathReminders(
+            petsForReminders.data || [],
+            finalizedBathAppointments.data || [],
+          ),
+        );
       } catch (error) {
         console.error(error);
       }
@@ -163,123 +247,32 @@ export default function HomePage() {
   }, []);
 
   function handleSelectDetail(detail: DashboardDetail) {
-  setActiveDetail((currentDetail) =>
-    currentDetail === detail ? null : detail,
-  );
-}
-function parseDateOnly(value?: string) {
-  if (!value) {
-    return null;
-  }
-
-  const [year, month, day] = value.split("-").map(Number);
-
-  if (!year || !month || !day) {
-    return null;
-  }
-
-  return new Date(year, month - 1, day);
-}
-
-function calculateDaysSince(date: Date) {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const targetDate = new Date(date);
-  targetDate.setHours(0, 0, 0, 0);
-
-  const differenceInMs = today.getTime() - targetDate.getTime();
-
-  return Math.floor(differenceInMs / (1000 * 60 * 60 * 24));
-}
-
-function buildBathReminders(
-  petsList: Array<{
-  id: number;
-  nome: string;
-  tutor_id?: number | null;
-  tutors?:
-      | {
-          nome?: string;
-          telefone?: string;
-        }
-      | {
-          nome?: string;
-          telefone?: string;
-        }[];
-  }>,
-  finalizedBaths: BathAppointmentForReminder[],
-): BathReminder[] {
-  const reminders: BathReminder[] = [];
-
-  for (const pet of petsList) {
-    const tutor = Array.isArray(pet.tutors) ? pet.tutors[0] : pet.tutors;
-
-    const lastBath = finalizedBaths.find(
-      (appointment) => Number(appointment.pet_id) === Number(pet.id),
+    setActiveDetail((currentDetail) =>
+      currentDetail === detail ? null : detail,
     );
-
-    if (!lastBath) {
-      reminders.push({
-  petId: Number(pet.id),
-  tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
-  petName: pet.nome,
-  tutorName: tutor?.nome || "Tutor não informado",
-  tutorPhone: tutor?.telefone,
-  daysWithoutBath: null,
-});
-
-      continue;
+  }
+  function formatPhoneForWhatsApp(phone?: string) {
+    if (!phone) {
+      return "";
     }
 
-    const lastBathDate = parseDateOnly(lastBath.data || undefined);
+    const onlyNumbers = phone.replace(/\D/g, "");
 
-    if (!lastBathDate) {
-      continue;
+    if (!onlyNumbers) {
+      return "";
     }
 
-    const daysWithoutBath = calculateDaysSince(lastBathDate);
+    return onlyNumbers.startsWith("55") ? onlyNumbers : `55${onlyNumbers}`;
+  }
 
-    if (daysWithoutBath <= 30) {
-      continue;
+  function createBathReminderWhatsAppLink(reminder: BathReminder) {
+    const phone = formatPhoneForWhatsApp(reminder.tutorPhone);
+
+    if (!phone) {
+      return "";
     }
 
-   reminders.push({
-  petId: Number(pet.id),
-  tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
-  petName: pet.nome,
-  tutorName: tutor?.nome || "Tutor não informado",
-  tutorPhone: tutor?.telefone,
-  daysWithoutBath,
-  lastBathDate: lastBath.data || undefined,
-});
-  }
-
-  return reminders;
-}
-
-function formatPhoneForWhatsApp(phone?: string) {
-  if (!phone) {
-    return "";
-  }
-
-  const onlyNumbers = phone.replace(/\D/g, "");
-
-  if (!onlyNumbers) {
-    return "";
-  }
-
-  return onlyNumbers.startsWith("55") ? onlyNumbers : `55${onlyNumbers}`;
-}
-
-function createBathReminderWhatsAppLink(reminder: BathReminder) {
-  const phone = formatPhoneForWhatsApp(reminder.tutorPhone);
-
-  if (!phone) {
-    return "";
-  }
-
-  const message = `Olá, ${reminder.tutorName}.
+    const message = `Olá, ${reminder.tutorName}.
 
 Percebemos que o ${reminder.petName} já está há algum tempo sem banho.
 
@@ -289,19 +282,19 @@ Estamos com agenda aberta.
 
 Equipe Pet Maia Banho e Tosa.`;
 
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
-}
-function createBathReminderAppointmentLink(reminder: BathReminder) {
-  const params = new URLSearchParams();
-
-  params.set("petId", String(reminder.petId));
-
-  if (reminder.tutorId) {
-    params.set("tutorId", String(reminder.tutorId));
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
   }
+  function createBathReminderAppointmentLink(reminder: BathReminder) {
+    const params = new URLSearchParams();
 
-  return `/agenda?${params.toString()}`;
-}
+    params.set("petId", String(reminder.petId));
+
+    if (reminder.tutorId) {
+      params.set("tutorId", String(reminder.tutorId));
+    }
+
+    return `/agenda?${params.toString()}`;
+  }
   function formatCurrency(value: number) {
     return value.toLocaleString("pt-BR", {
       style: "currency",
@@ -386,9 +379,7 @@ function createBathReminderAppointmentLink(reminder: BathReminder) {
             className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
           >
             <div className="min-w-0">
-              <p className="font-semibold text-slate-800">
-                {entry.descricao}
-              </p>
+              <p className="font-semibold text-slate-800">{entry.descricao}</p>
 
               <p className="text-sm text-slate-500">
                 Forma de pagamento: {entry.forma_pagamento || "Não informado"}
@@ -415,76 +406,76 @@ function createBathReminderAppointmentLink(reminder: BathReminder) {
       </div>
     );
   }
-function renderBathRemindersList() {
-  if (bathReminders.length === 0) {
+  function renderBathRemindersList() {
+    if (bathReminders.length === 0) {
+      return (
+        <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+          Nenhum lembrete de banho recorrente no momento.
+        </div>
+      );
+    }
+
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
-        Nenhum lembrete de banho recorrente no momento.
+      <div className="space-y-3">
+        {bathReminders.map((reminder) => {
+          const whatsappLink = createBathReminderWhatsAppLink(reminder);
+
+          return (
+            <div
+              key={reminder.petId}
+              className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
+            >
+              <div className="min-w-0">
+                <p className="font-semibold text-slate-800">
+                  {reminder.petName}
+                </p>
+
+                <p className="text-sm text-slate-500">
+                  Tutor: {reminder.tutorName}
+                </p>
+
+                <p className="text-sm text-slate-500">
+                  {reminder.daysWithoutBath === null
+                    ? "Sem banho finalizado registrado."
+                    : `Está há ${reminder.daysWithoutBath} dias sem banho.`}
+                </p>
+
+                {reminder.lastBathDate && (
+                  <p className="text-xs text-slate-400">
+                    Último banho: {reminder.lastBathDate}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-2 sm:items-end">
+                {whatsappLink ? (
+                  <a
+                    href={whatsappLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
+                  >
+                    Enviar WhatsApp
+                  </a>
+                ) : (
+                  <span className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-400">
+                    Sem telefone
+                  </span>
+                )}
+
+                <a
+                  href={createBathReminderAppointmentLink(reminder)}
+                  className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                >
+                  Agendar
+                </a>
+              </div>
+            </div>
+          );
+        })}
       </div>
     );
   }
-
-  return (
-    <div className="space-y-3">
-      {bathReminders.map((reminder) => {
-        const whatsappLink = createBathReminderWhatsAppLink(reminder);
-
-        return (
-          <div
-            key={reminder.petId}
-            className="grid gap-3 rounded-xl border border-slate-200 p-3 sm:grid-cols-[1fr_auto]"
-          >
-            <div className="min-w-0">
-              <p className="font-semibold text-slate-800">
-                {reminder.petName}
-              </p>
-
-              <p className="text-sm text-slate-500">
-                Tutor: {reminder.tutorName}
-              </p>
-
-              <p className="text-sm text-slate-500">
-                {reminder.daysWithoutBath === null
-                  ? "Sem banho finalizado registrado."
-                  : `Está há ${reminder.daysWithoutBath} dias sem banho.`}
-              </p>
-
-              {reminder.lastBathDate && (
-                <p className="text-xs text-slate-400">
-                  Último banho: {reminder.lastBathDate}
-                </p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2 sm:items-end">
-              {whatsappLink ? (
-                <a
-                  href={whatsappLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center rounded-xl bg-green-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
-                >
-                  Enviar WhatsApp
-                </a>
-              ) : (
-                <span className="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-400">
-                  Sem telefone
-                </span>
-              )}
-
-             <a
-  href={createBathReminderAppointmentLink(reminder)}
-  className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
->
-  Agendar
-</a>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -502,8 +493,8 @@ function renderBathRemindersList() {
               onClick={() => handleSelectDetail("pets")}
             >
               <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                Existem <strong>{pets}</strong> pets cadastrados no sistema. Para
-                ver a lista completa, acesse o menu <strong>Pets</strong>.
+                Existem <strong>{pets}</strong> pets cadastrados no sistema.
+                Para ver a lista completa, acesse o menu <strong>Pets</strong>.
               </div>
             </StatCard>
 
@@ -515,8 +506,8 @@ function renderBathRemindersList() {
               onClick={() => handleSelectDetail("tutors")}
             >
               <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-600">
-                Existem <strong>{tutors}</strong> tutores cadastrados no sistema.
-                Para ver a lista completa, acesse o menu{" "}
+                Existem <strong>{tutors}</strong> tutores cadastrados no
+                sistema. Para ver a lista completa, acesse o menu{" "}
                 <strong>Tutores</strong>.
               </div>
             </StatCard>
@@ -586,14 +577,14 @@ function renderBathRemindersList() {
               )}
             </StatCard>
             <StatCard
-  title="Lembretes de Banho"
-  value={String(bathReminders.length)}
-  icon={<MessageCircle size={24} />}
-  active={activeDetail === "bathReminders"}
-  onClick={() => handleSelectDetail("bathReminders")}
->
-  {renderBathRemindersList()}
-</StatCard>
+              title="Lembretes de Banho"
+              value={String(bathReminders.length)}
+              icon={<MessageCircle size={24} />}
+              active={activeDetail === "bathReminders"}
+              onClick={() => handleSelectDetail("bathReminders")}
+            >
+              {renderBathRemindersList()}
+            </StatCard>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
@@ -649,10 +640,7 @@ function renderBathRemindersList() {
                   >
                     <div className="min-w-0">
                       <p className="truncate font-medium">
-                        {item.descricao.replace(
-                          /^Consulta\b/i,
-                          "Atendimento",
-                        )}
+                        {item.descricao.replace(/^Consulta\b/i, "Atendimento")}
                       </p>
 
                       <p className="text-sm text-slate-500">

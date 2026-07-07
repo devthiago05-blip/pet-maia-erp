@@ -17,10 +17,7 @@ interface EditFinancialModalProps {
   tutors: Tutor[];
   pets: Pet[];
   onClose: () => void;
-  onSave: (
-    id: number,
-    entry: UpdateFinancialEntryInput,
-  ) => Promise<boolean>;
+  onSave: (id: number, entry: UpdateFinancialEntryInput) => Promise<boolean>;
 }
 
 export function EditFinancialModal({
@@ -54,14 +51,18 @@ export function EditFinancialModal({
       return;
     }
 
-    setDescricao(entry.descricao || "");
-    setValor(String(entry.valor || ""));
-    setTipo(entry.tipo || "Receita");
-    setFormaPagamento(entry.forma_pagamento || "PIX");
-    setStatusPagamento(entry.status_pagamento || "Pendente");
-    setDataVencimento(entry.data_vencimento?.slice(0, 10) || "");
-    setTutorId(entry.tutor_id ? String(entry.tutor_id) : "");
-    setPetId(entry.pet_id ? String(entry.pet_id) : "");
+    const timer = window.setTimeout(() => {
+      setDescricao(entry.descricao || "");
+      setValor(String(entry.valor || ""));
+      setTipo(entry.tipo || "Receita");
+      setFormaPagamento(entry.forma_pagamento || "PIX");
+      setStatusPagamento(entry.status_pagamento || "Pendente");
+      setDataVencimento(entry.data_vencimento?.slice(0, 10) || "");
+      setTutorId(entry.tutor_id ? String(entry.tutor_id) : "");
+      setPetId(entry.pet_id ? String(entry.pet_id) : "");
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [entry]);
 
   if (!entry) {

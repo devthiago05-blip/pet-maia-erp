@@ -54,10 +54,14 @@ export function NewAppointmentModal({
     : pets;
 
   useEffect(() => {
-    if (modalOpen) {
-      setTutorId(defaultTutorId);
-      setPetId(defaultPetId);
-    }
+    const timer = window.setTimeout(() => {
+      if (modalOpen) {
+        setTutorId(defaultTutorId);
+        setPetId(defaultPetId);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [defaultPetId, defaultTutorId, modalOpen]);
 
   function setModalOpen(value: boolean) {

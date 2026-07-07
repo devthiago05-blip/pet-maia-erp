@@ -4,9 +4,8 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
-
 import { formatCurrency } from "@/lib/formatters";
+import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface ProductModalProps {
   product?: Product;
@@ -85,53 +84,57 @@ export function ProductModal({
   const [saving, setSaving] = useState(false);
 
   function updateVariation(
-  id: number,
-  field: keyof Omit<ProductVariationForm, "id">,
-  value: string,
-) {
-  setVariations((current) =>
-    current.map((variation) => {
-      if (variation.id !== id) {
-        return variation;
-      }
-
-      const next = { ...variation, [field]: value };
-
-      const costPrice = Number(
-        field === "precoCusto" ? value : next.precoCusto,
-      );
-
-      if (field === "margem") {
-        const margin = Number(value);
-
-        if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
-          next.precoVenda = formatDecimal(calculateSalePrice(costPrice, margin));
+    id: number,
+    field: keyof Omit<ProductVariationForm, "id">,
+    value: string,
+  ) {
+    setVariations((current) =>
+      current.map((variation) => {
+        if (variation.id !== id) {
+          return variation;
         }
-      }
 
-      if (field === "precoCusto") {
-        const margin = Number(next.margem);
-        const salePrice = Number(next.precoVenda);
+        const next = { ...variation, [field]: value };
 
-        if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
-          next.precoVenda = formatDecimal(calculateSalePrice(costPrice, margin));
-        } else if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
-          next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+        const costPrice = Number(
+          field === "precoCusto" ? value : next.precoCusto,
+        );
+
+        if (field === "margem") {
+          const margin = Number(value);
+
+          if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
+            next.precoVenda = formatDecimal(
+              calculateSalePrice(costPrice, margin),
+            );
+          }
         }
-      }
 
-      if (field === "precoVenda") {
-        const salePrice = Number(value);
+        if (field === "precoCusto") {
+          const margin = Number(next.margem);
+          const salePrice = Number(next.precoVenda);
 
-        if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
-          next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+          if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
+            next.precoVenda = formatDecimal(
+              calculateSalePrice(costPrice, margin),
+            );
+          } else if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
+            next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+          }
         }
-      }
 
-      return next;
-    }),
-  );
-}
+        if (field === "precoVenda") {
+          const salePrice = Number(value);
+
+          if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
+            next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
+          }
+        }
+
+        return next;
+      }),
+    );
+  }
 
   function addVariation() {
     setVariations((current) => [
@@ -155,14 +158,14 @@ export function ProductModal({
     }
 
     const parsedVariations = variations.map((variation) => ({
-  ...variation,
-  barcodeValue: variation.barcode.trim(),
-  precoCustoNumber: Number(variation.precoCusto),
-  margemNumber: Number(variation.margem || 0),
-  precoVendaNumber: Number(variation.precoVenda),
-  estoqueNumber: Number(variation.estoque),
-  estoqueMinimoNumber: Number(variation.estoqueMinimo),
-}));
+      ...variation,
+      barcodeValue: variation.barcode.trim(),
+      precoCustoNumber: Number(variation.precoCusto),
+      margemNumber: Number(variation.margem || 0),
+      precoVendaNumber: Number(variation.precoVenda),
+      estoqueNumber: Number(variation.estoque),
+      estoqueMinimoNumber: Number(variation.estoqueMinimo),
+    }));
 
     if (
       parsedVariations.some(
@@ -200,10 +203,10 @@ export function ProductModal({
       (variation): NewProductInput | Product => ({
         ...(product ? { id: product.id } : {}),
         nome: nome.trim(),
-sku: variation.barcodeValue || product?.sku,
-barcode: variation.barcodeValue || product?.barcode || product?.sku,
-profit_margin: variation.margemNumber,
-category_id: Number(categoryId),
+        sku: variation.barcodeValue || product?.sku,
+        barcode: variation.barcodeValue || product?.barcode || product?.sku,
+        profit_margin: variation.margemNumber,
+        category_id: Number(categoryId),
         categoria: selectedCategory?.nome,
         tamanho: variation.tamanho.trim() || undefined,
         cor: variation.cor.trim() || undefined,
@@ -342,38 +345,38 @@ category_id: Number(categoryId),
                       }
                     />
                     <ProductInput
-  label="Código de barras"
-  value={variation.barcode}
-  onChange={(value) =>
-    updateVariation(variation.id, "barcode", value)
-  }
-/>
-                   <ProductInput
-  label="Valor de compra"
-  type="number"
-  value={variation.precoCusto}
-  onChange={(value) =>
-    updateVariation(variation.id, "precoCusto", value)
-  }
-/>
+                      label="Código de barras"
+                      value={variation.barcode}
+                      onChange={(value) =>
+                        updateVariation(variation.id, "barcode", value)
+                      }
+                    />
+                    <ProductInput
+                      label="Valor de compra"
+                      type="number"
+                      value={variation.precoCusto}
+                      onChange={(value) =>
+                        updateVariation(variation.id, "precoCusto", value)
+                      }
+                    />
 
-<ProductInput
-  label="Margem %"
-  type="number"
-  value={variation.margem}
-  onChange={(value) =>
-    updateVariation(variation.id, "margem", value)
-  }
-/>
+                    <ProductInput
+                      label="Margem %"
+                      type="number"
+                      value={variation.margem}
+                      onChange={(value) =>
+                        updateVariation(variation.id, "margem", value)
+                      }
+                    />
 
-<ProductInput
-  label="Valor de venda"
-  type="number"
-  value={variation.precoVenda}
-  onChange={(value) =>
-    updateVariation(variation.id, "precoVenda", value)
-  }
-/>
+                    <ProductInput
+                      label="Valor de venda"
+                      type="number"
+                      value={variation.precoVenda}
+                      onChange={(value) =>
+                        updateVariation(variation.id, "precoVenda", value)
+                      }
+                    />
                     <ProductInput
                       label="Estoque atual"
                       type="number"
@@ -394,18 +397,18 @@ category_id: Number(categoryId),
                     />
                   </div>
                   <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
-  <span className="font-semibold">Lucro por unidade:</span>{" "}
-  {formatCurrency(
-    Math.max(
-      0,
-      Number(variation.precoVenda || 0) -
-        Number(variation.precoCusto || 0),
-    ),
-  )}{" "}
-  <span className="text-slate-400">
-    | Margem: {variation.margem || "0"}%
-  </span>
-</div>
+                    <span className="font-semibold">Lucro por unidade:</span>{" "}
+                    {formatCurrency(
+                      Math.max(
+                        0,
+                        Number(variation.precoVenda || 0) -
+                          Number(variation.precoCusto || 0),
+                      ),
+                    )}{" "}
+                    <span className="text-slate-400">
+                      | Margem: {variation.margem || "0"}%
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>

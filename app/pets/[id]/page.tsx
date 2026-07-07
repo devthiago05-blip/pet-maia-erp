@@ -1,11 +1,11 @@
 "use client";
-import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { fetchServices } from "@/services/services";
-import { useAccess } from "@/components/auth/AccessContext";
+
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
+import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
+import { useAccess } from "@/components/auth/AccessContext";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
@@ -18,8 +18,8 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createAppointment,
-  fetchAppointmentServicesByAppointmentId,
   fetchAppointmentsByPet,
+  fetchAppointmentServicesByAppointmentId,
 } from "@/services/appointments";
 import {
   createClinicalDocument,
@@ -37,15 +37,16 @@ import {
   fetchFinancialEntriesByPet,
 } from "@/services/financial";
 import { fetchPetById } from "@/services/pets";
+import { fetchServices } from "@/services/services";
 import { fetchClinicSettings } from "@/services/settings";
 import type {
   Appointment,
-  ClinicSettings,
   ClinicalDocument,
   ClinicalDocumentInput,
   ClinicalExam,
   ClinicalExamInput,
   ClinicalRecord,
+  ClinicSettings,
   CompletedAppointmentService,
   FinancialEntry,
   NewAppointmentInput,
@@ -186,15 +187,15 @@ export default function PetPage() {
     [],
   );
   const [clinicSettings, setClinicSettings] = useState<ClinicSettings | null>(
-  null,
-);
-const [completedReceipt, setCompletedReceipt] = useState<{
-  appointment: Appointment;
-  valor: number;
-  formaPagamento: string;
-  services: CompletedAppointmentService[];
-  observacoes?: string;
-} | null>(null);
+    null,
+  );
+  const [completedReceipt, setCompletedReceipt] = useState<{
+    appointment: Appointment;
+    valor: number;
+    formaPagamento: string;
+    services: CompletedAppointmentService[];
+    observacoes?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -217,23 +218,23 @@ const [completedReceipt, setCompletedReceipt] = useState<{
         return;
       }
 
-     const [
-  appointmentsResponse,
-  financialResponse,
-  clinicalResponse,
-  vaccinationsResponse,
-  examsResponse,
-  documentsResponse,
-  clinicSettingsResponse,
-] = await Promise.all([
-  fetchAppointmentsByPet(petId),
-  fetchFinancialEntriesByPet(petId),
-  fetchClinicalRecordsByPet(petId),
-  fetchPetVaccinations(petId),
-  fetchClinicalExamsByPet(petId),
-  fetchClinicalDocumentsByPet(petId),
-  fetchClinicSettings(),
-]);
+      const [
+        appointmentsResponse,
+        financialResponse,
+        clinicalResponse,
+        vaccinationsResponse,
+        examsResponse,
+        documentsResponse,
+        clinicSettingsResponse,
+      ] = await Promise.all([
+        fetchAppointmentsByPet(petId),
+        fetchFinancialEntriesByPet(petId),
+        fetchClinicalRecordsByPet(petId),
+        fetchPetVaccinations(petId),
+        fetchClinicalExamsByPet(petId),
+        fetchClinicalDocumentsByPet(petId),
+        fetchClinicSettings(),
+      ]);
 
       if (appointmentsResponse.error) {
         console.error(appointmentsResponse.error);
@@ -279,13 +280,10 @@ const [completedReceipt, setCompletedReceipt] = useState<{
         setDocuments(documentsResponse.data || []);
       }
       if (clinicSettingsResponse.error) {
-  console.error(clinicSettingsResponse.error);
-} else {
-  setClinicSettings(clinicSettingsResponse.data as ClinicSettings);
-}
-
-
-
+        console.error(clinicSettingsResponse.error);
+      } else {
+        setClinicSettings(clinicSettingsResponse.data as ClinicSettings);
+      }
 
       setPet(data);
       setAppointments(appointmentsResponse.data || []);
@@ -294,19 +292,19 @@ const [completedReceipt, setCompletedReceipt] = useState<{
     }
 
     async function loadAvailableServices() {
-  const { data, error: servicesError } = await fetchServices();
+      const { data, error: servicesError } = await fetchServices();
 
-  if (servicesError) {
-    console.error(servicesError);
-    toast.error("Não foi possível carregar os serviços.");
-    return;
-  }
+      if (servicesError) {
+        console.error(servicesError);
+        toast.error("Não foi possível carregar os serviços.");
+        return;
+      }
 
-  setServices(data || []);
-}
+      setServices(data || []);
+    }
 
-loadPet();
-loadAvailableServices();
+    loadPet();
+    loadAvailableServices();
   });
   const groomingAppointments = appointments.filter((appointment) => {
     const service = normalizeText(appointment.servico);
@@ -316,55 +314,52 @@ loadAvailableServices();
   });
   const todayDate = getTodayDateString();
 
-const completedAppointments = appointments.filter(
-  (appointment) => appointment.status === "Finalizado",
-);
+  const completedAppointments = appointments.filter(
+    (appointment) => appointment.status === "Finalizado",
+  );
 
-const lastAppointment = [...completedAppointments].sort((a, b) =>
-  `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`),
-)[0];
-
-const nextAppointment = appointments
-  .filter(
-    (appointment) =>
-      appointment.status === "Agendado" && appointment.data >= todayDate,
-  )
-  .sort((a, b) =>
-    `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`),
-  )[0];
-
-const totalPaid = financialEntries
-  .filter(
-    (entry) =>
-      entry.tipo === "Receita" && entry.status_pagamento === "Pago",
-  )
-  .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
-
-const pendingValue = financialEntries
-  .filter(
-    (entry) =>
-      entry.tipo === "Receita" && entry.status_pagamento !== "Pago",
-  )
-  .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
-
-const nextVaccine = vaccinations
-  .filter((vaccination) => vaccination.next_dose_date)
-  .sort((a, b) =>
-    String(a.next_dose_date).localeCompare(String(b.next_dose_date)),
-  )[0];
-  const lastBathAppointment = groomingAppointments
-  .filter((appointment) => appointment.status === "Finalizado")
-  .sort((a, b) =>
+  const lastAppointment = [...completedAppointments].sort((a, b) =>
     `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`),
   )[0];
 
-const daysSinceLastBath = calculateDaysSinceDate(lastBathAppointment?.data);
+  const nextAppointment = appointments
+    .filter(
+      (appointment) =>
+        appointment.status === "Agendado" && appointment.data >= todayDate,
+    )
+    .sort((a, b) =>
+      `${a.data} ${a.hora}`.localeCompare(`${b.data} ${b.hora}`),
+    )[0];
 
-const daysUntilNextVaccine = calculateDaysUntilDate(
-  nextVaccine?.next_dose_date,
-);
-  const appointmentTutors: Tutor[] =
-  pet?.tutor_id
+  const totalPaid = financialEntries
+    .filter(
+      (entry) => entry.tipo === "Receita" && entry.status_pagamento === "Pago",
+    )
+    .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+
+  const pendingValue = financialEntries
+    .filter(
+      (entry) => entry.tipo === "Receita" && entry.status_pagamento !== "Pago",
+    )
+    .reduce((sum, entry) => sum + Number(entry.valor || 0), 0);
+
+  const nextVaccine = vaccinations
+    .filter((vaccination) => vaccination.next_dose_date)
+    .sort((a, b) =>
+      String(a.next_dose_date).localeCompare(String(b.next_dose_date)),
+    )[0];
+  const lastBathAppointment = groomingAppointments
+    .filter((appointment) => appointment.status === "Finalizado")
+    .sort((a, b) =>
+      `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`),
+    )[0];
+
+  const daysSinceLastBath = calculateDaysSinceDate(lastBathAppointment?.data);
+
+  const daysUntilNextVaccine = calculateDaysUntilDate(
+    nextVaccine?.next_dose_date,
+  );
+  const appointmentTutors: Tutor[] = pet?.tutor_id
     ? [
         {
           id: pet.tutor_id,
@@ -376,101 +371,103 @@ const daysUntilNextVaccine = calculateDaysUntilDate(
       ]
     : [];
 
-const appointmentPets = pet ? [pet] : [];
-const tutorWhatsAppLink = pet
-  ? createTutorWhatsAppLink(pet.tutors?.telefone, pet.nome)
-  : "";
-async function handleViewReceipt(appointment: Appointment) {
-  if (!pet) {
-    return;
-  }
+  const appointmentPets = pet ? [pet] : [];
+  const tutorWhatsAppLink = pet
+    ? createTutorWhatsAppLink(pet.tutors?.telefone, pet.nome)
+    : "";
+  async function handleViewReceipt(appointment: Appointment) {
+    if (!pet) {
+      return;
+    }
 
-  const [appointmentServicesResponse, financialResponse] = await Promise.all([
-    fetchAppointmentServicesByAppointmentId(appointment.id),
-    fetchFinancialEntriesByAppointmentId(appointment.id),
-  ]);
+    const [appointmentServicesResponse, financialResponse] = await Promise.all([
+      fetchAppointmentServicesByAppointmentId(appointment.id),
+      fetchFinancialEntriesByAppointmentId(appointment.id),
+    ]);
 
-  if (appointmentServicesResponse.error) {
-    console.error(appointmentServicesResponse.error);
-    toast.error("Não foi possível carregar os serviços do recibo.");
-    return;
-  }
+    if (appointmentServicesResponse.error) {
+      console.error(appointmentServicesResponse.error);
+      toast.error("Não foi possível carregar os serviços do recibo.");
+      return;
+    }
 
-  if (financialResponse.error) {
-    console.error(financialResponse.error);
-    toast.error("Não foi possível carregar o financeiro do recibo.");
-    return;
-  }
+    if (financialResponse.error) {
+      console.error(financialResponse.error);
+      toast.error("Não foi possível carregar o financeiro do recibo.");
+      return;
+    }
 
-  const linkedFinancialEntry = (financialResponse.data?.[0] || null) as
-    | FinancialEntry
-    | null;
+    const linkedFinancialEntry = (financialResponse.data?.[0] ||
+      null) as FinancialEntry | null;
 
-  const fallbackFinancialEntry =
-    financialEntries.find(
-      (entry) =>
-        entry.origem === "appointment" &&
-        Number(entry.referencia_id) === Number(appointment.id),
-    ) || null;
+    const fallbackFinancialEntry =
+      financialEntries.find(
+        (entry) =>
+          entry.origem === "appointment" &&
+          Number(entry.referencia_id) === Number(appointment.id),
+      ) || null;
 
-  const financialEntry = linkedFinancialEntry || fallbackFinancialEntry;
+    const financialEntry = linkedFinancialEntry || fallbackFinancialEntry;
 
-  if (!financialEntry) {
-    toast.error(
-      "Este atendimento está finalizado, mas não possui recibo financeiro salvo.",
-    );
-    return;
-  }
+    if (!financialEntry) {
+      toast.error(
+        "Este atendimento está finalizado, mas não possui recibo financeiro salvo.",
+      );
+      return;
+    }
 
-  const receiptServices: CompletedAppointmentService[] =
-    appointmentServicesResponse.data?.map((service) => ({
-      serviceName: service.service_name,
-      price: Number(service.price || 0),
-    })) || [];
+    const receiptServices: CompletedAppointmentService[] =
+      appointmentServicesResponse.data?.map((service) => ({
+        serviceName: service.service_name,
+        price: Number(service.price || 0),
+      })) || [];
 
-  setCompletedReceipt({
-    appointment: {
-      ...appointment,
-      pets: {
-        nome: pet.nome,
-        porte: pet.porte,
-        tutors: pet.tutors,
+    setCompletedReceipt({
+      appointment: {
+        ...appointment,
+        pets: {
+          nome: pet.nome,
+          porte: pet.porte,
+          tutors: pet.tutors,
+        },
       },
-    },
-    valor: Number(financialEntry.valor || 0),
-    formaPagamento: financialEntry.forma_pagamento || "PIX",
-    services: receiptServices,
-    observacoes: extractReceiptObservations(financialEntry.descricao, pet.nome),
-  });
-}
-async function handleCreateAppointmentFromPet(
-  novoAgendamento: NewAppointmentInput,
-): Promise<boolean> {
-  if (!pet) {
-    toast.error("Pet não encontrado");
-    return false;
+      valor: Number(financialEntry.valor || 0),
+      formaPagamento: financialEntry.forma_pagamento || "PIX",
+      services: receiptServices,
+      observacoes: extractReceiptObservations(
+        financialEntry.descricao,
+        pet.nome,
+      ),
+    });
   }
+  async function handleCreateAppointmentFromPet(
+    novoAgendamento: NewAppointmentInput,
+  ): Promise<boolean> {
+    if (!pet) {
+      toast.error("Pet não encontrado");
+      return false;
+    }
 
-  const { error } = await createAppointment(novoAgendamento, pet.id);
+    const { error } = await createAppointment(novoAgendamento, pet.id);
 
-  if (error) {
-    console.error(error);
-    toast.error("Erro ao criar agendamento");
-    return false;
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao criar agendamento");
+      return false;
+    }
+
+    const { data, error: reloadError } = await fetchAppointmentsByPet(pet.id);
+
+    if (reloadError) {
+      console.error(reloadError);
+      toast.warning("Agendamento criado, mas o histórico não foi atualizado.");
+    } else {
+      setAppointments(data || []);
+    }
+
+    toast.success("Agendamento criado com sucesso!");
+    return true;
   }
-
-  const { data, error: reloadError } = await fetchAppointmentsByPet(pet.id);
-
-  if (reloadError) {
-    console.error(reloadError);
-    toast.warning("Agendamento criado, mas o histórico não foi atualizado.");
-  } else {
-    setAppointments(data || []);
-  }
-
-  toast.success("Agendamento criado com sucesso!");
-  return true;
-}
   async function handleCreateClinicalRecord(record: NewClinicalRecordInput) {
     const { error: createError } = await createClinicalRecord(record);
 
@@ -609,64 +606,64 @@ async function handleCreateAppointmentFromPet(
           ) : (
             <>
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-  <div>
-    <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
-      Ficha do Pet
-    </h1>
-    <p className="text-slate-500">Informações do paciente</p>
-  </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+                    Ficha do Pet
+                  </h1>
+                  <p className="text-slate-500">Informações do paciente</p>
+                </div>
 
-  <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-  {tutorWhatsAppLink ? (
-    <a
-      href={tutorWhatsAppLink}
-      target="_blank"
-      rel="noreferrer"
-      className="inline-flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-4 py-2 font-medium text-green-700 hover:bg-green-100 sm:w-auto"
-    >
-      Chamar tutor
-    </a>
-  ) : (
-    <span className="inline-flex w-full items-center justify-center rounded-xl border bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 sm:w-auto">
-      Tutor sem telefone
-    </span>
-  )}
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                  {tutorWhatsAppLink ? (
+                    <a
+                      href={tutorWhatsAppLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex w-full items-center justify-center rounded-xl border border-green-200 bg-green-50 px-4 py-2 font-medium text-green-700 hover:bg-green-100 sm:w-auto"
+                    >
+                      Chamar tutor
+                    </a>
+                  ) : (
+                    <span className="inline-flex w-full items-center justify-center rounded-xl border bg-slate-50 px-4 py-2 text-sm font-medium text-slate-400 sm:w-auto">
+                      Tutor sem telefone
+                    </span>
+                  )}
 
-  <button
-    type="button"
-    onClick={() => setAppointmentModalOpen(true)}
-    className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white hover:bg-[#7600d1] sm:w-auto"
-  >
-    Novo agendamento
-  </button>
-</div>
-</div>
+                  <button
+                    type="button"
+                    onClick={() => setAppointmentModalOpen(true)}
+                    className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white hover:bg-[#7600d1] sm:w-auto"
+                  >
+                    Novo agendamento
+                  </button>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
                 <PetSummary pet={pet} />
 
                 <div className="min-w-0 lg:col-span-2">
-  <PetQuickStats
-    lastAppointment={lastAppointment}
-    nextAppointment={nextAppointment}
-    totalPaid={totalPaid}
-    pendingValue={pendingValue}
-    nextVaccine={nextVaccine}
-  />
-  <PetAlerts
-  lastBathAppointment={lastBathAppointment}
-  daysSinceLastBath={daysSinceLastBath}
-  pendingValue={pendingValue}
-  nextAppointment={nextAppointment}
-  nextVaccine={nextVaccine}
-  daysUntilNextVaccine={daysUntilNextVaccine}
-  onSchedule={() => setAppointmentModalOpen(true)}
-  onShowFinancial={() => setTab("financeiro")}
-  onShowVaccines={() => setTab("vacinas")}
-  onShowHistory={() => setTab("historico")}
-/>
+                  <PetQuickStats
+                    lastAppointment={lastAppointment}
+                    nextAppointment={nextAppointment}
+                    totalPaid={totalPaid}
+                    pendingValue={pendingValue}
+                    nextVaccine={nextVaccine}
+                  />
+                  <PetAlerts
+                    lastBathAppointment={lastBathAppointment}
+                    daysSinceLastBath={daysSinceLastBath}
+                    pendingValue={pendingValue}
+                    nextAppointment={nextAppointment}
+                    nextVaccine={nextVaccine}
+                    daysUntilNextVaccine={daysUntilNextVaccine}
+                    onSchedule={() => setAppointmentModalOpen(true)}
+                    onShowFinancial={() => setTab("financeiro")}
+                    onShowVaccines={() => setTab("vacinas")}
+                    onShowHistory={() => setTab("historico")}
+                  />
 
-  <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
+                  <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
                     <div className="flex gap-2 overflow-x-auto pb-1">
                       {tabs.map((item) => (
                         <button
@@ -687,13 +684,13 @@ async function handleCreateAppointmentFromPet(
 
                   {tab === "dados" && <PetData pet={pet} />}
                   {tab === "historico" && (
-  <AppointmentHistory
-  title="Histórico de atendimentos"
-  appointments={appointments}
-  financialEntries={financialEntries}
-  onViewReceipt={handleViewReceipt}
-/>
-)}
+                    <AppointmentHistory
+                      title="Histórico de atendimentos"
+                      appointments={appointments}
+                      financialEntries={financialEntries}
+                      onViewReceipt={handleViewReceipt}
+                    />
+                  )}
                   {tab === "clinica" && (
                     <ClinicalHistory
                       pet={pet}
@@ -732,13 +729,13 @@ async function handleCreateAppointmentFromPet(
                     />
                   )}
                   {tab === "banhos" && (
-<AppointmentHistory
-  title="Banhos e Tosas"
-  appointments={groomingAppointments}
-  financialEntries={financialEntries}
-  onViewReceipt={handleViewReceipt}
-/>
-)}
+                    <AppointmentHistory
+                      title="Banhos e Tosas"
+                      appointments={groomingAppointments}
+                      financialEntries={financialEntries}
+                      onViewReceipt={handleViewReceipt}
+                    />
+                  )}
                   {tab === "financeiro" && (
                     <FinancialHistory entries={financialEntries} />
                   )}
@@ -748,29 +745,29 @@ async function handleCreateAppointmentFromPet(
           )}
         </div>
         {completedReceipt && (
-  <AppointmentReceiptModal
-    appointment={completedReceipt.appointment}
-    clinicSettings={clinicSettings}
-    valor={completedReceipt.valor}
-    formaPagamento={completedReceipt.formaPagamento}
-    services={completedReceipt.services}
-    observacoes={completedReceipt.observacoes}
-    onClose={() => setCompletedReceipt(null)}
-  />
-)}
-{pet && (
-  <NewAppointmentModal
-    tutors={appointmentTutors}
-    pets={appointmentPets}
-    services={services}
-    onSave={handleCreateAppointmentFromPet}
-    open={appointmentModalOpen}
-    onOpenChange={setAppointmentModalOpen}
-    defaultTutorId={pet.tutor_id ? String(pet.tutor_id) : ""}
-    defaultPetId={String(pet.id)}
-    hideTrigger
-  />
-)}
+          <AppointmentReceiptModal
+            appointment={completedReceipt.appointment}
+            clinicSettings={clinicSettings}
+            valor={completedReceipt.valor}
+            formaPagamento={completedReceipt.formaPagamento}
+            services={completedReceipt.services}
+            observacoes={completedReceipt.observacoes}
+            onClose={() => setCompletedReceipt(null)}
+          />
+        )}
+        {pet && (
+          <NewAppointmentModal
+            tutors={appointmentTutors}
+            pets={appointmentPets}
+            services={services}
+            onSave={handleCreateAppointmentFromPet}
+            open={appointmentModalOpen}
+            onOpenChange={setAppointmentModalOpen}
+            defaultTutorId={pet.tutor_id ? String(pet.tutor_id) : ""}
+            defaultPetId={String(pet.id)}
+            hideTrigger
+          />
+        )}
       </main>
     </div>
   );
@@ -1235,12 +1232,12 @@ function AppointmentHistory({
         <table className="w-full min-w-[620px]">
           <thead className="bg-slate-50">
             <tr>
-  <th className="p-4 text-left">Data</th>
-  <th className="p-4 text-left">Horário</th>
-  <th className="p-4 text-left">Serviços</th>
-  <th className="p-4 text-left">Status</th>
-  <th className="p-4 text-left">Ações</th>
-</tr>
+              <th className="p-4 text-left">Data</th>
+              <th className="p-4 text-left">Horário</th>
+              <th className="p-4 text-left">Serviços</th>
+              <th className="p-4 text-left">Status</th>
+              <th className="p-4 text-left">Ações</th>
+            </tr>
           </thead>
           <tbody>
             {appointments.length === 0 ? (
@@ -1259,27 +1256,27 @@ function AppointmentHistory({
                   <td className="p-4">{appointment.hora}</td>
                   <td className="p-4">{appointment.servico}</td>
                   <td className="p-4">{appointment.status}</td>
-               <td className="p-4">
-  {appointment.status === "Finalizado" &&
-  financialEntries.some(
-    (entry) =>
-      entry.origem === "appointment" &&
-      Number(entry.referencia_id) === Number(appointment.id),
-  ) &&
-  onViewReceipt ? (
-    <button
-      type="button"
-      onClick={() => onViewReceipt(appointment)}
-      className="font-medium text-[#8A0EEA] hover:underline"
-    >
-      Ver recibo
-    </button>
-  ) : appointment.status === "Finalizado" ? (
-    <span className="text-sm text-slate-400">Sem recibo</span>
-  ) : (
-    "-"
-  )}
-</td>
+                  <td className="p-4">
+                    {appointment.status === "Finalizado" &&
+                    financialEntries.some(
+                      (entry) =>
+                        entry.origem === "appointment" &&
+                        Number(entry.referencia_id) === Number(appointment.id),
+                    ) &&
+                    onViewReceipt ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewReceipt(appointment)}
+                        className="font-medium text-[#8A0EEA] hover:underline"
+                      >
+                        Ver recibo
+                      </button>
+                    ) : appointment.status === "Finalizado" ? (
+                      <span className="text-sm text-slate-400">Sem recibo</span>
+                    ) : (
+                      "-"
+                    )}
+                  </td>
                 </tr>
               ))
             )}
@@ -1495,26 +1492,26 @@ function PetAlerts({
         )}
 
         {hasPendingValue && (
-  <PetAlertCard
-    title="Valor pendente"
-    description={`Existe ${formatCurrency(
-      pendingValue,
-    )} em aberto para este pet.`}
-    actionLabel="Ver financeiro"
-    onAction={onShowFinancial}
-  />
-)}
+          <PetAlertCard
+            title="Valor pendente"
+            description={`Existe ${formatCurrency(
+              pendingValue,
+            )} em aberto para este pet.`}
+            actionLabel="Ver financeiro"
+            onAction={onShowFinancial}
+          />
+        )}
 
         {hasNextAppointment && nextAppointment && (
-  <PetAlertCard
-    title="Agendamento futuro"
-    description={`${nextAppointment.servico} em ${formatDate(
-      nextAppointment.data,
-    )} às ${nextAppointment.hora}.`}
-    actionLabel="Ver histórico"
-    onAction={onShowHistory}
-  />
-)}
+          <PetAlertCard
+            title="Agendamento futuro"
+            description={`${nextAppointment.servico} em ${formatDate(
+              nextAppointment.data,
+            )} às ${nextAppointment.hora}.`}
+            actionLabel="Ver histórico"
+            onAction={onShowHistory}
+          />
+        )}
 
         {vaccineNeedsAttention && nextVaccine && (
           <PetAlertCard
@@ -1534,6 +1531,8 @@ function PetAlerts({
                       : `${daysUntilNextVaccine} dias`
                   }.`
             }
+            actionLabel="Ver vacinas"
+            onAction={onShowVaccines}
           />
         )}
       </div>

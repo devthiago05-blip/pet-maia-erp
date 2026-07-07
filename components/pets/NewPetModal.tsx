@@ -34,9 +34,13 @@ export function NewPetModal({
   const modalOpen = open ?? internalOpen;
 
   useEffect(() => {
-    if (modalOpen && defaultTutorId) {
-      setTutorId(defaultTutorId);
-    }
+    const timer = window.setTimeout(() => {
+      if (modalOpen && defaultTutorId) {
+        setTutorId(defaultTutorId);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [defaultTutorId, modalOpen]);
 
   function setModalOpen(value: boolean) {

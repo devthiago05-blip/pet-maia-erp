@@ -38,6 +38,7 @@
 - BI visual com gráficos de evolução financeira, atendimentos, pagamentos,
   produtos vendidos e estoque crítico.
 - Leitura de código de barras no PDV com leitor USB e tecla Enter.
+- Lint corrigido em Dashboard, Agenda, Financeiro, Pets, Tutores e Produtos.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -51,10 +52,16 @@
 - `app/clinica/page.tsx`
 - `app/crm/page.tsx`
 - `app/bi/page.tsx`
+- `app/page.tsx`
+- `app/agenda/page.tsx`
+- `app/financeiro/page.tsx`
+- `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
 - `components/pos/ProductSelectionModal.tsx`
 - `components/pos/PosDocumentModal.tsx`
 - `components/agenda/AppointmentReceiptModal.tsx`
+- `components/agenda/FinishAppointmentModal.tsx`
+- `components/agenda/NewAppointmentModal.tsx`
 - `components/clinic/NewClinicalRecordModal.tsx`
 - `components/clinic/PrescriptionModal.tsx`
 - `components/clinic/PrescriptionDocumentModal.tsx`
@@ -65,6 +72,8 @@
 - `components/branding/BrandLogo.tsx`
 - `components/layout/Sidebar.tsx`
 - `components/pos/ProductModal.tsx`
+- `components/financeiro/EditFinancialModal.tsx`
+- `components/pets/NewPetModal.tsx`
 - `components/pos/PurchaseModal.tsx`
 - `components/pos/SupplierModal.tsx`
 - `components/receipts/ReceiptModal.tsx`
@@ -126,14 +135,20 @@ Arquivos padrão removidos:
 28. Aplicar RLS por módulo nas tabelas antigas do ERP.
 29. Criar testes automatizados para vendas, compras e estoque.
 30. Continuar Clínica com anexos e internação.
+31. PDV: implementar abertura e fechamento de caixa com sangria e suprimento.
+32. PDV: implementar trocas e devoluções parciais.
+33. PDV: adicionar pagamentos divididos, descontos e acréscimos controlados.
+34. PDV: adicionar inventário, ajustes e histórico de movimentação de estoque.
+35. PDV: criar testes automatizados dos fluxos de venda, orçamento, compra e cancelamento.
 
 ## Próximos passos
 
 1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
 2. Clínica: anexos de exames via Supabase Storage.
 3. Clínica: internação em bloco posterior.
-4. PDV: cancelamento de vendas e devoluções em etapa futura.
-5. Qualidade: testes de integração com Supabase.
+4. PDV: abertura/fechamento de caixa e pagamentos divididos.
+5. PDV: trocas, devoluções parciais e auditoria de estoque.
+6. Qualidade: testes de integração com Supabase.
 
 ## Comandos necessários
 

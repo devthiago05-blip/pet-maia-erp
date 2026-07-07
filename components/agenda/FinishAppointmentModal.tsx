@@ -3,10 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type {
-  CompletedAppointmentService,
-  Service,
-} from "@/types/domain";
+import type { CompletedAppointmentService, Service } from "@/types/domain";
 
 interface FinishAppointmentModalProps {
   pet: string;
@@ -15,12 +12,12 @@ interface FinishAppointmentModalProps {
   services: Service[];
   onClose: () => void;
   onSave: (dados: {
-  valor: number;
-  formaPagamento: string;
-  servicoDescricao: string;
-  observacoes?: string;
-  services: CompletedAppointmentService[];
-}) => Promise<void> | void;
+    valor: number;
+    formaPagamento: string;
+    servicoDescricao: string;
+    observacoes?: string;
+    services: CompletedAppointmentService[];
+  }) => Promise<void> | void;
 }
 
 function normalizeText(value: string) {
@@ -57,80 +54,85 @@ export function FinishAppointmentModal({
   onClose,
   onSave,
 }: FinishAppointmentModalProps) {
- const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
-const [servicePrices, setServicePrices] = useState<Record<number, string>>({});
-const [formaPagamento, setFormaPagamento] = useState("PIX");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
+  const [servicePrices, setServicePrices] = useState<Record<number, string>>(
+    {},
+  );
+  const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-  const scheduledServiceNames = new Set(
-    servico
-      .split("+")
-      .map((serviceName) => normalizeText(serviceName))
-      .filter(Boolean),
-  );
+    const timer = window.setTimeout(() => {
+      const scheduledServiceNames = new Set(
+        servico
+          .split("+")
+          .map((serviceName) => normalizeText(serviceName))
+          .filter(Boolean),
+      );
 
-  const initialSelectedIds = services
-    .filter((service) => scheduledServiceNames.has(normalizeText(service.nome)))
-    .map((service) => service.id);
+      const initialSelectedIds = services
+        .filter((service) =>
+          scheduledServiceNames.has(normalizeText(service.nome)),
+        )
+        .map((service) => service.id);
 
-  const initialPrices = services.reduce<Record<number, string>>(
-    (prices, service) => {
-      prices[service.id] = String(getServicePriceByPetSize(service, porte));
-      return prices;
-    },
-    {},
-  );
+      const initialPrices = services.reduce<Record<number, string>>(
+        (prices, service) => {
+          prices[service.id] = String(getServicePriceByPetSize(service, porte));
+          return prices;
+        },
+        {},
+      );
 
-  setSelectedServiceIds(initialSelectedIds);
-  setServicePrices(initialPrices);
-}, [services, servico, porte]);
+      setSelectedServiceIds(initialSelectedIds);
+      setServicePrices(initialPrices);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [services, servico, porte]);
 
   const selectedServices = useMemo(
-    () =>
-      services.filter((service) =>
-        selectedServiceIds.includes(service.id),
-      ),
+    () => services.filter((service) => selectedServiceIds.includes(service.id)),
     [selectedServiceIds, services],
   );
 
- const total = useMemo(
-  () =>
-    selectedServices.reduce((sum, service) => {
-      const customPrice = Number(servicePrices[service.id] || 0);
-      return sum + customPrice;
-    }, 0),
-  [selectedServices, servicePrices],
-);
+  const total = useMemo(
+    () =>
+      selectedServices.reduce((sum, service) => {
+        const customPrice = Number(servicePrices[service.id] || 0);
+        return sum + customPrice;
+      }, 0),
+    [selectedServices, servicePrices],
+  );
 
   const hasValidSize = ["pequeno", "medio", "grande"].includes(
     normalizeText(porte || ""),
   );
 
   function handleToggleService(service: Service) {
-  setSelectedServiceIds((currentIds) => {
-    if (currentIds.includes(service.id)) {
-      return currentIds.filter((id) => id !== service.id);
-    }
+    setSelectedServiceIds((currentIds) => {
+      if (currentIds.includes(service.id)) {
+        return currentIds.filter((id) => id !== service.id);
+      }
 
+      setServicePrices((currentPrices) => ({
+        ...currentPrices,
+        [service.id]:
+          currentPrices[service.id] ??
+          String(getServicePriceByPetSize(service, porte)),
+      }));
+
+      return [...currentIds, service.id];
+    });
+  }
+
+  function handleServicePriceChange(serviceId: number, value: string) {
     setServicePrices((currentPrices) => ({
       ...currentPrices,
-      [service.id]:
-        currentPrices[service.id] ??
-        String(getServicePriceByPetSize(service, porte)),
+      [serviceId]: value,
     }));
-
-    return [...currentIds, service.id];
-  });
-}
-
-function handleServicePriceChange(serviceId: number, value: string) {
-  setServicePrices((currentPrices) => ({
-    ...currentPrices,
-    [serviceId]: value,
-  }));
-}
+  }
 
   async function handleSave() {
     if (!hasValidSize) {
@@ -138,48 +140,48 @@ function handleServicePriceChange(serviceId: number, value: string) {
       return;
     }
 
-   if (selectedServices.length === 0) {
-  toast.error("Selecione pelo menos um serviço realizado");
-  return;
-}
+    if (selectedServices.length === 0) {
+      toast.error("Selecione pelo menos um serviço realizado");
+      return;
+    }
 
-const hasInvalidPrice = selectedServices.some((service) => {
-  const price = Number(servicePrices[service.id]);
-  return (
-    !servicePrices[service.id]?.trim() ||
-    !Number.isFinite(price) ||
-    price < 0
-  );
-});
+    const hasInvalidPrice = selectedServices.some((service) => {
+      const price = Number(servicePrices[service.id]);
+      return (
+        !servicePrices[service.id]?.trim() ||
+        !Number.isFinite(price) ||
+        price < 0
+      );
+    });
 
-if (hasInvalidPrice) {
-  toast.error("Informe valores válidos para os serviços selecionados");
-  return;
-}
+    if (hasInvalidPrice) {
+      toast.error("Informe valores válidos para os serviços selecionados");
+      return;
+    }
 
-if (total <= 0) {
-  toast.error("O valor total precisa ser maior que zero");
-  return;
-}
+    if (total <= 0) {
+      toast.error("O valor total precisa ser maior que zero");
+      return;
+    }
 
     const completedServices = selectedServices.map((service) => ({
-  serviceName: service.nome,
-  price: Number(servicePrices[service.id] || 0),
-}));
+      serviceName: service.nome,
+      price: Number(servicePrices[service.id] || 0),
+    }));
 
-const servicoDescricao = completedServices
-  .map((service) => service.serviceName)
-  .join(" + ");
+    const servicoDescricao = completedServices
+      .map((service) => service.serviceName)
+      .join(" + ");
 
-setSaving(true);
+    setSaving(true);
 
-await onSave({
-  valor: total,
-  formaPagamento,
-  servicoDescricao,
-  observacoes: observacoes.trim() || undefined,
-  services: completedServices,
-});
+    await onSave({
+      valor: total,
+      formaPagamento,
+      servicoDescricao,
+      observacoes: observacoes.trim() || undefined,
+      services: completedServices,
+    });
 
     setSaving(false);
   }
@@ -230,9 +232,7 @@ await onSave({
 
           <section className="rounded-2xl border border-slate-200 p-4">
             <div className="mb-3">
-              <h3 className="font-bold text-slate-800">
-                Serviços realizados
-              </h3>
+              <h3 className="font-bold text-slate-800">Serviços realizados</h3>
 
               <p className="text-sm text-slate-500">
                 Selecione os serviços cadastrados que foram realizados neste
@@ -247,76 +247,79 @@ await onSave({
                 </div>
               ) : (
                 services.map((service) => {
-  const checked = selectedServiceIds.includes(service.id);
+                  const checked = selectedServiceIds.includes(service.id);
 
-  return (
-    <div
-      key={service.id}
-      className={`flex flex-col gap-3 rounded-xl border p-3 transition sm:flex-row sm:items-center sm:justify-between ${
-        checked
-          ? "border-[#8A0EEA] bg-[#8A0EEA]/5"
-          : "border-slate-200 hover:bg-slate-50"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={checked}
-          onChange={() => handleToggleService(service)}
-          className="mt-1 h-4 w-4 accent-[#8A0EEA]"
-        />
+                  return (
+                    <div
+                      key={service.id}
+                      className={`flex flex-col gap-3 rounded-xl border p-3 transition sm:flex-row sm:items-center sm:justify-between ${
+                        checked
+                          ? "border-[#8A0EEA] bg-[#8A0EEA]/5"
+                          : "border-slate-200 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => handleToggleService(service)}
+                          className="mt-1 h-4 w-4 accent-[#8A0EEA]"
+                        />
 
-        <div>
-          <p className="font-semibold text-slate-800">
-            {service.nome}
-          </p>
+                        <div>
+                          <p className="font-semibold text-slate-800">
+                            {service.nome}
+                          </p>
 
-          <p className="text-xs text-slate-500">
-            Pequeno:{" "}
-            {Number(service.preco_pequeno || 0).toLocaleString(
-              "pt-BR",
-              {
-                style: "currency",
-                currency: "BRL",
-              },
-            )}{" "}
-            · Médio:{" "}
-            {Number(service.preco_medio || 0).toLocaleString(
-              "pt-BR",
-              {
-                style: "currency",
-                currency: "BRL",
-              },
-            )}{" "}
-            · Grande:{" "}
-            {Number(service.preco_grande || 0).toLocaleString(
-              "pt-BR",
-              {
-                style: "currency",
-                currency: "BRL",
-              },
-            )}
-          </p>
-        </div>
-      </div>
+                          <p className="text-xs text-slate-500">
+                            Pequeno:{" "}
+                            {Number(service.preco_pequeno || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}{" "}
+                            · Médio:{" "}
+                            {Number(service.preco_medio || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}{" "}
+                            · Grande:{" "}
+                            {Number(service.preco_grande || 0).toLocaleString(
+                              "pt-BR",
+                              {
+                                style: "currency",
+                                currency: "BRL",
+                              },
+                            )}
+                          </p>
+                        </div>
+                      </div>
 
-      <label className="grid w-full gap-1 text-sm font-medium text-slate-700 sm:w-40">
-        Valor cobrado
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={servicePrices[service.id] || ""}
-          onChange={(event) =>
-            handleServicePriceChange(service.id, event.target.value)
-          }
-          disabled={!checked}
-          className="w-full rounded-xl border p-3 font-normal disabled:bg-slate-100 disabled:text-slate-400"
-        />
-      </label>
-    </div>
-  );
-})
+                      <label className="grid w-full gap-1 text-sm font-medium text-slate-700 sm:w-40">
+                        Valor cobrado
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={servicePrices[service.id] || ""}
+                          onChange={(event) =>
+                            handleServicePriceChange(
+                              service.id,
+                              event.target.value,
+                            )
+                          }
+                          disabled={!checked}
+                          className="w-full rounded-xl border p-3 font-normal disabled:bg-slate-100 disabled:text-slate-400"
+                        />
+                      </label>
+                    </div>
+                  );
+                })
               )}
             </div>
           </section>

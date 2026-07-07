@@ -20,7 +20,6 @@ import {
 } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
 import { fetchTutors } from "@/services/tutors";
-
 import type {
   FinancialEntry,
   NewFinancialEntryInput,
@@ -33,8 +32,7 @@ export default function FinanceiroPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
-  const [entryToEdit, setEntryToEdit] =
-  useState<FinancialEntry | null>(null);
+  const [entryToEdit, setEntryToEdit] = useState<FinancialEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState("");
@@ -50,9 +48,9 @@ export default function FinanceiroPage() {
       const date = entry.created_at?.slice(0, 10) || "";
       return (
         (!term ||
-  entry.descricao.toLowerCase().includes(term) ||
-  entry.tutors?.nome?.toLowerCase().includes(term) ||
-  entry.pets?.nome?.toLowerCase().includes(term)) &&
+          entry.descricao.toLowerCase().includes(term) ||
+          entry.tutors?.nome?.toLowerCase().includes(term) ||
+          entry.pets?.nome?.toLowerCase().includes(term)) &&
         (typeFilter === "Todos" || entry.tipo === typeFilter) &&
         (statusFilter === "Todos" || entry.status_pagamento === statusFilter) &&
         (!startDate || date >= startDate) &&
@@ -80,59 +78,57 @@ export default function FinanceiroPage() {
 
   const lucro = totalRecebido - totalDespesas;
 
- async function loadFinancial() {
-  setLoading(true);
-  setLoadError("");
+  async function loadFinancial() {
+    setLoading(true);
+    setLoadError("");
 
-  const [financialResponse, tutorsResponse, petsResponse] = await Promise.all([
-    fetchFinancialEntries(),
-    fetchTutors(),
-    fetchPets(),
-  ]);
+    const [financialResponse, tutorsResponse, petsResponse] = await Promise.all(
+      [fetchFinancialEntries(), fetchTutors(), fetchPets()],
+    );
 
-  if (financialResponse.error) {
-    console.error(financialResponse.error);
-    setLoadError("Não foi possível carregar os lançamentos financeiros.");
-    setEntries([]);
+    if (financialResponse.error) {
+      console.error(financialResponse.error);
+      setLoadError("Não foi possível carregar os lançamentos financeiros.");
+      setEntries([]);
+      setLoading(false);
+      return;
+    }
+
+    if (tutorsResponse.error) {
+      console.error(tutorsResponse.error);
+      toast.warning("Não foi possível carregar os tutores.");
+    }
+
+    if (petsResponse.error) {
+      console.error(petsResponse.error);
+      toast.warning("Não foi possível carregar os pets.");
+    }
+
+    setEntries((financialResponse.data || []) as FinancialEntry[]);
+    setTutors((tutorsResponse.data || []) as Tutor[]);
+    setPets((petsResponse.data || []) as Pet[]);
     setLoading(false);
-    return;
   }
-
-  if (tutorsResponse.error) {
-    console.error(tutorsResponse.error);
-    toast.warning("Não foi possível carregar os tutores.");
-  }
-
-  if (petsResponse.error) {
-    console.error(petsResponse.error);
-    toast.warning("Não foi possível carregar os pets.");
-  }
-
-  setEntries((financialResponse.data || []) as FinancialEntry[]);
-  setTutors((tutorsResponse.data || []) as Tutor[]);
-  setPets((petsResponse.data || []) as Pet[]);
-  setLoading(false);
-}
 
   useMountEffect(() => {
     loadFinancial();
   });
 
- async function handleCreateEntry(
-  novoLancamento: NewFinancialEntryInput,
-): Promise<boolean> {
-  const { error } = await createFinancialEntry(novoLancamento);
+  async function handleCreateEntry(
+    novoLancamento: NewFinancialEntryInput,
+  ): Promise<boolean> {
+    const { error } = await createFinancialEntry(novoLancamento);
 
-  if (error) {
-    console.error(error);
-    toast.error("Erro ao salvar lançamento");
-    return false;
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao salvar lançamento");
+      return false;
+    }
+
+    await loadFinancial();
+    toast.success("Lançamento salvo com sucesso!");
+    return true;
   }
-
-  await loadFinancial();
-  toast.success("Lançamento salvo com sucesso!");
-  return true;
-}
 
   async function handleReceiveEntry(id: number) {
     const { error } = await markFinancialEntryAsPaid(id);
@@ -160,21 +156,21 @@ export default function FinanceiroPage() {
     toast.success("Lançamento excluído com sucesso!");
   }
   async function handleUpdateEntry(
-  id: number,
-  updatedEntry: UpdateFinancialEntryInput,
-) {
-  const { error } = await updateFinancialEntry(id, updatedEntry);
+    id: number,
+    updatedEntry: UpdateFinancialEntryInput,
+  ) {
+    const { error } = await updateFinancialEntry(id, updatedEntry);
 
-  if (error) {
-    console.error(error);
-    toast.error("Erro ao atualizar lançamento");
-    return false;
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar lançamento");
+      return false;
+    }
+
+    await loadFinancial();
+    toast.success("Lançamento atualizado com sucesso!");
+    return true;
   }
-
-  await loadFinancial();
-  toast.success("Lançamento atualizado com sucesso!");
-  return true;
-}
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
@@ -194,10 +190,10 @@ export default function FinanceiroPage() {
             </div>
 
             <NewFinancialModal
-  tutors={tutors}
-  pets={pets}
-  onSave={handleCreateEntry}
-/>
+              tutors={tutors}
+              pets={pets}
+              onSave={handleCreateEntry}
+            />
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
@@ -272,21 +268,21 @@ export default function FinanceiroPage() {
             </div>
           ) : (
             <FinancialTable
-  entries={filteredEntries}
-  onReceive={handleReceiveEntry}
-  onDelete={handleDeleteEntry}
-  onEdit={setEntryToEdit}
-/>
+              entries={filteredEntries}
+              onReceive={handleReceiveEntry}
+              onDelete={handleDeleteEntry}
+              onEdit={setEntryToEdit}
+            />
           )}
         </div>
 
         <EditFinancialModal
-  entry={entryToEdit}
-  tutors={tutors}
-  pets={pets}
-  onClose={() => setEntryToEdit(null)}
-  onSave={handleUpdateEntry}
-/>
+          entry={entryToEdit}
+          tutors={tutors}
+          pets={pets}
+          onClose={() => setEntryToEdit(null)}
+          onSave={handleUpdateEntry}
+        />
       </main>
     </div>
   );

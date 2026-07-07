@@ -624,6 +624,9 @@ async function handleCreateAppointmentFromPet(
   nextVaccine={nextVaccine}
   daysUntilNextVaccine={daysUntilNextVaccine}
   onSchedule={() => setAppointmentModalOpen(true)}
+  onShowFinancial={() => setTab("financeiro")}
+  onShowVaccines={() => setTab("vacinas")}
+  onShowHistory={() => setTab("historico")}
 />
 
   <div className="mb-6 overflow-hidden rounded-xl border bg-white p-2">
@@ -1386,6 +1389,9 @@ function PetAlerts({
   nextVaccine,
   daysUntilNextVaccine,
   onSchedule,
+  onShowFinancial,
+  onShowVaccines,
+  onShowHistory,
 }: {
   lastBathAppointment?: Appointment;
   daysSinceLastBath: number | null;
@@ -1394,6 +1400,9 @@ function PetAlerts({
   nextVaccine?: PetVaccination;
   daysUntilNextVaccine: number | null;
   onSchedule: () => void;
+  onShowFinancial: () => void;
+  onShowVaccines: () => void;
+  onShowHistory: () => void;
 }) {
   const bathIsOverdue =
     !lastBathAppointment ||
@@ -1449,22 +1458,26 @@ function PetAlerts({
         )}
 
         {hasPendingValue && (
-          <PetAlertCard
-            title="Valor pendente"
-            description={`Existe ${formatCurrency(
-              pendingValue,
-            )} em aberto para este pet.`}
-          />
-        )}
+  <PetAlertCard
+    title="Valor pendente"
+    description={`Existe ${formatCurrency(
+      pendingValue,
+    )} em aberto para este pet.`}
+    actionLabel="Ver financeiro"
+    onAction={onShowFinancial}
+  />
+)}
 
         {hasNextAppointment && nextAppointment && (
-          <PetAlertCard
-            title="Agendamento futuro"
-            description={`${nextAppointment.servico} em ${formatDate(
-              nextAppointment.data,
-            )} às ${nextAppointment.hora}.`}
-          />
-        )}
+  <PetAlertCard
+    title="Agendamento futuro"
+    description={`${nextAppointment.servico} em ${formatDate(
+      nextAppointment.data,
+    )} às ${nextAppointment.hora}.`}
+    actionLabel="Ver histórico"
+    onAction={onShowHistory}
+  />
+)}
 
         {vaccineNeedsAttention && nextVaccine && (
           <PetAlertCard

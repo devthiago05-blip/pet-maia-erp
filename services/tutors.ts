@@ -10,7 +10,7 @@ export async function createTutor(tutor: NewTutorInput) {
     .from("tutors")
     .insert([
       {
-        nome: tutor.nome,
+        nome: tutor.nome.trim().toUpperCase(),
         telefone: tutor.telefone,
         email: tutor.email,
         endereco: tutor.endereco,
@@ -24,7 +24,7 @@ export async function updateTutor(tutor: Tutor) {
   return supabase
     .from("tutors")
     .update({
-      nome: tutor.nome,
+      nome: tutor.nome.trim().toUpperCase(),
       telefone: tutor.telefone,
       email: tutor.email,
       endereco: tutor.endereco,

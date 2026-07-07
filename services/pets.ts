@@ -32,7 +32,7 @@ export async function fetchPetById(id: number) {
 export async function createPet(pet: NewPetInput) {
   return supabase.from("pets").insert([
     {
-      nome: pet.nome,
+      nome: pet.nome.trim().toUpperCase(),
       especie: pet.especie,
       raca: pet.raca,
       porte: pet.porte,
@@ -47,7 +47,7 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
   return supabase
     .from("pets")
     .update({
-      nome: pet.nome,
+      nome: pet.nome.trim().toUpperCase(),
       especie: pet.especie,
       raca: pet.raca,
       porte: pet.porte,

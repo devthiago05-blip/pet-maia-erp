@@ -48,6 +48,7 @@
 - Receita com seleção inicial de medicamentos e dose obrigatoriamente manual.
 - Prontuário com edição de consultas e prescrições existentes.
 - Evolução visual dos últimos pesos registrados no paciente.
+- Sino com lembretes de vacinas atrasadas, para hoje, em 7 dias e em 30 dias.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -75,6 +76,8 @@
 - `components/clinic/ClinicalDocumentModal.tsx`
 - `components/clinic/PrescriptionModal.tsx`
 - `components/clinic/NewClinicalRecordModal.tsx`
+- `components/layout/Header.tsx`
+- `services/notifications.ts`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -165,6 +168,7 @@ Arquivos padrão removidos:
 37. Clínica: adicionar anexos de exames via Supabase Storage.
 38. Clínica: permitir administrar o catálogo de medicamentos e modelos de documentos.
 39. Clínica: criar auditoria de alterações clínicas antes de liberar exclusão de consultas.
+40. Testar o sino após cadastrar uma vacina com próxima dose dentro da janela de 30 dias.
 
 ## Próximos passos
 

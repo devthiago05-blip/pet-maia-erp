@@ -11,6 +11,7 @@ import { supabase } from "@/lib/supabase";
 import {
   fetchPendingFinancialNotifications,
   fetchTodayPendingAppointments,
+  fetchVaccinationNotifications,
 } from "@/services/notifications";
 
 interface NotificationItem {
@@ -29,9 +30,38 @@ interface AppointmentNotificationRow {
   } | null;
 }
 
+interface VaccinationNotificationRow {
+  id: number;
+  pet_id: number;
+  vaccine_name: string;
+  next_dose_date: string;
+  pets?: {
+    nome?: string;
+    tutors?: { nome?: string } | null;
+  } | null;
+}
+
+function getRelativeDateIso(days: number) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toLocaleDateString("en-CA");
+}
+
+function getDaysUntil(date: string, today: string) {
+  const targetDate = new Date(`${date}T00:00:00`);
+  const currentDate = new Date(`${today}T00:00:00`);
+
+  return Math.round(
+    (targetDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+}
+
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
   "/agenda": "Agenda",
+  "/bi": "BI",
+  "/clinica": "Clínica",
+  "/crm": "CRM",
   "/financeiro": "Financeiro",
   "/pets": "Pets",
   "/pdv": "PDV",
@@ -63,14 +93,21 @@ export function Header() {
     let active = true;
 
     async function loadNotifications() {
-      const [appointmentsResponse, financialResponse] = await Promise.all([
-        canAccess("agenda")
-          ? fetchTodayPendingAppointments(todayIso)
-          : Promise.resolve({ data: [], error: null }),
-        canAccess("financeiro")
-          ? fetchPendingFinancialNotifications()
-          : Promise.resolve({ data: [], error: null }),
-      ]);
+      const [appointmentsResponse, financialResponse, vaccinationResponse] =
+        await Promise.all([
+          canAccess("agenda")
+            ? fetchTodayPendingAppointments(todayIso)
+            : Promise.resolve({ data: [], error: null }),
+          canAccess("financeiro")
+            ? fetchPendingFinancialNotifications()
+            : Promise.resolve({ data: [], error: null }),
+          canAccess("clinica") || canAccess("pets")
+            ? fetchVaccinationNotifications(
+                getRelativeDateIso(-90),
+                getRelativeDateIso(30),
+              )
+            : Promise.resolve({ data: [], error: null }),
+        ]);
 
       if (!active) {
         return;
@@ -82,6 +119,10 @@ export function Header() {
 
       if (financialResponse.error) {
         console.error(financialResponse.error);
+      }
+
+      if (vaccinationResponse.error) {
+        console.error(vaccinationResponse.error);
       }
 
       const appointmentItems: NotificationItem[] = (
@@ -102,7 +143,33 @@ export function Header() {
         href: "/financeiro",
       }));
 
-      setNotifications([...appointmentItems, ...financialItems]);
+      const vaccinationItems: NotificationItem[] = (
+        (vaccinationResponse.data ||
+          []) as unknown as VaccinationNotificationRow[]
+      ).map((vaccination) => {
+        const daysUntil = getDaysUntil(vaccination.next_dose_date, todayIso);
+        const urgency =
+          daysUntil < 0
+            ? `Vacina atrasada há ${Math.abs(daysUntil)} dia(s)`
+            : daysUntil === 0
+              ? "Vacina vence hoje"
+              : daysUntil <= 7
+                ? `Vacina vence em ${daysUntil} dia(s)`
+                : `Próxima vacina em ${daysUntil} dia(s)`;
+
+        return {
+          id: `vaccination-${vaccination.id}`,
+          title: `${urgency} · ${vaccination.pets?.nome || "Pet"}`,
+          description: `${vaccination.vaccine_name} · Tutor: ${vaccination.pets?.tutors?.nome || "não informado"}`,
+          href: `/pets/${vaccination.pet_id}`,
+        };
+      });
+
+      setNotifications([
+        ...vaccinationItems,
+        ...appointmentItems,
+        ...financialItems,
+      ]);
     }
 
     loadNotifications();
@@ -156,7 +223,7 @@ export function Header() {
                 <div className="border-b p-4">
                   <p className="font-bold">Notificações</p>
                   <p className="text-xs text-slate-500">
-                    Agenda de hoje e pagamentos pendentes
+                    Vacinas, agenda de hoje e pagamentos pendentes
                   </p>
                 </div>
                 <div className="max-h-80 overflow-y-auto">

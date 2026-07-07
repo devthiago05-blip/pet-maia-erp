@@ -27,3 +27,30 @@ export async function fetchPendingFinancialNotifications() {
     .order("created_at", { ascending: false })
     .limit(5);
 }
+
+export async function fetchVaccinationNotifications(
+  startDate: string,
+  endDate: string,
+) {
+  return supabase
+    .from("pet_vaccinations")
+    .select(
+      `
+        id,
+        pet_id,
+        vaccine_name,
+        next_dose_date,
+        pets (
+          nome,
+          tutors!pets_tutor_id_fkey (
+            nome
+          )
+        )
+      `,
+    )
+    .not("next_dose_date", "is", null)
+    .gte("next_dose_date", startDate)
+    .lte("next_dose_date", endDate)
+    .order("next_dose_date", { ascending: true })
+    .limit(20);
+}

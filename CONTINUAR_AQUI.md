@@ -39,7 +39,7 @@
   produtos vendidos e estoque crítico.
 - Leitura de código de barras no PDV com leitor USB e tecla Enter.
 - Lint corrigido em Dashboard, Agenda, Financeiro, Pets, Tutores e Produtos.
-- Agenda com edição de agendamentos e bloqueio de conflito no mesmo horário.
+- Agenda com edição e permissão para vários pets no mesmo horário.
 - Vínculo de tutor no Kanban tornado explícito pela chave estrangeira.
 - Clínica com exclusão confirmada de vacinas, exames e documentos.
 - Endereço do tutor carregado na ficha detalhada do pet.

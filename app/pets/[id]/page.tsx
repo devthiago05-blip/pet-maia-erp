@@ -452,18 +452,6 @@ export default function PetPage() {
       return false;
     }
 
-    const conflictingAppointment = appointments.find(
-      (appointment) =>
-        appointment.status !== "Cancelado" &&
-        appointment.data === novoAgendamento.data &&
-        appointment.hora === novoAgendamento.hora,
-    );
-
-    if (conflictingAppointment) {
-      toast.error("Já existe um agendamento ativo nesse dia e horário.");
-      return false;
-    }
-
     const { error } = await createAppointment(novoAgendamento, pet.id);
 
     if (error) {

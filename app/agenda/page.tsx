@@ -233,21 +233,6 @@ export default function AgendaPage() {
       return;
     }
 
-    const conflictingAppointment = appointments.find(
-      (appointment) =>
-        appointment.id !== appointmentToEdit?.id &&
-        appointment.status !== "Cancelado" &&
-        appointment.data === novoAgendamento.data &&
-        appointment.hora === novoAgendamento.hora,
-    );
-
-    if (conflictingAppointment) {
-      toast.error(
-        `Já existe um agendamento para ${conflictingAppointment.pets?.nome || "outro pet"} nesse horário.`,
-      );
-      return false;
-    }
-
     if (appointmentToEdit) {
       const { error } = await updateAppointment(
         appointmentToEdit.id,

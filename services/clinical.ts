@@ -100,6 +100,7 @@ export async function fetchClinicPatients() {
           telefone
         ),
         clinical_records (
+          id,
           consultation_date,
           professional_name,
           return_date

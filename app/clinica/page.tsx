@@ -3,13 +3,25 @@
 import { CalendarClock, Search, Stethoscope, Syringe } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import { useAccess } from "@/components/auth/AccessContext";
+import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
+import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatDate } from "@/lib/formatters";
-import { fetchClinicPatients } from "@/services/clinical";
-import type { ClinicPatientOverview } from "@/types/domain";
+import {
+  createClinicalDocument,
+  createClinicalPrescription,
+  fetchClinicPatients,
+} from "@/services/clinical";
+import type {
+  ClinicalDocumentInput,
+  ClinicPatientOverview,
+  NewClinicalPrescriptionInput,
+} from "@/types/domain";
 
 interface ClinicPatientResponse {
   id: number;
@@ -25,6 +37,7 @@ interface ClinicPatientResponse {
     telefone?: string;
   };
   clinical_records?: Array<{
+    id: number;
     consultation_date: string;
     professional_name: string;
     return_date?: string;
@@ -35,6 +48,7 @@ interface ClinicPatientResponse {
 }
 
 export default function ClinicPage() {
+  const { profile } = useAccess();
   const [patients, setPatients] = useState<ClinicPatientOverview[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -85,6 +99,7 @@ export default function ClinicPage() {
             tutor_id: patient.tutor_id,
             tutors: patient.tutors,
             lastClinicalRecord: records[0],
+            clinicalRecords: records,
             nextReturnDate,
             nextVaccinationDate,
           };
@@ -116,6 +131,28 @@ export default function ClinicPage() {
   const vaccinationsCount = patients.filter(
     (patient) => patient.nextVaccinationDate,
   ).length;
+
+  async function handleCreateDocument(input: ClinicalDocumentInput) {
+    const { error } = await createClinicalDocument(input);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Documento clínico salvo!");
+  }
+
+  async function handleCreatePrescription(input: NewClinicalPrescriptionInput) {
+    const { error } = await createClinicalPrescription(input);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Medicação adicionada à receita!");
+  }
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
@@ -149,6 +186,13 @@ export default function ClinicPage() {
               value={vaccinationsCount}
             />
           </div>
+
+          <ClinicDocumentWorkspace
+            patients={patients}
+            professionalName={profile?.nome || ""}
+            onDocumentSave={handleCreateDocument}
+            onPrescriptionSave={handleCreatePrescription}
+          />
 
           <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
             <Search size={18} className="text-slate-400" />
@@ -228,6 +272,104 @@ export default function ClinicPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+function ClinicDocumentWorkspace({
+  patients,
+  professionalName,
+  onDocumentSave,
+  onPrescriptionSave,
+}: {
+  patients: ClinicPatientOverview[];
+  professionalName: string;
+  onDocumentSave: (input: ClinicalDocumentInput) => Promise<void>;
+  onPrescriptionSave: (input: NewClinicalPrescriptionInput) => Promise<void>;
+}) {
+  const [tutorId, setTutorId] = useState("");
+  const [petId, setPetId] = useState("");
+
+  const tutors = Array.from(
+    new Map(
+      patients
+        .filter((patient) => patient.tutor_id && patient.tutors?.nome)
+        .map((patient) => [
+          String(patient.tutor_id),
+          patient.tutors?.nome || "Tutor não informado",
+        ]),
+    ),
+  );
+  const tutorPets = tutorId
+    ? patients.filter((patient) => String(patient.tutor_id) === tutorId)
+    : [];
+  const selectedPet = patients.find((patient) => String(patient.id) === petId);
+  const latestRecord = selectedPet?.clinicalRecords?.[0];
+
+  return (
+    <section className="border-y bg-white p-4 sm:p-6">
+      <div className="mb-4">
+        <h2 className="text-lg font-bold">Documentos e receitas</h2>
+        <p className="text-sm text-slate-500">
+          Selecione o responsável e o paciente para emitir.
+        </p>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+        <label className="grid gap-2 text-sm font-medium">
+          Tutor
+          <select
+            value={tutorId}
+            onChange={(event) => {
+              setTutorId(event.target.value);
+              setPetId("");
+            }}
+            className="rounded-xl border p-3 font-normal"
+          >
+            <option value="">Selecione o tutor</option>
+            {tutors.map(([id, name]) => (
+              <option key={id} value={id}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-2 text-sm font-medium">
+          Pet
+          <select
+            value={petId}
+            onChange={(event) => setPetId(event.target.value)}
+            disabled={!tutorId}
+            className="rounded-xl border p-3 font-normal disabled:bg-slate-100"
+          >
+            <option value="">Selecione o pet</option>
+            {tutorPets.map((patient) => (
+              <option key={patient.id} value={patient.id}>
+                {patient.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {selectedPet && (
+            <ClinicalDocumentModal
+              pet={selectedPet}
+              defaultProfessionalName={professionalName}
+              onSave={onDocumentSave}
+            />
+          )}
+          {latestRecord && (
+            <PrescriptionModal
+              clinicalRecordId={latestRecord.id}
+              onSave={onPrescriptionSave}
+            />
+          )}
+        </div>
+      </div>
+      {selectedPet && !latestRecord && (
+        <p className="mt-3 text-sm text-amber-700">
+          Cadastre uma consulta no prontuário para emitir receita.
+        </p>
+      )}
+    </section>
   );
 }
 

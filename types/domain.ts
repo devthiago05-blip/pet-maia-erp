@@ -140,6 +140,9 @@ export interface ClinicPatientOverview extends Pet {
   };
   nextReturnDate?: string;
   nextVaccinationDate?: string;
+  clinicalRecords?: Array<
+    Pick<ClinicalRecord, "id" | "consultation_date" | "professional_name">
+  >;
 }
 
 export interface ClinicalExam {

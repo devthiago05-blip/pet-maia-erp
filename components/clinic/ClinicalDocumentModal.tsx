@@ -12,6 +12,56 @@ import type {
   Pet,
 } from "@/types/domain";
 
+const documentTemplates: Array<{
+  id: string;
+  type: ClinicalDocument["document_type"];
+  title: string;
+  content: string;
+}> = [
+  {
+    id: "health-certificate",
+    type: "Atestado",
+    title: "Atestado de saúde animal",
+    content:
+      "Atesto, para os devidos fins, que o paciente {pet}, sob responsabilidade de {tutor}, foi avaliado nesta data.\n\nCondição clínica e observações:\n",
+  },
+  {
+    id: "attendance",
+    type: "Declaração",
+    title: "Declaração de comparecimento",
+    content:
+      "Declaro que {tutor} compareceu à Clínica Veterinária Pet Maia nesta data, acompanhando o paciente {pet}, para atendimento veterinário.",
+  },
+  {
+    id: "procedure-authorization",
+    type: "Declaração",
+    title: "Autorização para procedimento",
+    content:
+      "Eu, {tutor}, responsável pelo paciente {pet}, autorizo a realização do procedimento descrito abaixo, após receber esclarecimentos sobre benefícios, riscos e cuidados.\n\nProcedimento autorizado:\n",
+  },
+  {
+    id: "anesthesia-authorization",
+    type: "Declaração",
+    title: "Autorização anestésica e cirúrgica",
+    content:
+      "Eu, {tutor}, responsável pelo paciente {pet}, autorizo o procedimento anestésico e/ou cirúrgico indicado, declarando ter recebido esclarecimentos sobre riscos, exames e cuidados necessários.\n\nProcedimento:\n",
+  },
+  {
+    id: "treatment-refusal",
+    type: "Declaração",
+    title: "Termo de recusa de tratamento",
+    content:
+      "Eu, {tutor}, responsável pelo paciente {pet}, declaro que fui informado sobre a recomendação clínica descrita abaixo e, neste momento, opto por não autorizar sua realização.\n\nRecomendação recusada:\n",
+  },
+  {
+    id: "guidance",
+    type: "Orientação",
+    title: "Orientações ao responsável",
+    content:
+      "Paciente: {pet}\nResponsável: {tutor}\n\nOrientações e cuidados:\n",
+  },
+];
+
 export function ClinicalDocumentModal({
   pet,
   document,
@@ -36,6 +86,23 @@ export function ClinicalDocumentModal({
     document?.professional_name || defaultProfessionalName,
   );
   const [saving, setSaving] = useState(false);
+
+  function applyTemplate(templateId: string) {
+    const template = documentTemplates.find((item) => item.id === templateId);
+
+    if (!template) {
+      return;
+    }
+
+    const replacePatientData = (value: string) =>
+      value
+        .replaceAll("{pet}", pet.nome)
+        .replaceAll("{tutor}", pet.tutors?.nome || "responsável");
+
+    setDocumentType(template.type);
+    setTitle(template.title);
+    setContent(replacePatientData(template.content));
+  }
 
   async function handleSave() {
     if (
@@ -110,6 +177,21 @@ export function ClinicalDocumentModal({
 
             {!document && (
               <div className="grid gap-4 border-b p-4 sm:grid-cols-2 sm:p-6">
+                <label className="grid gap-2 text-sm font-medium sm:col-span-2">
+                  Modelo pré-pronto
+                  <select
+                    defaultValue=""
+                    onChange={(event) => applyTemplate(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
+                  >
+                    <option value="">Documento em branco</option>
+                    {documentTemplates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 <label className="grid gap-2 text-sm font-medium">
                   Tipo
                   <select

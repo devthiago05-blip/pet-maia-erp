@@ -5,6 +5,21 @@ import { toast } from "sonner";
 
 import type { NewClinicalPrescriptionInput } from "@/types/domain";
 
+const medicationOptions = [
+  "Amoxicilina",
+  "Amoxicilina + clavulanato",
+  "Cefalexina",
+  "Doxiciclina",
+  "Enrofloxacino",
+  "Meloxicam",
+  "Prednisolona",
+  "Dipirona",
+  "Omeprazol",
+  "Ondansetrona",
+  "Metronidazol",
+  "Outro medicamento",
+];
+
 export function PrescriptionModal({
   clinicalRecordId,
   onSave,
@@ -14,6 +29,7 @@ export function PrescriptionModal({
 }) {
   const [open, setOpen] = useState(false);
   const [medication, setMedication] = useState("");
+  const [customMedication, setCustomMedication] = useState("");
   const [dosage, setDosage] = useState("");
   const [frequency, setFrequency] = useState("");
   const [duration, setDuration] = useState("");
@@ -21,7 +37,10 @@ export function PrescriptionModal({
   const [saving, setSaving] = useState(false);
 
   async function handleSave() {
-    if (!medication.trim() || !dosage.trim() || !frequency.trim()) {
+    const selectedMedication =
+      medication === "Outro medicamento" ? customMedication : medication;
+
+    if (!selectedMedication.trim() || !dosage.trim() || !frequency.trim()) {
       toast.error("Informe medicamento, dose e frequência");
       return;
     }
@@ -30,7 +49,7 @@ export function PrescriptionModal({
     try {
       await onSave({
         clinicalRecordId,
-        medication: medication.trim(),
+        medication: selectedMedication.trim(),
         dosage: dosage.trim(),
         frequency: frequency.trim(),
         duration: duration.trim(),
@@ -38,6 +57,7 @@ export function PrescriptionModal({
       });
       setOpen(false);
       setMedication("");
+      setCustomMedication("");
       setDosage("");
       setFrequency("");
       setDuration("");
@@ -64,11 +84,26 @@ export function PrescriptionModal({
           <div className="w-full max-w-xl rounded-xl bg-white p-4 sm:p-6">
             <h2 className="text-xl font-bold">Nova prescrição</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              <PrescriptionInput
-                label="Medicamento"
-                value={medication}
-                onChange={setMedication}
-              />
+              <label className="grid gap-2 text-sm font-medium">
+                Medicamento
+                <select
+                  value={medication}
+                  onChange={(event) => setMedication(event.target.value)}
+                  className="rounded-xl border p-3 font-normal"
+                >
+                  <option value="">Selecione</option>
+                  {medicationOptions.map((option) => (
+                    <option key={option}>{option}</option>
+                  ))}
+                </select>
+              </label>
+              {medication === "Outro medicamento" && (
+                <PrescriptionInput
+                  label="Nome do medicamento"
+                  value={customMedication}
+                  onChange={setCustomMedication}
+                />
+              )}
               <PrescriptionInput
                 label="Dose"
                 value={dosage}

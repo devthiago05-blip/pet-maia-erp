@@ -43,6 +43,9 @@
 - Vínculo de tutor no Kanban tornado explícito pela chave estrangeira.
 - Clínica com exclusão confirmada de vacinas, exames e documentos.
 - Endereço do tutor carregado na ficha detalhada do pet.
+- Clínica com emissão central de documentos e receitas por tutor e pet.
+- Seis modelos pré-prontos de atestado, declaração, autorização e orientação.
+- Receita com seleção inicial de medicamentos e dose obrigatoriamente manual.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -66,6 +69,9 @@
 - `components/agenda/AppointmentCard.tsx`
 - `components/agenda/KanbanBoard.tsx`
 - `components/agenda/KanbanColumn.tsx`
+- `app/clinica/page.tsx`
+- `components/clinic/ClinicalDocumentModal.tsx`
+- `components/clinic/PrescriptionModal.tsx`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -154,6 +160,7 @@ Arquivos padrão removidos:
 35. PDV: criar testes automatizados dos fluxos de venda, orçamento, compra e cancelamento.
 36. Clínica: definir auditoria antes de liberar exclusão de consultas e prescrições.
 37. Clínica: adicionar anexos de exames via Supabase Storage.
+38. Clínica: permitir administrar o catálogo de medicamentos e modelos de documentos.
 
 ## Próximos passos
 

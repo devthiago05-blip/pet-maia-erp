@@ -25,9 +25,14 @@
 - Quantidades nao sao inferidas. A instrucao usa somente dose, frequencia,
   duracao e observacoes ja cadastradas.
 - Nenhuma alteracao de banco ou regra de negocio foi realizada.
-- Pendencia: a cidade da clinica ainda nao e fornecida ao componente. Quando
-  essa informacao for integrada, substituir a data no canto superior direito
-  pela cidade e manter a data no rodape.
+- A pre-visualizacao real do VetSmart foi conferida em 08/07/2026. O layout foi
+  aproximado ao documento observado: cidade `Fortaleza` no cabecalho, caixas de
+  animal e responsavel empilhadas, folha A4 e medicamentos em blocos compactos.
+- Uma formula de teste foi iniciada no VetSmart, mas descartada sem salvar
+  porque o cadastro real nao permitiu identificar todos os campos com `TESTE`
+  de forma segura. Nenhum registro temporario ficou para excluir.
+- Pendencia futura: transformar cidade, via de administracao, farmacia e
+  quantidade em dados estruturados. Ate la, a receita nao inventa esses campos.
 - Validacoes: `npm.cmd run lint`, `npm.cmd run build` e `git diff --check`
   aprovados.
 

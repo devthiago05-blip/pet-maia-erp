@@ -91,6 +91,17 @@
 - Proximo bloco: catalogo pesquisavel de medicamentos/principios ativos e
   formulas manipuladas com varios componentes estruturados.
 
+### Catalogo e formulas iniciado
+
+- Script preparado: `supabase/sql/019_medication_catalog_formulas.sql`.
+- Cria catalogo pesquisavel com principio ativo, favoritos e valores padrao.
+- Cria modelos de posologia definidos pela propria clinica, sem doses
+  automaticas pre-cadastradas.
+- Cria varios componentes estruturados por formula manipulada.
+- Inclui RLS, grants explicitos, indices, auditoria opcional e 11 medicamentos
+  iniciais sem recomendacao de dose.
+- Proximo passo: executar o SQL 019 e enviar os tres totais do `select` final.
+
 ### Comandos para continuar
 
 ```powershell

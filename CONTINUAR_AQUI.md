@@ -66,6 +66,17 @@
 - Proximo bloco recomendado: entidade de receita para agrupar varios itens,
   instrucoes gerais, status de emissao e previa digital.
 
+### Bloco de agrupamento iniciado
+
+- Script preparado: `supabase/sql/018_prescription_documents.sql`.
+- O script cria a entidade de receita, adiciona data, instrucoes gerais,
+  rascunho/emissao/cancelamento e vincula automaticamente os itens antigos.
+- A migracao e idempotente e mantem as prescricoes existentes.
+- Proximo passo: executar o SQL 018 no Supabase e enviar os tres totais do
+  `select` final.
+- Depois do SQL: implementar criacao do rascunho, varios itens por receita,
+  revisao, emissao e historico agrupado na ficha do pet.
+
 ### Comandos para continuar
 
 ```powershell

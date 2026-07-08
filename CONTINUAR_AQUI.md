@@ -36,6 +36,22 @@
 - Validacoes: `npm.cmd run lint`, `npm.cmd run build` e `git diff --check`
   aprovados.
 
+## Receituario inspirado no VetSmart
+
+- Fluxo de criacao, edicao, configuracao e pre-visualizacao analisado no
+  VetSmart em 08/07/2026.
+- Campos identificados: industrializado/manipulado, tipo de receita, farmacia,
+  via, quantidade/unidade, forma farmaceutica, composicao, posologia,
+  instrucoes gerais, data, assinatura e configuracao da impressao.
+- Script preparado: `supabase/sql/017_prescription_details.sql`.
+- Proximo passo obrigatorio: executar o script completo no SQL Editor do
+  Supabase e enviar o resultado do `select` final.
+- Depois do SQL: atualizar `types/domain.ts`, `services/clinical.ts`,
+  `components/clinic/PrescriptionModal.tsx` e
+  `components/clinic/PrescriptionDocumentModal.tsx`.
+- O script apenas adiciona colunas retrocompativeis na tabela existente; nao
+  altera RLS e nao remove dados.
+
 ### Comandos para continuar
 
 ```powershell

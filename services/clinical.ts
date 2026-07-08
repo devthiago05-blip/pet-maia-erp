@@ -34,7 +34,11 @@ export async function fetchClinicalRecordsByPet(petId: number) {
     .select(
       `
         *,
-        clinical_prescriptions (*)
+        clinical_prescriptions (*),
+        clinical_prescription_documents (
+          *,
+          clinical_prescriptions (*)
+        )
       `,
     )
     .eq("pet_id", petId)
@@ -71,6 +75,52 @@ export async function saveClinicalRecord(record: NewClinicalRecordInput) {
 export async function saveClinicalPrescription(
   prescription: NewClinicalPrescriptionInput,
 ) {
+  let prescriptionDocumentId = prescription.prescriptionDocumentId;
+
+  if (!prescription.id && !prescriptionDocumentId) {
+    const draftResponse = await supabase
+      .from("clinical_prescription_documents")
+      .select("id")
+      .eq("clinical_record_id", prescription.clinicalRecordId)
+      .eq("status", "rascunho")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (draftResponse.error) return draftResponse;
+
+    prescriptionDocumentId = draftResponse.data?.id;
+
+    if (!prescriptionDocumentId) {
+      const recordResponse = await supabase
+        .from("clinical_records")
+        .select(
+          "pet_id, consultation_date, professional_id, professional_name, professional_crmv",
+        )
+        .eq("id", prescription.clinicalRecordId)
+        .single();
+
+      if (recordResponse.error) return recordResponse;
+
+      const documentResponse = await supabase
+        .from("clinical_prescription_documents")
+        .insert({
+          clinical_record_id: prescription.clinicalRecordId,
+          pet_id: recordResponse.data.pet_id,
+          issue_date: recordResponse.data.consultation_date,
+          status: "rascunho",
+          professional_id: recordResponse.data.professional_id,
+          professional_name: recordResponse.data.professional_name,
+          professional_crmv: recordResponse.data.professional_crmv,
+        })
+        .select("id")
+        .single();
+
+      if (documentResponse.error) return documentResponse;
+      prescriptionDocumentId = documentResponse.data.id;
+    }
+  }
+
   const values = {
     clinical_record_id: prescription.clinicalRecordId,
     medication: prescription.medication,
@@ -86,6 +136,7 @@ export async function saveClinicalPrescription(
     quantity_unit: prescription.quantityUnit || null,
     pharmaceutical_form: prescription.pharmaceuticalForm || null,
     composition: prescription.composition || null,
+    prescription_document_id: prescriptionDocumentId || null,
   };
 
   return prescription.id
@@ -94,6 +145,31 @@ export async function saveClinicalPrescription(
         .update(values)
         .eq("id", prescription.id)
     : supabase.from("clinical_prescriptions").insert([values]);
+}
+
+export async function updateClinicalPrescriptionDocument({
+  id,
+  generalInstructions,
+  status,
+}: {
+  id: number;
+  generalInstructions?: string;
+  status?: "rascunho" | "emitida" | "cancelada";
+}) {
+  const values: Record<string, string | null> = {
+    general_instructions: generalInstructions?.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (status) {
+    values.status = status;
+    values.issued_at = status === "emitida" ? new Date().toISOString() : null;
+  }
+
+  return supabase
+    .from("clinical_prescription_documents")
+    .update(values)
+    .eq("id", id);
 }
 
 export async function deleteClinicalPrescription(id: number) {

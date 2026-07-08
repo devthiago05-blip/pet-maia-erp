@@ -77,6 +77,20 @@
 - Depois do SQL: implementar criacao do rascunho, varios itens por receita,
   revisao, emissao e historico agrupado na ficha do pet.
 
+### Agrupamento implementado
+
+- SQL 018 confirmado: 1 documento, 1 item vinculado e zero itens orfaos.
+- Novos itens entram automaticamente no rascunho aberto da consulta.
+- A revisao permite incluir instrucoes gerais e emitir/imprimir a receita.
+- Depois da emissao, um novo item inicia outra receita sem alterar o documento
+  anterior.
+- O prontuario agora exibe receitas agrupadas, status, data e quantidade de
+  itens em `components/clinic/PrescriptionGroups.tsx`.
+- Persistencia e carregamento agrupado: `services/clinical.ts`.
+- Tipos: `types/domain.ts`.
+- Proximo bloco: catalogo pesquisavel de medicamentos/principios ativos e
+  formulas manipuladas com varios componentes estruturados.
+
 ### Comandos para continuar
 
 ```powershell

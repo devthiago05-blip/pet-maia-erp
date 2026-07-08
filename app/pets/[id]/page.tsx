@@ -10,9 +10,7 @@ import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal
 import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
-import { PrescriptionDeleteButton } from "@/components/clinic/PrescriptionDeleteButton";
-import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
-import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
+import { PrescriptionGroups } from "@/components/clinic/PrescriptionGroups";
 import { VaccinationModal } from "@/components/clinic/VaccinationModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -38,6 +36,7 @@ import {
   saveClinicalExam,
   saveClinicalPrescription,
   saveClinicalRecord,
+  updateClinicalPrescriptionDocument,
 } from "@/services/clinical";
 import {
   fetchFinancialEntriesByAppointmentId,
@@ -551,6 +550,41 @@ export default function PetPage() {
     toast.success("Item removido da receita");
   }
 
+  async function handleUpdatePrescriptionDocument(
+    id: number,
+    generalInstructions: string,
+    status?: "rascunho" | "emitida" | "cancelada",
+  ) {
+    const { error: updateError } = await updateClinicalPrescriptionDocument({
+      id,
+      generalInstructions,
+      status,
+    });
+
+    if (updateError) {
+      toast.error(updateError.message);
+      throw updateError;
+    }
+
+    if (!pet) return;
+
+    const { data, error: reloadError } = await fetchClinicalRecordsByPet(
+      pet.id,
+    );
+
+    if (reloadError) {
+      toast.error(
+        "Receita atualizada, mas o prontuário não pôde ser recarregado",
+      );
+      return;
+    }
+
+    setClinicalRecords(data || []);
+    toast.success(
+      status === "emitida" ? "Receita emitida" : "Receita atualizada",
+    );
+  }
+
   async function handleCreateVaccination(vaccination: NewPetVaccinationInput) {
     const { error: createError } = await createPetVaccination(vaccination);
 
@@ -770,6 +804,9 @@ export default function PetPage() {
                       onSave={handleCreateClinicalRecord}
                       onPrescriptionSave={handleCreatePrescription}
                       onPrescriptionDelete={handleDeletePrescription}
+                      onPrescriptionDocumentUpdate={
+                        handleUpdatePrescriptionDocument
+                      }
                     />
                   )}
                   {tab === "vacinas" && (
@@ -857,6 +894,7 @@ function ClinicalHistory({
   onSave,
   onPrescriptionSave,
   onPrescriptionDelete,
+  onPrescriptionDocumentUpdate,
 }: {
   pet: Pet;
   records: ClinicalRecord[];
@@ -868,6 +906,11 @@ function ClinicalHistory({
     prescription: NewClinicalPrescriptionInput,
   ) => Promise<void>;
   onPrescriptionDelete: (id: number) => Promise<void>;
+  onPrescriptionDocumentUpdate: (
+    id: number,
+    generalInstructions: string,
+    status?: "rascunho" | "emitida" | "cancelada",
+  ) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -947,76 +990,14 @@ function ClinicalHistory({
                   label="Conduta e orientações"
                   value={record.conduct}
                 />
-                <div className="rounded-xl border bg-slate-50 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <h4 className="font-semibold">Prescrições</h4>
-                    <PrescriptionModal
-                      clinicalRecordId={record.id}
-                      onSave={onPrescriptionSave}
-                    />
-                  </div>
-                  {record.clinical_prescriptions?.length ? (
-                    <div className="mt-3 space-y-3">
-                      <div className="divide-y rounded-xl border bg-white">
-                        {record.clinical_prescriptions.map((prescription) => (
-                          <div key={prescription.id} className="p-3 text-sm">
-                            <div className="flex items-start justify-between gap-3">
-                              <p className="font-semibold">
-                                {prescription.medication}
-                              </p>
-                              <div className="flex shrink-0 gap-2">
-                                <PrescriptionModal
-                                  clinicalRecordId={record.id}
-                                  prescription={prescription}
-                                  onSave={onPrescriptionSave}
-                                />
-                                <PrescriptionDeleteButton
-                                  medication={prescription.medication}
-                                  onDelete={() =>
-                                    onPrescriptionDelete(prescription.id)
-                                  }
-                                />
-                              </div>
-                            </div>
-                            <p className="text-slate-600">
-                              {prescription.dosage} · {prescription.frequency}
-                              {prescription.duration
-                                ? ` · ${prescription.duration}`
-                                : ""}
-                            </p>
-                            {prescription.instructions && (
-                              <p className="mt-1 whitespace-pre-wrap text-slate-500">
-                                {prescription.instructions}
-                              </p>
-                            )}
-                            <p className="mt-2 text-xs text-slate-400">
-                              {prescription.item_type === "manipulado"
-                                ? "Manipulado"
-                                : "Industrializado"}
-                              {prescription.administration_route
-                                ? ` · Via ${prescription.administration_route}`
-                                : ""}
-                              {prescription.quantity &&
-                              prescription.quantity_unit
-                                ? ` · ${prescription.quantity} ${prescription.quantity_unit}`
-                                : ""}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                      <PrescriptionDocumentModal
-                        pet={pet}
-                        record={record}
-                        prescriptions={record.clinical_prescriptions}
-                        clinicSettings={clinicSettings}
-                      />
-                    </div>
-                  ) : (
-                    <p className="mt-3 text-sm text-slate-500">
-                      Nenhuma prescrição registrada.
-                    </p>
-                  )}
-                </div>
+                <PrescriptionGroups
+                  pet={pet}
+                  record={record}
+                  clinicSettings={clinicSettings}
+                  onSaveItem={onPrescriptionSave}
+                  onDeleteItem={onPrescriptionDelete}
+                  onUpdateDocument={onPrescriptionDocumentUpdate}
+                />
               </article>
             ))}
           </div>

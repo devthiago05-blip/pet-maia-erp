@@ -192,6 +192,7 @@ export function PrescriptionModal({
         quantityUnit: quantityUnit.trim(),
         pharmaceuticalForm: pharmaceuticalForm.trim(),
         composition: composition.trim(),
+        prescriptionDocumentId: prescription?.prescription_document_id,
       });
       setOpen(false);
     } catch {

@@ -75,6 +75,23 @@ export interface ClinicalRecord {
   return_date?: string;
   created_at: string;
   clinical_prescriptions?: ClinicalPrescription[];
+  clinical_prescription_documents?: ClinicalPrescriptionDocument[];
+}
+
+export interface ClinicalPrescriptionDocument {
+  id: number;
+  clinical_record_id: number;
+  pet_id: number;
+  issue_date: string;
+  general_instructions?: string;
+  status: "rascunho" | "emitida" | "cancelada";
+  professional_id?: string;
+  professional_name: string;
+  professional_crmv?: string;
+  issued_at?: string;
+  created_at: string;
+  updated_at: string;
+  clinical_prescriptions?: ClinicalPrescription[];
 }
 
 export interface ClinicalPrescription {
@@ -93,6 +110,7 @@ export interface ClinicalPrescription {
   quantity_unit?: string;
   pharmaceutical_form?: string;
   composition?: string;
+  prescription_document_id?: number;
   created_at: string;
 }
 
@@ -135,6 +153,7 @@ export interface NewClinicalPrescriptionInput {
   quantityUnit?: string;
   pharmaceuticalForm?: string;
   composition?: string;
+  prescriptionDocumentId?: number;
 }
 
 export interface PetVaccination {

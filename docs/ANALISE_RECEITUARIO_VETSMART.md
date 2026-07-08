@@ -28,6 +28,8 @@ sem salvar dados de teste no VetSmart.
 ## Implementado no PET MAIA
 
 - Industrializado e manipulado no mesmo modelo de dados.
+- Varios itens agrupados em uma receita com rascunho, emissao e historico.
+- Instrucoes gerais salvas no documento e revisao antes da impressao.
 - Receita simples, controle especial e antimicrobiano.
 - Farmacia veterinaria, humana e de manipulacao.
 - Via, quantidade, unidade, forma farmaceutica e composicao.
@@ -42,14 +44,12 @@ sem salvar dados de teste no VetSmart.
 
 ## Proximos blocos
 
-1. Criar uma entidade de receita para agrupar varios itens como um unico
-   documento, com data, instrucoes gerais e status de emissao.
-2. Criar catalogo de medicamentos e principios ativos, com favoritos e modelos
+1. Criar catalogo de medicamentos e principios ativos, com favoritos e modelos
    de posologia por especie.
-3. Permitir varios componentes estruturados em uma formula manipulada.
-4. Adicionar configuracao de assinatura, estado do CRMV e registro MAPA.
-5. Criar previa digital compartilhavel e historico de emissao/reemissao.
-6. Adicionar regras documentais especificas para antimicrobianos e controle
+2. Permitir varios componentes estruturados em uma formula manipulada.
+3. Adicionar configuracao de assinatura, estado do CRMV e registro MAPA.
+4. Criar previa digital compartilhavel e historico de emissao/reemissao.
+5. Adicionar regras documentais especificas para antimicrobianos e controle
    especial, sem substituir validacao profissional ou juridica.
 
 ## Limites intencionais

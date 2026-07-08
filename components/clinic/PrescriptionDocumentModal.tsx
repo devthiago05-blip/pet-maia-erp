@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import type {
   ClinicalPrescription,
+  ClinicalPrescriptionDocument,
   ClinicalRecord,
   ClinicSettings,
   Pet,
@@ -131,24 +132,53 @@ export function PrescriptionDocumentModal({
   record,
   prescriptions,
   clinicSettings,
+  document,
+  onUpdateDocument,
 }: {
   pet: Pet;
   record: ClinicalRecord;
   prescriptions: ClinicalPrescription[];
   clinicSettings?: ClinicSettings | null;
+  document?: ClinicalPrescriptionDocument;
+  onUpdateDocument?: (
+    id: number,
+    generalInstructions: string,
+    status?: "rascunho" | "emitida" | "cancelada",
+  ) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [generalInstructions, setGeneralInstructions] = useState(
+    document?.general_instructions || "",
+  );
+  const [issuing, setIssuing] = useState(false);
   const regularPrescriptions = prescriptions.filter(
     (prescription) => !isManipulated(prescription),
   );
   const manipulatedPrescriptions = prescriptions.filter(isManipulated);
-  const consultationDate = formatLongDate(record.consultation_date);
+  const consultationDate = formatLongDate(
+    document?.issue_date || record.consultation_date,
+  );
   const documentType =
     prescriptions.find(
       (prescription) => prescription.prescription_type !== "simples",
     )?.prescription_type || "simples";
   const clinicName = clinicSettings?.nome || "Clínica Veterinária Pet Maia";
   const clinicCity = clinicSettings?.pix_city || "Fortaleza";
+
+  async function handlePrint() {
+    if (document?.status === "rascunho" && onUpdateDocument) {
+      setIssuing(true);
+      try {
+        await onUpdateDocument(document.id, generalInstructions, "emitida");
+      } catch {
+        return;
+      } finally {
+        setIssuing(false);
+      }
+    }
+
+    window.print();
+  }
 
   return (
     <>
@@ -157,7 +187,9 @@ export function PrescriptionDocumentModal({
         onClick={() => setOpen(true)}
         className="rounded-lg border px-3 py-1.5 text-sm font-medium"
       >
-        Imprimir receita
+        {document?.status === "rascunho"
+          ? "Revisar e emitir"
+          : "Visualizar receita"}
       </button>
 
       {open && (
@@ -176,6 +208,27 @@ export function PrescriptionDocumentModal({
                 <X size={19} />
               </button>
             </div>
+
+            {document?.status === "rascunho" && (
+              <div className="border-b bg-slate-50 p-4 print:hidden">
+                <label className="grid gap-2 text-sm font-medium">
+                  Instruções gerais do tratamento
+                  <textarea
+                    rows={3}
+                    value={generalInstructions}
+                    onChange={(event) =>
+                      setGeneralInstructions(event.target.value)
+                    }
+                    placeholder="Orientações válidas para toda a receita"
+                    className="resize-y rounded-lg border bg-white p-3 font-normal"
+                  />
+                </label>
+                <p className="mt-2 text-xs text-slate-500">
+                  A emissão encerra este rascunho. Novos itens formarão uma nova
+                  receita.
+                </p>
+              </div>
+            )}
 
             <article className="receipt-print-area mx-auto min-h-[980px] w-full max-w-[794px] bg-white p-5 text-slate-900 sm:p-10">
               <header>
@@ -242,7 +295,7 @@ export function PrescriptionDocumentModal({
 
               <section className="mt-8">
                 <h2 className="border-b border-slate-400 pb-2 text-[10px] font-bold tracking-wide uppercase sm:text-xs">
-                  Instruções gerais do tratamento
+                  Medicamentos e orientações
                 </h2>
 
                 <div className="mt-6">
@@ -264,6 +317,17 @@ export function PrescriptionDocumentModal({
                     </div>
                   )}
                 </div>
+
+                {(generalInstructions || document?.general_instructions) && (
+                  <div className="mt-10 break-inside-avoid">
+                    <h3 className="border-b border-slate-400 pb-2 text-[10px] font-bold tracking-wide uppercase sm:text-xs">
+                      Instruções gerais do tratamento
+                    </h3>
+                    <p className="mt-3 text-[10px] leading-5 whitespace-pre-wrap uppercase sm:text-xs">
+                      {generalInstructions || document?.general_instructions}
+                    </p>
+                  </div>
+                )}
               </section>
 
               <footer className="mt-20 break-inside-avoid text-center">
@@ -294,11 +358,16 @@ export function PrescriptionDocumentModal({
               </button>
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-2 text-white"
+                onClick={handlePrint}
+                disabled={issuing}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-50"
               >
                 <Printer size={18} />
-                Imprimir
+                {issuing
+                  ? "Emitindo..."
+                  : document?.status === "rascunho"
+                    ? "Emitir e imprimir"
+                    : "Imprimir"}
               </button>
             </div>
           </div>

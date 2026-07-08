@@ -78,6 +78,14 @@ export async function saveClinicalPrescription(
     frequency: prescription.frequency,
     duration: prescription.duration || null,
     instructions: prescription.instructions || null,
+    item_type: prescription.itemType,
+    prescription_type: prescription.prescriptionType,
+    pharmacy_type: prescription.pharmacyType || null,
+    administration_route: prescription.administrationRoute || null,
+    quantity: prescription.quantity || null,
+    quantity_unit: prescription.quantityUnit || null,
+    pharmaceutical_form: prescription.pharmaceuticalForm || null,
+    composition: prescription.composition || null,
   };
 
   return prescription.id
@@ -86,6 +94,10 @@ export async function saveClinicalPrescription(
         .update(values)
         .eq("id", prescription.id)
     : supabase.from("clinical_prescriptions").insert([values]);
+}
+
+export async function deleteClinicalPrescription(id: number) {
+  return supabase.from("clinical_prescriptions").delete().eq("id", id);
 }
 
 export async function fetchPetVaccinations(petId: number) {

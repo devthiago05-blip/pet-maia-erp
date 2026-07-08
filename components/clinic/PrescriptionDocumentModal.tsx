@@ -3,14 +3,42 @@
 import { Printer, X } from "lucide-react";
 import { useState } from "react";
 
-import type { ClinicalPrescription, ClinicalRecord, Pet } from "@/types/domain";
+import type {
+  ClinicalPrescription,
+  ClinicalRecord,
+  ClinicSettings,
+  Pet,
+  PrescriptionPharmacyType,
+  PrescriptionType,
+} from "@/types/domain";
 
 const manipulatedPattern = /manipulad|f[oó]rmula magistral/i;
-const clinicCity = "Fortaleza";
+
+const prescriptionTypeLabels: Record<PrescriptionType, string> = {
+  simples: "Receita Simples",
+  controle_especial: "Receita de Controle Especial",
+  antimicrobiano: "Receita de Antimicrobiano",
+};
+
+const pharmacyLabels: Record<PrescriptionPharmacyType, string> = {
+  veterinaria: "Farmácia veterinária",
+  humana: "Farmácia humana",
+  manipulacao: "Farmácia de manipulação",
+};
 
 function isManipulated(prescription: ClinicalPrescription) {
-  return manipulatedPattern.test(
-    `${prescription.medication} ${prescription.instructions || ""}`,
+  return (
+    prescription.item_type === "manipulado" ||
+    manipulatedPattern.test(
+      `${prescription.medication} ${prescription.instructions || ""}`,
+    )
+  );
+}
+
+function formatQuantity(value?: number) {
+  if (value == null) return "";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(
+    value,
   );
 }
 
@@ -53,12 +81,39 @@ function PrescriptionList({
 
         return (
           <li key={prescription.id} className="break-inside-avoid">
-            <p className="text-[10px] font-bold uppercase">Uso veterinário</p>
+            <p className="text-[10px] font-bold uppercase">
+              {prescription.administration_route
+                ? `Uso ${prescription.administration_route}`
+                : "Uso veterinário"}
+            </p>
             <div className="mt-2 flex items-end gap-2 text-xs font-bold sm:text-sm">
               <span className="shrink-0">{startAt + index + 1}.</span>
               <span className="uppercase">{prescription.medication}</span>
               <span className="mb-1 min-w-6 flex-1 border-b border-dotted border-slate-400" />
+              {prescription.quantity != null && prescription.quantity_unit && (
+                <span className="shrink-0 border px-2 py-0.5 text-[9px] font-medium uppercase">
+                  {formatQuantity(prescription.quantity)}{" "}
+                  {prescription.quantity_unit}
+                </span>
+              )}
             </div>
+            {prescription.composition && (
+              <p className="mt-2 pl-5 text-[10px] leading-5 whitespace-pre-wrap sm:text-xs">
+                {prescription.composition}
+              </p>
+            )}
+            {(prescription.pharmacy_type ||
+              prescription.pharmaceutical_form) && (
+              <p className="mt-2 pl-5 text-[9px] text-slate-500 sm:text-[10px]">
+                {prescription.pharmacy_type
+                  ? pharmacyLabels[prescription.pharmacy_type]
+                  : ""}
+                {prescription.pharmacy_type && prescription.pharmaceutical_form
+                  ? " · "
+                  : ""}
+                {prescription.pharmaceutical_form || ""}
+              </p>
+            )}
             {administration && (
               <p className="mt-3 pl-5 text-[10px] leading-5 font-medium whitespace-pre-wrap uppercase sm:text-xs">
                 {administration}.
@@ -75,10 +130,12 @@ export function PrescriptionDocumentModal({
   pet,
   record,
   prescriptions,
+  clinicSettings,
 }: {
   pet: Pet;
   record: ClinicalRecord;
   prescriptions: ClinicalPrescription[];
+  clinicSettings?: ClinicSettings | null;
 }) {
   const [open, setOpen] = useState(false);
   const regularPrescriptions = prescriptions.filter(
@@ -86,6 +143,12 @@ export function PrescriptionDocumentModal({
   );
   const manipulatedPrescriptions = prescriptions.filter(isManipulated);
   const consultationDate = formatLongDate(record.consultation_date);
+  const documentType =
+    prescriptions.find(
+      (prescription) => prescription.prescription_type !== "simples",
+    )?.prescription_type || "simples";
+  const clinicName = clinicSettings?.nome || "Clínica Veterinária Pet Maia";
+  const clinicCity = clinicSettings?.pix_city || "Fortaleza";
 
   return (
     <>
@@ -119,7 +182,7 @@ export function PrescriptionDocumentModal({
                 <div className="flex items-start justify-between gap-5">
                   <div>
                     <p className="text-base font-bold text-[#8A0EEA] sm:text-lg">
-                      Clínica Veterinária Pet Maia
+                      {clinicName}
                     </p>
                     <p className="mt-1 text-xs font-medium sm:text-sm">
                       {record.professional_crmv
@@ -133,7 +196,7 @@ export function PrescriptionDocumentModal({
                 </div>
                 <div className="mt-5 h-0.5 w-full bg-[#8A0EEA]" />
                 <h1 className="mt-4 text-xs font-bold sm:text-sm">
-                  Receita Simples
+                  {prescriptionTypeLabels[documentType]}
                 </h1>
               </header>
 

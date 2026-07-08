@@ -85,8 +85,23 @@ export interface ClinicalPrescription {
   frequency: string;
   duration?: string;
   instructions?: string;
+  item_type: PrescriptionItemType;
+  prescription_type: PrescriptionType;
+  pharmacy_type?: PrescriptionPharmacyType;
+  administration_route?: string;
+  quantity?: number;
+  quantity_unit?: string;
+  pharmaceutical_form?: string;
+  composition?: string;
   created_at: string;
 }
+
+export type PrescriptionItemType = "industrializado" | "manipulado";
+export type PrescriptionType =
+  | "simples"
+  | "controle_especial"
+  | "antimicrobiano";
+export type PrescriptionPharmacyType = "veterinaria" | "humana" | "manipulacao";
 
 export interface NewClinicalRecordInput {
   id?: number;
@@ -112,6 +127,14 @@ export interface NewClinicalPrescriptionInput {
   frequency: string;
   duration?: string;
   instructions?: string;
+  itemType: PrescriptionItemType;
+  prescriptionType: PrescriptionType;
+  pharmacyType?: PrescriptionPharmacyType;
+  administrationRoute?: string;
+  quantity?: number;
+  quantityUnit?: string;
+  pharmaceuticalForm?: string;
+  composition?: string;
 }
 
 export interface PetVaccination {

@@ -52,6 +52,20 @@
 - O script apenas adiciona colunas retrocompativeis na tabela existente; nao
   altera RLS e nao remove dados.
 
+### Estado apos execucao do SQL 017
+
+- SQL confirmado pelo usuario em 08/07/2026: oito colunas criadas corretamente.
+- Editor avancado implementado em `components/clinic/PrescriptionModal.tsx`.
+- Exclusao segura implementada em
+  `components/clinic/PrescriptionDeleteButton.tsx`.
+- Persistencia atualizada em `services/clinical.ts` e `types/domain.ts`.
+- Prontuario e impressao atualizados em `app/pets/[id]/page.tsx` e
+  `components/clinic/PrescriptionDocumentModal.tsx`.
+- Analise completa: `docs/ANALISE_RECEITUARIO_VETSMART.md`.
+- Validacoes locais: lint, build com 19 rotas e diff-check aprovados.
+- Proximo bloco recomendado: entidade de receita para agrupar varios itens,
+  instrucoes gerais, status de emissao e previa digital.
+
 ### Comandos para continuar
 
 ```powershell

@@ -10,6 +10,7 @@ import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal
 import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
+import { PrescriptionDeleteButton } from "@/components/clinic/PrescriptionDeleteButton";
 import { PrescriptionDocumentModal } from "@/components/clinic/PrescriptionDocumentModal";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { VaccinationModal } from "@/components/clinic/VaccinationModal";
@@ -28,6 +29,7 @@ import {
   createPetVaccination,
   deleteClinicalDocument,
   deleteClinicalExam,
+  deleteClinicalPrescription,
   deletePetVaccination,
   fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
@@ -526,6 +528,29 @@ export default function PetPage() {
     );
   }
 
+  async function handleDeletePrescription(id: number) {
+    const { error: deleteError } = await deleteClinicalPrescription(id);
+
+    if (deleteError) {
+      toast.error(deleteError.message);
+      throw deleteError;
+    }
+
+    if (!pet) return;
+
+    const { data, error: reloadError } = await fetchClinicalRecordsByPet(
+      pet.id,
+    );
+
+    if (reloadError) {
+      toast.error("Item excluído, mas o prontuário não pôde ser atualizado");
+      return;
+    }
+
+    setClinicalRecords(data || []);
+    toast.success("Item removido da receita");
+  }
+
   async function handleCreateVaccination(vaccination: NewPetVaccinationInput) {
     const { error: createError } = await createPetVaccination(vaccination);
 
@@ -741,8 +766,10 @@ export default function PetPage() {
                       records={clinicalRecords}
                       error={clinicalError}
                       professionalName={profile?.nome || ""}
+                      clinicSettings={clinicSettings}
                       onSave={handleCreateClinicalRecord}
                       onPrescriptionSave={handleCreatePrescription}
+                      onPrescriptionDelete={handleDeletePrescription}
                     />
                   )}
                   {tab === "vacinas" && (
@@ -826,17 +853,21 @@ function ClinicalHistory({
   records,
   error,
   professionalName,
+  clinicSettings,
   onSave,
   onPrescriptionSave,
+  onPrescriptionDelete,
 }: {
   pet: Pet;
   records: ClinicalRecord[];
   error: string;
   professionalName: string;
+  clinicSettings: ClinicSettings | null;
   onSave: (record: NewClinicalRecordInput) => Promise<void>;
   onPrescriptionSave: (
     prescription: NewClinicalPrescriptionInput,
   ) => Promise<void>;
+  onPrescriptionDelete: (id: number) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -933,11 +964,19 @@ function ClinicalHistory({
                               <p className="font-semibold">
                                 {prescription.medication}
                               </p>
-                              <PrescriptionModal
-                                clinicalRecordId={record.id}
-                                prescription={prescription}
-                                onSave={onPrescriptionSave}
-                              />
+                              <div className="flex shrink-0 gap-2">
+                                <PrescriptionModal
+                                  clinicalRecordId={record.id}
+                                  prescription={prescription}
+                                  onSave={onPrescriptionSave}
+                                />
+                                <PrescriptionDeleteButton
+                                  medication={prescription.medication}
+                                  onDelete={() =>
+                                    onPrescriptionDelete(prescription.id)
+                                  }
+                                />
+                              </div>
                             </div>
                             <p className="text-slate-600">
                               {prescription.dosage} · {prescription.frequency}
@@ -950,6 +989,18 @@ function ClinicalHistory({
                                 {prescription.instructions}
                               </p>
                             )}
+                            <p className="mt-2 text-xs text-slate-400">
+                              {prescription.item_type === "manipulado"
+                                ? "Manipulado"
+                                : "Industrializado"}
+                              {prescription.administration_route
+                                ? ` · Via ${prescription.administration_route}`
+                                : ""}
+                              {prescription.quantity &&
+                              prescription.quantity_unit
+                                ? ` · ${prescription.quantity} ${prescription.quantity_unit}`
+                                : ""}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -957,6 +1008,7 @@ function ClinicalHistory({
                         pet={pet}
                         record={record}
                         prescriptions={record.clinical_prescriptions}
+                        clinicSettings={clinicSettings}
                       />
                     </div>
                   ) : (

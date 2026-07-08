@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/lib/supabase";
 import {
@@ -275,6 +276,14 @@ export function Header() {
           </button>
         </div>
       </div>
+      {(canAccess("pets") || canAccess("tutores")) && (
+        <div className="mt-3 md:max-w-2xl">
+          <GlobalSearch
+            includePets={canAccess("pets")}
+            includeTutors={canAccess("tutores")}
+          />
+        </div>
+      )}
     </header>
   );
 }

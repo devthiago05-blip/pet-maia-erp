@@ -81,6 +81,43 @@ Faixas implementadas:
 
 ## Proximas alteracoes recomendadas
 
+### Plano de usabilidade Clinica inspirado no VetSmart
+
+Manter a identidade visual do PET MAIA. Reproduzir apenas fluxos e ergonomia.
+
+1. **Acesso rapido ao paciente - concluido**
+   - busca global por tutor, pet ou ID no Header;
+   - acesso direto a ficha do pet;
+   - abertura da pagina de tutores com filtro aplicado.
+2. **Ficha clinica organizada**
+   - dados complementares do pet;
+   - observacoes internas separadas;
+   - exportacao/compartilhamento do historico em PDF.
+3. **Retornos clinicos**
+   - fila semanal de retornos;
+   - filtros por periodo, tutor, pet e profissional;
+   - acesso direto ao prontuario.
+4. **Vacinacao guiada**
+   - aplicada ou programada;
+   - dose atual e total de doses;
+   - protocolo e proxima dose;
+   - observacao interna.
+5. **Agenda e prescricao avancadas**
+   - bloqueio de horario e evento livre;
+   - formula manipulada e produto industrializado;
+   - catalogo pesquisavel de medicamentos.
+6. **Acabamento e qualidade**
+   - estados vazios, responsividade e acessibilidade;
+   - testes de integracao dos fluxos clinicos;
+   - revisao final de RLS e auditoria.
+
+Arquivos alterados no bloco 1:
+
+- `components/layout/GlobalSearch.tsx`
+- `components/layout/Header.tsx`
+- `services/global-search.ts`
+- `app/tutors/page.tsx`
+
 ### Referencia analisada - VetSmart
 
 Analise visual realizada em 08/07/2026, em modo somente leitura.

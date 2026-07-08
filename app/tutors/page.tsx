@@ -1,4 +1,5 @@
 "use client";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -26,13 +27,14 @@ import {
 import type { NewPetInput, NewTutorInput, Tutor } from "@/types/domain";
 
 export default function TutorsPage() {
+  const searchParams = useSearchParams();
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [editingTutor, setEditingTutor] = useState<Tutor | null>(null);
   const [createdTutorForPet, setCreatedTutorForPet] = useState<Tutor | null>(
     null,
   );
   const [petModalOpen, setPetModalOpen] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
 
   const filteredTutors = tutors.filter((tutor) =>
     tutor.nome.toLowerCase().includes(search.toLowerCase()),

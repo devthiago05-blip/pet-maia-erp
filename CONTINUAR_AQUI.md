@@ -81,6 +81,42 @@ Faixas implementadas:
 
 ## Proximas alteracoes recomendadas
 
+### Referencia analisada - VetSmart
+
+Analise visual realizada em 08/07/2026, em modo somente leitura.
+
+Pontos fortes observados que fazem sentido no PET MAIA:
+
+- busca global por tutor, pet ou ID;
+- ficha do pet com abas para historico, pesos, consultas, vacinas e prescricoes;
+- dados complementares e observacoes internas do animal em secoes separadas;
+- compartilhamento do historico clinico;
+- retornos clinicos em uma fila semanal propria;
+- agenda com bloqueio de horario, evento livre e agendamento para animal;
+- vacina aplicada ou programada, protocolo, dose atual e total de doses;
+- observacao privada da vacina e decisao explicita sobre proxima dose;
+- prescricao separando formula manipulada e produto industrializado;
+- pesquisa de medicamento, alimento ou principio ativo;
+- painel da clinica com profissionais e CRMV.
+
+Nao copiar agora:
+
+- internacao, pois esta fora do escopo atual;
+- publicidade e conteudo promocional no painel;
+- identidade visual do VetSmart;
+- recursos dependentes de assinatura ou integracoes de terceiros.
+
+Ordem sugerida para aproximar a Clinica do fluxo analisado:
+
+1. busca global por tutor, pet e ID no Header;
+2. dados complementares e observacoes internas do pet;
+3. retorno semanal separado da agenda geral;
+4. vacina com status, dose atual, total e protocolo;
+5. agenda com bloqueio e evento livre;
+6. formula manipulada e catalogo pesquisavel de medicamentos;
+7. compartilhamento do historico clinico em PDF;
+8. resumo clinico automatizado somente depois da auditoria e dos testes.
+
 ### Prioridade 1 - Seguranca das tabelas antigas
 
 Criar `supabase/sql/017_legacy_module_rls.sql`.

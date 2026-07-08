@@ -118,6 +118,16 @@
 - Proximo bloco: assinatura configuravel, estado do CRMV, registro MAPA e
   previa digital compartilhavel.
 
+### Assinatura e compartilhamento iniciado
+
+- Script preparado: `supabase/sql/020_prescription_signature_sharing.sql`.
+- Adiciona UF do CRMV, registro MAPA e texto de assinatura ao perfil.
+- Salva uma copia desses dados no documento para preservar o historico.
+- Adiciona token UUID, ativacao de compartilhamento e contador de reemissao.
+- A funcao publica retorna somente receitas emitidas, com compartilhamento
+  ativo e token correto; nenhuma policy anonima de leitura direta foi criada.
+- Proximo passo: executar o SQL 020 e enviar os tres totais finais.
+
 ### Comandos para continuar
 
 ```powershell

@@ -3,6 +3,10 @@
 Analise visual realizada em 08/07/2026, usando a conta autenticada do usuario e
 sem salvar dados de teste no VetSmart.
 
+O estudo detalhado cobre os fluxos visiveis de clinica, prontuario, retornos,
+agenda, vacinas e receituario. Internacao e recursos bloqueados pelo plano nao
+foram considerados integralmente analisados.
+
 ## Fluxo observado
 
 1. O prontuario agrupa prescricoes emitidas por paciente e permite filtrar por

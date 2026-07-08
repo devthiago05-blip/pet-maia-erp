@@ -14,6 +14,31 @@
 - `015_clinical_attachments.sql`: tabela e bucket ja existem no Supabase.
 - A tabela `pet_vaccinations` estava com zero registros na ultima verificacao.
 
+## Ultima tarefa concluida
+
+- Receita veterinaria impressa reorganizada em padrao profissional.
+- Arquivo funcional alterado:
+  `components/clinic/PrescriptionDocumentModal.tsx`.
+- O documento agora possui cabecalho Pet Maia, identificacao separada de animal
+  e responsavel, instrucoes numeradas, secao de manipulados, data por extenso e
+  assinatura eletronica.
+- Quantidades nao sao inferidas. A instrucao usa somente dose, frequencia,
+  duracao e observacoes ja cadastradas.
+- Nenhuma alteracao de banco ou regra de negocio foi realizada.
+- Pendencia: a cidade da clinica ainda nao e fornecida ao componente. Quando
+  essa informacao for integrada, substituir a data no canto superior direito
+  pela cidade e manter a data no rodape.
+- Validacoes: `npm.cmd run lint`, `npm.cmd run build` e `git diff --check`
+  aprovados.
+
+### Comandos para continuar
+
+```powershell
+npm.cmd run lint
+npm.cmd run build
+git status --short
+```
+
 ## O que fazer agora
 
 ### 1. Executar o SQL final da Clinica

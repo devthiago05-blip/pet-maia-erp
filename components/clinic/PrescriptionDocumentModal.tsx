@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { ClinicalPrescription, ClinicalRecord, Pet } from "@/types/domain";
 
 const manipulatedPattern = /manipulad|f[oó]rmula magistral/i;
+const clinicCity = "Fortaleza";
 
 function isManipulated(prescription: ClinicalPrescription) {
   return manipulatedPattern.test(
@@ -46,23 +47,20 @@ function PrescriptionList({
   startAt?: number;
 }) {
   return (
-    <ol className="space-y-6">
+    <ol className="space-y-10">
       {prescriptions.map((prescription, index) => {
         const administration = buildAdministrationInstruction(prescription);
 
         return (
-          <li
-            key={prescription.id}
-            className="break-inside-avoid border-b border-dashed border-slate-300 pb-5 last:border-0"
-          >
-            <div className="flex items-baseline gap-2 text-sm font-bold uppercase sm:text-base">
-              <span className="shrink-0 text-[#8A0EEA]">
-                {startAt + index + 1}.
-              </span>
-              <span>{prescription.medication}</span>
+          <li key={prescription.id} className="break-inside-avoid">
+            <p className="text-[10px] font-bold uppercase">Uso veterinário</p>
+            <div className="mt-2 flex items-end gap-2 text-xs font-bold sm:text-sm">
+              <span className="shrink-0">{startAt + index + 1}.</span>
+              <span className="uppercase">{prescription.medication}</span>
+              <span className="mb-1 min-w-6 flex-1 border-b border-dotted border-slate-400" />
             </div>
             {administration && (
-              <p className="mt-2 pl-6 text-xs leading-5 font-semibold whitespace-pre-wrap uppercase sm:text-sm">
+              <p className="mt-3 pl-5 text-[10px] leading-5 font-medium whitespace-pre-wrap uppercase sm:text-xs">
                 {administration}.
               </p>
             )}
@@ -116,7 +114,7 @@ export function PrescriptionDocumentModal({
               </button>
             </div>
 
-            <article className="receipt-print-area min-h-[980px] bg-white p-5 text-slate-900 sm:p-10">
+            <article className="receipt-print-area mx-auto min-h-[980px] w-full max-w-[794px] bg-white p-5 text-slate-900 sm:p-10">
               <header>
                 <div className="flex items-start justify-between gap-5">
                   <div>
@@ -130,21 +128,21 @@ export function PrescriptionDocumentModal({
                     </p>
                   </div>
                   <p className="max-w-[45%] text-right text-xs leading-5 font-medium sm:text-sm">
-                    {consultationDate}
+                    {clinicCity}
                   </p>
                 </div>
-                <div className="mt-5 h-1 w-full bg-[#8A0EEA]" />
-                <h1 className="mt-7 text-center text-xl font-bold sm:text-2xl">
+                <div className="mt-5 h-0.5 w-full bg-[#8A0EEA]" />
+                <h1 className="mt-4 text-xs font-bold sm:text-sm">
                   Receita Simples
                 </h1>
               </header>
 
-              <section className="mt-7 grid gap-3 sm:grid-cols-2">
-                <div className="border border-slate-300 p-4">
-                  <h2 className="border-b border-slate-200 pb-2 text-xs font-bold tracking-wide text-[#8A0EEA] uppercase">
+              <section className="mt-4 space-y-3">
+                <div className="rounded-lg border border-slate-700 px-4 py-3 text-center">
+                  <h2 className="text-[10px] font-bold uppercase sm:text-xs">
                     Animal
                   </h2>
-                  <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs leading-5 sm:text-sm">
+                  <dl className="mx-auto mt-2 grid max-w-sm grid-cols-[auto_1fr] gap-x-2 text-left text-[10px] leading-4 sm:text-xs">
                     <dt className="font-semibold">Nome:</dt>
                     <dd>{pet.nome}</dd>
                     <dt className="font-semibold">Espécie:</dt>
@@ -164,11 +162,11 @@ export function PrescriptionDocumentModal({
                   </dl>
                 </div>
 
-                <div className="border border-slate-300 p-4">
-                  <h2 className="border-b border-slate-200 pb-2 text-xs font-bold tracking-wide text-[#8A0EEA] uppercase">
+                <div className="rounded-lg border border-slate-700 px-4 py-3 text-center">
+                  <h2 className="text-[10px] font-bold uppercase sm:text-xs">
                     Responsável
                   </h2>
-                  <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-xs leading-5 sm:text-sm">
+                  <dl className="mx-auto mt-2 grid max-w-sm grid-cols-[auto_1fr] gap-x-2 text-left text-[10px] leading-4 sm:text-xs">
                     <dt className="font-semibold">Nome:</dt>
                     <dd>{pet.tutors?.nome || "Não informado"}</dd>
                     <dt className="font-semibold">Endereço:</dt>
@@ -179,8 +177,8 @@ export function PrescriptionDocumentModal({
                 </div>
               </section>
 
-              <section className="mt-9">
-                <h2 className="border-b-2 border-[#8A0EEA] pb-2 text-xs font-bold tracking-wide uppercase sm:text-sm">
+              <section className="mt-8">
+                <h2 className="border-b border-slate-400 pb-2 text-[10px] font-bold tracking-wide uppercase sm:text-xs">
                   Instruções gerais do tratamento
                 </h2>
 

@@ -102,6 +102,22 @@
   iniciais sem recomendacao de dose.
 - Proximo passo: executar o SQL 019 e enviar os tres totais do `select` final.
 
+### Catalogo e formulas implementados
+
+- SQL 019 confirmado: 11 medicamentos, zero modelos e zero componentes
+  iniciais, conforme esperado.
+- Busca por nome e principio ativo conectada ao editor de prescricao.
+- Favoritos e valores padrao do medicamento sao aplicados no formulario.
+- A clinica pode salvar e reutilizar modelos de posologia; nenhum modelo e
+  aplicado sem selecao do profissional.
+- Formula manipulada aceita varios componentes, concentracoes e unidades.
+- Componentes sao sincronizados ao editar e aparecem na impressao.
+- Arquivos principais: `components/clinic/PrescriptionModal.tsx`,
+  `components/clinic/PrescriptionDocumentModal.tsx`, `services/clinical.ts` e
+  `types/domain.ts`.
+- Proximo bloco: assinatura configuravel, estado do CRMV, registro MAPA e
+  previa digital compartilhavel.
+
 ### Comandos para continuar
 
 ```powershell

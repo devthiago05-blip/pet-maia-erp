@@ -1,12 +1,20 @@
 "use client";
 
-import { Beaker, Package, X } from "lucide-react";
+import { Beaker, Package, Plus, Star, Trash2, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import {
+  createMedicationDosageTemplate,
+  fetchMedicationCatalog,
+  fetchMedicationDosageTemplates,
+  updateMedicationFavorite,
+} from "@/services/clinical";
 import type {
   ClinicalPrescription,
+  MedicationCatalogItem,
+  MedicationDosageTemplate,
   NewClinicalPrescriptionInput,
   PrescriptionItemType,
   PrescriptionPharmacyType,
@@ -138,10 +146,49 @@ export function PrescriptionModal({
   const [pharmaceuticalForm, setPharmaceuticalForm] = useState(
     prescription?.pharmaceutical_form || "",
   );
-  const [composition, setComposition] = useState(
-    prescription?.composition || "",
+  const composition = prescription?.composition || "";
+  const [formulaComponents, setFormulaComponents] = useState(
+    prescription?.prescription_formula_components?.length
+      ? [...prescription.prescription_formula_components]
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((component) => ({
+            componentName: component.component_name,
+            concentration: component.concentration,
+            unit: component.unit || "",
+          }))
+      : [{ componentName: "", concentration: "", unit: "" }],
   );
+  const [catalog, setCatalog] = useState<MedicationCatalogItem[]>([]);
+  const [catalogSearch, setCatalogSearch] = useState("");
+  const [selectedCatalogId, setSelectedCatalogId] = useState<number>();
+  const [templates, setTemplates] = useState<MedicationDosageTemplate[]>([]);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const normalizedSearch = catalogSearch.trim().toLocaleLowerCase("pt-BR");
+  const filteredCatalog = catalog.filter((item) =>
+    `${item.name} ${item.active_ingredient || ""}`
+      .toLocaleLowerCase("pt-BR")
+      .includes(normalizedSearch),
+  );
+  const selectedCatalogItem = catalog.find(
+    (item) => item.id === selectedCatalogId,
+  );
+  const visibleCatalog =
+    selectedCatalogItem &&
+    !filteredCatalog.some((item) => item.id === selectedCatalogItem.id)
+      ? [selectedCatalogItem, ...filteredCatalog]
+      : filteredCatalog;
+  const structuredComposition = formulaComponents
+    .filter(
+      (component) =>
+        component.componentName.trim() && component.concentration.trim(),
+    )
+    .map((component) =>
+      `${component.componentName.trim()} ${component.concentration.trim()} ${component.unit.trim()}`.trim(),
+    )
+    .join("\n");
 
   const selectedMedication =
     itemType === "manipulado"
@@ -156,8 +203,135 @@ export function PrescriptionModal({
     if (value === "manipulado") setMedication("");
   }
 
+  async function openModal() {
+    setOpen(true);
+    const { data, error } = await fetchMedicationCatalog();
+
+    if (error) {
+      toast.error("Não foi possível carregar o catálogo de medicamentos");
+      return;
+    }
+
+    const items = (data || []) as MedicationCatalogItem[];
+    setCatalog(items);
+    const selected = items.find(
+      (item) =>
+        item.name.toLocaleLowerCase("pt-BR") ===
+        selectedMedication.toLocaleLowerCase("pt-BR"),
+    );
+
+    if (selected) {
+      setSelectedCatalogId(selected.id);
+      await loadTemplates(selected.id);
+    }
+  }
+
+  async function loadTemplates(medicationId: number) {
+    const { data, error } = await fetchMedicationDosageTemplates(medicationId);
+    if (error) {
+      toast.error("Não foi possível carregar os modelos de posologia");
+      return;
+    }
+    setTemplates((data || []) as MedicationDosageTemplate[]);
+  }
+
+  async function handleCatalogSelection(value: string) {
+    setMedication(value);
+    const item = catalog.find((entry) => entry.name === value);
+    setSelectedCatalogId(item?.id);
+    setTemplates([]);
+
+    if (!item) return;
+    if (item.default_pharmacy_type) setPharmacyType(item.default_pharmacy_type);
+    if (item.default_pharmaceutical_form)
+      setPharmaceuticalForm(item.default_pharmaceutical_form);
+    if (item.default_administration_route)
+      setAdministrationRoute(item.default_administration_route);
+    await loadTemplates(item.id);
+  }
+
+  async function toggleFavorite() {
+    const item = catalog.find((entry) => entry.id === selectedCatalogId);
+    if (!item) return;
+
+    const { error } = await updateMedicationFavorite(
+      item.id,
+      !item.is_favorite,
+    );
+    if (error) {
+      toast.error("Não foi possível atualizar o favorito");
+      return;
+    }
+    setCatalog((current) =>
+      current.map((entry) =>
+        entry.id === item.id
+          ? { ...entry, is_favorite: !entry.is_favorite }
+          : entry,
+      ),
+    );
+  }
+
+  function applyTemplate(id: string) {
+    const template = templates.find((item) => item.id === Number(id));
+    if (!template) return;
+    setDosage(template.dosage);
+    setFrequency(template.frequency);
+    setDuration(template.duration || "");
+    setInstructions(template.instructions || "");
+  }
+
+  async function saveCurrentTemplate() {
+    if (!selectedCatalogId || !templateName.trim() || !dosage || !frequency) {
+      toast.error("Selecione o medicamento e informe nome, dose e frequência");
+      return;
+    }
+
+    setSavingTemplate(true);
+    const { error } = await createMedicationDosageTemplate({
+      medicationId: selectedCatalogId,
+      name: templateName.trim(),
+      dosage,
+      frequency,
+      duration,
+      instructions,
+    });
+    setSavingTemplate(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setTemplateName("");
+    await loadTemplates(selectedCatalogId);
+    toast.success("Modelo de posologia salvo");
+  }
+
+  function updateFormulaComponent(
+    index: number,
+    field: "componentName" | "concentration" | "unit",
+    value: string,
+  ) {
+    setFormulaComponents((current) =>
+      current.map((component, componentIndex) =>
+        componentIndex === index ? { ...component, [field]: value } : component,
+      ),
+    );
+  }
+
+  function removeFormulaComponent(index: number) {
+    setFormulaComponents((current) =>
+      current.length === 1
+        ? [{ componentName: "", concentration: "", unit: "" }]
+        : current.filter((_, componentIndex) => componentIndex !== index),
+    );
+  }
+
   async function handleSave() {
     const numericQuantity = Number(quantity.replace(",", "."));
+    const validComponents = formulaComponents.filter(
+      (component) =>
+        component.componentName.trim() && component.concentration.trim(),
+    );
 
     if (!selectedMedication.trim() || !dosage.trim() || !frequency.trim()) {
       toast.error("Informe medicamento ou fórmula, dose e frequência");
@@ -169,7 +343,11 @@ export function PrescriptionModal({
       return;
     }
 
-    if (itemType === "manipulado" && !composition.trim()) {
+    if (
+      itemType === "manipulado" &&
+      validComponents.length === 0 &&
+      !composition.trim()
+    ) {
       toast.error("Informe a composição da fórmula manipulada");
       return;
     }
@@ -191,8 +369,9 @@ export function PrescriptionModal({
         quantity: numericQuantity,
         quantityUnit: quantityUnit.trim(),
         pharmaceuticalForm: pharmaceuticalForm.trim(),
-        composition: composition.trim(),
+        composition: structuredComposition || composition.trim(),
         prescriptionDocumentId: prescription?.prescription_document_id,
+        formulaComponents: validComponents,
       });
       setOpen(false);
     } catch {
@@ -206,7 +385,7 @@ export function PrescriptionModal({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={openModal}
         className="rounded-lg border px-3 py-1.5 text-sm font-medium text-[#8A0EEA]"
       >
         {prescription ? "Editar" : "Adicionar prescrição"}
@@ -295,19 +474,63 @@ export function PrescriptionModal({
                 </label>
 
                 {itemType === "industrializado" ? (
-                  <label className="grid gap-2 text-sm font-medium sm:col-span-2">
-                    Medicamento
-                    <select
-                      value={medication}
-                      onChange={(event) => setMedication(event.target.value)}
-                      className="rounded-lg border p-3 font-normal"
-                    >
-                      <option value="">Selecione</option>
-                      {medicationOptions.map((option) => (
-                        <option key={option}>{option}</option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="space-y-3 sm:col-span-2">
+                    <PrescriptionInput
+                      label="Buscar por medicamento ou princípio ativo"
+                      value={catalogSearch}
+                      onChange={setCatalogSearch}
+                      placeholder="Digite para filtrar o catálogo"
+                    />
+                    <label className="grid gap-2 text-sm font-medium">
+                      Medicamento
+                      <div className="grid grid-cols-[minmax(0,1fr)_44px] gap-2">
+                        <select
+                          value={medication}
+                          onChange={(event) =>
+                            handleCatalogSelection(event.target.value)
+                          }
+                          className="min-w-0 rounded-lg border p-3 font-normal"
+                        >
+                          <option value="">Selecione</option>
+                          {catalog.length > 0
+                            ? visibleCatalog.map((item) => (
+                                <option key={item.id} value={item.name}>
+                                  {item.is_favorite ? "★ " : ""}
+                                  {item.name}
+                                  {item.active_ingredient
+                                    ? ` — ${item.active_ingredient}`
+                                    : ""}
+                                </option>
+                              ))
+                            : medicationOptions.map((option) => (
+                                <option key={option}>{option}</option>
+                              ))}
+                          {catalog.length > 0 && (
+                            <option value="Outro medicamento">
+                              Outro medicamento
+                            </option>
+                          )}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={toggleFavorite}
+                          disabled={!selectedCatalogId}
+                          aria-label="Alternar medicamento favorito"
+                          title="Alternar favorito"
+                          className="flex items-center justify-center rounded-lg border text-amber-500 disabled:opacity-30"
+                        >
+                          <Star
+                            size={18}
+                            fill={
+                              selectedCatalogItem?.is_favorite
+                                ? "currentColor"
+                                : "none"
+                            }
+                          />
+                        </button>
+                      </div>
+                    </label>
+                  </div>
                 ) : (
                   <PrescriptionInput
                     label="Nome da fórmula"
@@ -329,16 +552,79 @@ export function PrescriptionModal({
                   )}
 
                 {itemType === "manipulado" && (
-                  <label className="grid gap-2 text-sm font-medium sm:col-span-2">
-                    Composição da fórmula
-                    <textarea
-                      rows={4}
-                      value={composition}
-                      onChange={(event) => setComposition(event.target.value)}
-                      placeholder="Um componente por linha, com sua concentração"
-                      className="resize-y rounded-lg border p-3 font-normal"
-                    />
-                  </label>
+                  <fieldset className="space-y-3 sm:col-span-2">
+                    <legend className="text-sm font-medium">
+                      Componentes da fórmula
+                    </legend>
+                    {formulaComponents.map((component, index) => (
+                      <div
+                        key={index}
+                        className="grid gap-2 rounded-lg border bg-slate-50 p-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(90px,.6fr)_40px]"
+                      >
+                        <input
+                          value={component.componentName}
+                          onChange={(event) =>
+                            updateFormulaComponent(
+                              index,
+                              "componentName",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Componente"
+                          aria-label={`Componente ${index + 1}`}
+                          className="min-w-0 rounded-lg border bg-white p-3 text-sm"
+                        />
+                        <input
+                          value={component.concentration}
+                          onChange={(event) =>
+                            updateFormulaComponent(
+                              index,
+                              "concentration",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Concentração"
+                          aria-label={`Concentração ${index + 1}`}
+                          className="min-w-0 rounded-lg border bg-white p-3 text-sm"
+                        />
+                        <input
+                          value={component.unit}
+                          onChange={(event) =>
+                            updateFormulaComponent(
+                              index,
+                              "unit",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="Unidade"
+                          aria-label={`Unidade ${index + 1}`}
+                          className="min-w-0 rounded-lg border bg-white p-3 text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeFormulaComponent(index)}
+                          aria-label={`Remover componente ${index + 1}`}
+                          title="Remover componente"
+                          className="flex min-h-10 items-center justify-center rounded-lg border text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormulaComponents((current) => [
+                          ...current,
+                          { componentName: "", concentration: "", unit: "" },
+                        ])
+                      }
+                      className="flex items-center gap-2 text-sm font-semibold text-[#8A0EEA]"
+                    >
+                      <Plus size={17} />
+                      Adicionar componente
+                    </button>
+                  </fieldset>
                 )}
 
                 <label className="grid gap-2 text-sm font-medium">
@@ -406,6 +692,54 @@ export function PrescriptionModal({
                   placeholder="Ex.: 7 dias"
                 />
 
+                {itemType === "industrializado" && selectedCatalogId && (
+                  <div className="space-y-3 rounded-lg border bg-purple-50/40 p-3 sm:col-span-2">
+                    <p className="text-sm font-semibold">Modelos da clínica</p>
+                    {templates.length > 0 && (
+                      <label className="grid gap-2 text-sm font-medium">
+                        Aplicar modelo de posologia
+                        <select
+                          defaultValue=""
+                          onChange={(event) =>
+                            applyTemplate(event.target.value)
+                          }
+                          className="rounded-lg border bg-white p-3 font-normal"
+                        >
+                          <option value="">Selecione um modelo</option>
+                          {templates.map((template) => (
+                            <option key={template.id} value={template.id}>
+                              {template.name}
+                              {template.species ? ` · ${template.species}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <input
+                        value={templateName}
+                        onChange={(event) =>
+                          setTemplateName(event.target.value)
+                        }
+                        placeholder="Nome para salvar a posologia atual"
+                        className="min-w-0 rounded-lg border bg-white p-3 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={saveCurrentTemplate}
+                        disabled={savingTemplate}
+                        className="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-[#8A0EEA] disabled:opacity-50"
+                      >
+                        {savingTemplate ? "Salvando..." : "Salvar modelo"}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-500">
+                      O modelo apenas preenche os campos e sempre deve ser
+                      revisado pelo profissional.
+                    </p>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] gap-3">
                   <PrescriptionInput
                     label="Quantidade"
@@ -449,9 +783,9 @@ export function PrescriptionModal({
                   {selectedMedication || "Medicamento não informado"}
                   {pharmaceuticalForm ? ` · ${pharmaceuticalForm}` : ""}
                 </p>
-                {composition && (
+                {(structuredComposition || composition) && (
                   <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
-                    {composition}
+                    {structuredComposition || composition}
                   </p>
                 )}
                 <p className="mt-2 text-sm text-slate-600">

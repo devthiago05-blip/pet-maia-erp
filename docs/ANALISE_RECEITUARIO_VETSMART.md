@@ -35,6 +35,9 @@ sem salvar dados de teste no VetSmart.
 - Via, quantidade, unidade, forma farmaceutica e composicao.
 - Dose, frequencia, duracao e orientacoes adicionais.
 - Sugestoes de frequencia, via, unidade e forma, sem bloquear texto livre.
+- Catalogo pesquisavel por medicamento e principio ativo, com favoritos.
+- Modelos de posologia criados e selecionados pela propria clinica.
+- Multiplos componentes estruturados nas formulas manipuladas.
 - Previa do item antes de salvar.
 - Edicao e exclusao individual com confirmacao visual.
 - Cartoes resumidos no prontuario.
@@ -44,12 +47,9 @@ sem salvar dados de teste no VetSmart.
 
 ## Proximos blocos
 
-1. Criar catalogo de medicamentos e principios ativos, com favoritos e modelos
-   de posologia por especie.
-2. Permitir varios componentes estruturados em uma formula manipulada.
-3. Adicionar configuracao de assinatura, estado do CRMV e registro MAPA.
-4. Criar previa digital compartilhavel e historico de emissao/reemissao.
-5. Adicionar regras documentais especificas para antimicrobianos e controle
+1. Adicionar configuracao de assinatura, estado do CRMV e registro MAPA.
+2. Criar previa digital compartilhavel e historico de emissao/reemissao.
+3. Adicionar regras documentais especificas para antimicrobianos e controle
    especial, sem substituir validacao profissional ou juridica.
 
 ## Limites intencionais

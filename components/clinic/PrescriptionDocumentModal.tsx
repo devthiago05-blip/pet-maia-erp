@@ -79,6 +79,13 @@ function PrescriptionList({
     <ol className="space-y-10">
       {prescriptions.map((prescription, index) => {
         const administration = buildAdministrationInstruction(prescription);
+        const formulaComposition = prescription.prescription_formula_components
+          ?.slice()
+          .sort((a, b) => a.sort_order - b.sort_order)
+          .map((component) =>
+            `${component.component_name} ${component.concentration} ${component.unit || ""}`.trim(),
+          )
+          .join("\n");
 
         return (
           <li key={prescription.id} className="break-inside-avoid">
@@ -98,9 +105,9 @@ function PrescriptionList({
                 </span>
               )}
             </div>
-            {prescription.composition && (
+            {(formulaComposition || prescription.composition) && (
               <p className="mt-2 pl-5 text-[10px] leading-5 whitespace-pre-wrap sm:text-xs">
-                {prescription.composition}
+                {formulaComposition || prescription.composition}
               </p>
             )}
             {(prescription.pharmacy_type ||

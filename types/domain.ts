@@ -111,7 +111,40 @@ export interface ClinicalPrescription {
   pharmaceutical_form?: string;
   composition?: string;
   prescription_document_id?: number;
+  prescription_formula_components?: PrescriptionFormulaComponent[];
   created_at: string;
+}
+
+export interface PrescriptionFormulaComponent {
+  id?: number;
+  clinical_prescription_id?: number;
+  component_name: string;
+  concentration: string;
+  unit?: string;
+  sort_order: number;
+}
+
+export interface MedicationCatalogItem {
+  id: number;
+  name: string;
+  active_ingredient?: string;
+  default_pharmacy_type?: PrescriptionPharmacyType;
+  default_pharmaceutical_form?: string;
+  default_administration_route?: string;
+  notes?: string;
+  is_favorite: boolean;
+  is_active: boolean;
+}
+
+export interface MedicationDosageTemplate {
+  id: number;
+  medication_id: number;
+  name: string;
+  species?: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
 }
 
 export type PrescriptionItemType = "industrializado" | "manipulado";
@@ -154,6 +187,11 @@ export interface NewClinicalPrescriptionInput {
   pharmaceuticalForm?: string;
   composition?: string;
   prescriptionDocumentId?: number;
+  formulaComponents?: Array<{
+    componentName: string;
+    concentration: string;
+    unit?: string;
+  }>;
 }
 
 export interface PetVaccination {

@@ -34,10 +34,16 @@ export async function fetchClinicalRecordsByPet(petId: number) {
     .select(
       `
         *,
-        clinical_prescriptions (*),
+        clinical_prescriptions (
+          *,
+          prescription_formula_components (*)
+        ),
         clinical_prescription_documents (
           *,
-          clinical_prescriptions (*)
+          clinical_prescriptions (
+            *,
+            prescription_formula_components (*)
+          )
         )
       `,
     )
@@ -139,12 +145,106 @@ export async function saveClinicalPrescription(
     prescription_document_id: prescriptionDocumentId || null,
   };
 
-  return prescription.id
+  const itemResponse = prescription.id
     ? supabase
         .from("clinical_prescriptions")
         .update(values)
         .eq("id", prescription.id)
-    : supabase.from("clinical_prescriptions").insert([values]);
+        .select("id")
+        .single()
+    : supabase
+        .from("clinical_prescriptions")
+        .insert([values])
+        .select("id")
+        .single();
+
+  const savedItem = await itemResponse;
+  if (savedItem.error) return savedItem;
+
+  const clearComponents = await supabase
+    .from("prescription_formula_components")
+    .delete()
+    .eq("clinical_prescription_id", savedItem.data.id);
+
+  if (clearComponents.error) return clearComponents;
+
+  if (
+    prescription.itemType === "manipulado" &&
+    prescription.formulaComponents?.length
+  ) {
+    const componentResponse = await supabase
+      .from("prescription_formula_components")
+      .insert(
+        prescription.formulaComponents.map((component, index) => ({
+          clinical_prescription_id: savedItem.data.id,
+          component_name: component.componentName,
+          concentration: component.concentration,
+          unit: component.unit || null,
+          sort_order: index + 1,
+        })),
+      );
+
+    if (componentResponse.error) return componentResponse;
+  }
+
+  return savedItem;
+}
+
+export async function fetchMedicationCatalog() {
+  return supabase
+    .from("medication_catalog")
+    .select("*")
+    .eq("is_active", true)
+    .order("is_favorite", { ascending: false })
+    .order("name");
+}
+
+export async function updateMedicationFavorite(id: number, favorite: boolean) {
+  return supabase
+    .from("medication_catalog")
+    .update({ is_favorite: favorite, updated_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function fetchMedicationDosageTemplates(medicationId: number) {
+  return supabase
+    .from("medication_dosage_templates")
+    .select("*")
+    .eq("medication_id", medicationId)
+    .order("name");
+}
+
+export async function createMedicationDosageTemplate({
+  medicationId,
+  name,
+  species,
+  dosage,
+  frequency,
+  duration,
+  instructions,
+}: {
+  medicationId: number;
+  name: string;
+  species?: string;
+  dosage: string;
+  frequency: string;
+  duration?: string;
+  instructions?: string;
+}) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return supabase.from("medication_dosage_templates").insert({
+    medication_id: medicationId,
+    name,
+    species: species || null,
+    dosage,
+    frequency,
+    duration: duration || null,
+    instructions: instructions || null,
+    created_by: user?.id || null,
+  });
 }
 
 export async function updateClinicalPrescriptionDocument({

@@ -10,6 +10,24 @@ import type {
 
 const clinicalAttachmentsBucket = "clinical-attachments";
 
+async function getCurrentProfessional() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { userId: null, crmv: null };
+  }
+
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("crmv")
+    .eq("id", user.id)
+    .single();
+
+  return { userId: user.id, crmv: data?.crmv || null };
+}
+
 export async function fetchClinicalRecordsByPet(petId: number) {
   return supabase
     .from("clinical_records")
@@ -25,14 +43,13 @@ export async function fetchClinicalRecordsByPet(petId: number) {
 }
 
 export async function saveClinicalRecord(record: NewClinicalRecordInput) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const professional = await getCurrentProfessional();
 
   const values = {
     pet_id: record.petId,
-    professional_id: user?.id || null,
+    professional_id: professional.userId,
     professional_name: record.professionalName,
+    professional_crmv: professional.crmv,
     consultation_date: record.consultationDate,
     weight_kg: record.weightKg || null,
     temperature_c: record.temperatureC || null,
@@ -237,6 +254,8 @@ export async function fetchClinicalDocumentsByPet(petId: number) {
 }
 
 export async function createClinicalDocument(input: ClinicalDocumentInput) {
+  const professional = await getCurrentProfessional();
+
   return supabase.from("clinical_documents").insert([
     {
       pet_id: input.petId,
@@ -245,6 +264,7 @@ export async function createClinicalDocument(input: ClinicalDocumentInput) {
       content: input.content,
       issue_date: input.issueDate,
       professional_name: input.professionalName,
+      professional_crmv: professional.crmv,
     },
   ]);
 }

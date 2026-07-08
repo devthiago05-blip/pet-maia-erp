@@ -50,6 +50,9 @@
 - Evolução visual dos últimos pesos registrados no paciente.
 - Sino com lembretes de vacinas atrasadas, para hoje, em 7 dias e em 30 dias.
 - Exames clínicos com anexos privados de PDF e imagens no Supabase Storage.
+- Perfil profissional com CRMV e especialidade em Configurações.
+- CRMV registrado em novos prontuários, receitas e documentos clínicos.
+- Auditoria automática de inclusões, alterações e exclusões clínicas.
 - Documentos clínicos imprimíveis: atestado, declaração e orientação.
 - `npm run lint` e `npm run build` concluídos sem erros.
 
@@ -81,6 +84,10 @@
 - `services/notifications.ts`
 - `components/clinic/ExamAttachments.tsx`
 - `supabase/sql/015_clinical_attachments.sql`
+- `supabase/sql/016_clinical_professionals_audit.sql`
+- `app/settings/page.tsx`
+- `services/settings.ts`
+- `components/clinic/PrescriptionDocumentModal.tsx`
 - `app/financeiro/page.tsx`
 - `app/tutors/page.tsx`
 - `components/pos/CategoryModal.tsx`
@@ -134,6 +141,8 @@ Arquivos padrão removidos:
 
 - Executar `supabase/sql/015_clinical_attachments.sql` no SQL Editor do Supabase.
 - Testar upload, abertura e exclusão de PDF ou imagem em um exame clínico.
+- Executar `supabase/sql/016_clinical_professionals_audit.sql` depois do 015.
+- Preencher CRMV e especialidade em Configurações e testar uma nova receita.
 
 ## Pendências
 

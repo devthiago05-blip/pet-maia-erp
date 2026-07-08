@@ -66,11 +66,13 @@ export function ClinicalDocumentModal({
   pet,
   document,
   defaultProfessionalName,
+  defaultProfessionalCrmv,
   onSave,
 }: {
   pet: Pet;
   document?: ClinicalDocument;
   defaultProfessionalName: string;
+  defaultProfessionalCrmv?: string;
   onSave?: (input: ClinicalDocumentInput) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -142,6 +144,7 @@ export function ClinicalDocumentModal({
     content,
     issue_date: issueDate,
     professional_name: professionalName,
+    professional_crmv: defaultProfessionalCrmv,
   };
 
   return (
@@ -254,6 +257,11 @@ export function ClinicalDocumentModal({
                 <p>
                   <strong>Profissional:</strong> {preview.professional_name}
                 </p>
+                {preview.professional_crmv && (
+                  <p>
+                    <strong>CRMV:</strong> {preview.professional_crmv}
+                  </p>
+                )}
               </div>
               <div>
                 <h3 className="text-center text-lg font-bold">
@@ -266,6 +274,9 @@ export function ClinicalDocumentModal({
               <div className="pt-12 text-center">
                 <div className="mx-auto w-64 border-t pt-2 text-sm">
                   {preview.professional_name}
+                  {preview.professional_crmv
+                    ? ` · CRMV ${preview.professional_crmv}`
+                    : ""}
                 </div>
               </div>
             </div>

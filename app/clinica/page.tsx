@@ -190,6 +190,7 @@ export default function ClinicPage() {
           <ClinicDocumentWorkspace
             patients={patients}
             professionalName={profile?.nome || ""}
+            professionalCrmv={profile?.crmv || ""}
             onDocumentSave={handleCreateDocument}
             onPrescriptionSave={handleCreatePrescription}
           />
@@ -278,11 +279,13 @@ export default function ClinicPage() {
 function ClinicDocumentWorkspace({
   patients,
   professionalName,
+  professionalCrmv,
   onDocumentSave,
   onPrescriptionSave,
 }: {
   patients: ClinicPatientOverview[];
   professionalName: string;
+  professionalCrmv: string;
   onDocumentSave: (input: ClinicalDocumentInput) => Promise<void>;
   onPrescriptionSave: (input: NewClinicalPrescriptionInput) => Promise<void>;
 }) {
@@ -353,6 +356,7 @@ function ClinicDocumentWorkspace({
             <ClinicalDocumentModal
               pet={selectedPet}
               defaultProfessionalName={professionalName}
+              defaultProfessionalCrmv={professionalCrmv}
               onSave={onDocumentSave}
             />
           )}

@@ -68,6 +68,11 @@ export function PrescriptionDocumentModal({
                 <p>
                   <strong>Profissional:</strong> {record.professional_name}
                 </p>
+                {record.professional_crmv && (
+                  <p>
+                    <strong>CRMV:</strong> {record.professional_crmv}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-4">
@@ -94,6 +99,9 @@ export function PrescriptionDocumentModal({
               <div className="pt-12 text-center">
                 <div className="mx-auto w-64 border-t pt-2 text-sm">
                   {record.professional_name}
+                  {record.professional_crmv
+                    ? ` · CRMV ${record.professional_crmv}`
+                    : ""}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, CreditCard, ShieldCheck } from "lucide-react";
+import { Building2, CreditCard, ShieldCheck, Stethoscope } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,7 +8,11 @@ import { useAccess } from "@/components/auth/AccessContext";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { fetchClinicSettings, updateClinicSettings } from "@/services/settings";
+import {
+  fetchClinicSettings,
+  updateClinicSettings,
+  updateProfessionalProfile,
+} from "@/services/settings";
 import type { ClinicSettings } from "@/types/domain";
 
 const initialSettings: ClinicSettings = {
@@ -29,6 +33,11 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [crmv, setCrmv] = useState(profile?.crmv || "");
+  const [especialidade, setEspecialidade] = useState(
+    profile?.especialidade || "",
+  );
+  const [savingProfessional, setSavingProfessional] = useState(false);
 
   async function loadSettings() {
     setLoading(true);
@@ -80,6 +89,19 @@ export default function SettingsPage() {
 
     toast.success("Configurações salvas com sucesso!");
     await loadSettings();
+  }
+
+  async function handleSaveProfessional() {
+    setSavingProfessional(true);
+    const { error } = await updateProfessionalProfile({ crmv, especialidade });
+    setSavingProfessional(false);
+
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    toast.success("Perfil profissional atualizado!");
   }
 
   const readOnly = !profile?.is_admin || loading;
@@ -191,6 +213,35 @@ export default function SettingsPage() {
               </div>
             </SettingsSection>
           </div>
+
+          <SettingsSection
+            icon={<Stethoscope size={22} />}
+            title="Perfil profissional"
+            description="Identificação exibida em receitas e documentos clínicos."
+          >
+            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+              <SettingsInput
+                label="CRMV"
+                value={crmv}
+                readOnly={false}
+                onChange={setCrmv}
+              />
+              <SettingsInput
+                label="Especialidade"
+                value={especialidade}
+                readOnly={false}
+                onChange={setEspecialidade}
+              />
+              <button
+                type="button"
+                onClick={handleSaveProfessional}
+                disabled={savingProfessional}
+                className="rounded-xl bg-[#8A0EEA] px-5 py-3 text-white disabled:opacity-60"
+              >
+                {savingProfessional ? "Salvando..." : "Salvar perfil"}
+              </button>
+            </div>
+          </SettingsSection>
 
           <SettingsSection
             icon={<ShieldCheck size={22} />}

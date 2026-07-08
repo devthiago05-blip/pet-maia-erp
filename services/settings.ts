@@ -21,3 +21,27 @@ export async function updateClinicSettings(settings: ClinicSettings) {
     })
     .eq("id", 1);
 }
+
+export async function updateProfessionalProfile({
+  crmv,
+  especialidade,
+}: {
+  crmv: string;
+  especialidade: string;
+}) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: new Error("Usuário não autenticado.") };
+  }
+
+  return supabase
+    .from("user_profiles")
+    .update({
+      crmv: crmv.trim() || null,
+      especialidade: especialidade.trim() || null,
+    })
+    .eq("id", user.id);
+}

@@ -771,6 +771,7 @@ export default function PetPage() {
                       documents={documents}
                       error={documentError}
                       professionalName={profile?.nome || ""}
+                      professionalCrmv={profile?.crmv || ""}
                       onSave={handleCreateDocument}
                       onDelete={handleDeleteDocument}
                     />
@@ -1221,6 +1222,7 @@ function ClinicalDocuments({
   documents,
   error,
   professionalName,
+  professionalCrmv,
   onSave,
   onDelete,
 }: {
@@ -1228,6 +1230,7 @@ function ClinicalDocuments({
   documents: ClinicalDocument[];
   error: string;
   professionalName: string;
+  professionalCrmv: string;
   onSave: (input: ClinicalDocumentInput) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }) {
@@ -1244,6 +1247,7 @@ function ClinicalDocuments({
           <ClinicalDocumentModal
             pet={pet}
             defaultProfessionalName={professionalName}
+            defaultProfessionalCrmv={professionalCrmv}
             onSave={onSave}
           />
         )}

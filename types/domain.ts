@@ -12,6 +12,8 @@ export interface UserProfile {
   ativo: boolean;
   is_admin: boolean;
   created_at?: string;
+  crmv?: string;
+  especialidade?: string;
   user_permissions?: UserPermission[];
 }
 
@@ -60,6 +62,7 @@ export interface ClinicalRecord {
   pet_id: number;
   professional_id?: string;
   professional_name: string;
+  professional_crmv?: string;
   consultation_date: string;
   weight_kg?: number;
   temperature_c?: number;
@@ -226,6 +229,7 @@ export interface ClinicalDocument {
   content: string;
   issue_date: string;
   professional_name: string;
+  professional_crmv?: string;
   created_at: string;
 }
 

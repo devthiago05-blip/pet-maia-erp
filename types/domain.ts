@@ -14,6 +14,9 @@ export interface UserProfile {
   created_at?: string;
   crmv?: string;
   especialidade?: string;
+  crmv_state?: string;
+  mapa_registration?: string;
+  signature_text?: string;
   user_permissions?: UserPermission[];
 }
 
@@ -91,6 +94,13 @@ export interface ClinicalPrescriptionDocument {
   issued_at?: string;
   created_at: string;
   updated_at: string;
+  professional_crmv_state?: string;
+  professional_mapa_registration?: string;
+  signature_text?: string;
+  share_token?: string;
+  share_enabled: boolean;
+  reissue_count: number;
+  last_reissued_at?: string;
   clinical_prescriptions?: ClinicalPrescription[];
 }
 

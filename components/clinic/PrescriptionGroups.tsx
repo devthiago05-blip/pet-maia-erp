@@ -15,6 +15,7 @@ import type {
 import { PrescriptionDeleteButton } from "./PrescriptionDeleteButton";
 import { PrescriptionDocumentModal } from "./PrescriptionDocumentModal";
 import { PrescriptionModal } from "./PrescriptionModal";
+import { PrescriptionShareButton } from "./PrescriptionShareButton";
 
 export function PrescriptionGroups({
   pet,
@@ -151,14 +152,19 @@ function PrescriptionDocumentCard({
           </div>
         </div>
         {items.length > 0 && document.status !== "cancelada" && (
-          <PrescriptionDocumentModal
-            pet={pet}
-            record={record}
-            document={document}
-            prescriptions={items}
-            clinicSettings={clinicSettings}
-            onUpdateDocument={onUpdateDocument}
-          />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            {document.status === "emitida" && (
+              <PrescriptionShareButton document={document} />
+            )}
+            <PrescriptionDocumentModal
+              pet={pet}
+              record={record}
+              document={document}
+              prescriptions={items}
+              clinicSettings={clinicSettings}
+              onUpdateDocument={onUpdateDocument}
+            />
+          </div>
         )}
       </header>
 

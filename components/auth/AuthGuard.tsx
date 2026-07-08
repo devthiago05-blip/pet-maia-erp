@@ -17,7 +17,9 @@ interface AuthGuardProps {
   children: ReactNode;
 }
 
-const publicRoutes = ["/login"];
+function isPublicPath(pathname: string) {
+  return pathname === "/login" || pathname.startsWith("/receita/");
+}
 
 export function AuthGuard({ children }: AuthGuardProps) {
   const pathname = usePathname();
@@ -26,7 +28,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [permissions, setPermissions] = useState<AccessModule[]>([]);
 
-  const isPublicRoute = publicRoutes.includes(pathname);
+  const isPublicRoute = isPublicPath(pathname);
 
   useEffect(() => {
     let active = true;

@@ -16,16 +16,28 @@ async function getCurrentProfessional() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { userId: null, crmv: null };
+    return {
+      userId: null,
+      crmv: null,
+      crmvState: null,
+      mapaRegistration: null,
+      signatureText: null,
+    };
   }
 
   const { data } = await supabase
     .from("user_profiles")
-    .select("crmv")
+    .select("crmv, crmv_state, mapa_registration, signature_text")
     .eq("id", user.id)
     .single();
 
-  return { userId: user.id, crmv: data?.crmv || null };
+  return {
+    userId: user.id,
+    crmv: data?.crmv || null,
+    crmvState: data?.crmv_state || null,
+    mapaRegistration: data?.mapa_registration || null,
+    signatureText: data?.signature_text || null,
+  };
 }
 
 export async function fetchClinicalRecordsByPet(petId: number) {
@@ -266,10 +278,32 @@ export async function updateClinicalPrescriptionDocument({
     values.issued_at = status === "emitida" ? new Date().toISOString() : null;
   }
 
+  if (status === "emitida") {
+    const professional = await getCurrentProfessional();
+    values.professional_crmv_state = professional.crmvState;
+    values.professional_mapa_registration = professional.mapaRegistration;
+    values.signature_text = professional.signatureText;
+  }
+
   return supabase
     .from("clinical_prescription_documents")
     .update(values)
     .eq("id", id);
+}
+
+export async function setPrescriptionSharing(id: number, enabled: boolean) {
+  return supabase
+    .from("clinical_prescription_documents")
+    .update({ share_enabled: enabled, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select("share_token, share_enabled")
+    .single();
+}
+
+export async function fetchSharedPrescription(token: string) {
+  return supabase.rpc("get_shared_prescription", {
+    requested_token: token,
+  });
 }
 
 export async function deleteClinicalPrescription(id: number) {

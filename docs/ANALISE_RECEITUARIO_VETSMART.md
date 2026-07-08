@@ -47,13 +47,14 @@ foram considerados integralmente analisados.
 - Cartoes resumidos no prontuario.
 - Documento impresso com dados estruturados, tipo documental, cidade da
   configuracao, quantidade, farmacia, via, composicao e assinatura.
+- Perfil de assinatura com UF do CRMV e registro MAPA.
+- Link publico revogavel por token para previa digital e impressao.
 - Compatibilidade com prescricoes antigas.
 
 ## Proximos blocos
 
-1. Adicionar configuracao de assinatura, estado do CRMV e registro MAPA.
-2. Criar previa digital compartilhavel e historico de emissao/reemissao.
-3. Adicionar regras documentais especificas para antimicrobianos e controle
+1. Criar historico de reemissao e rotacao de links compartilhados.
+2. Adicionar regras documentais especificas para antimicrobianos e controle
    especial, sem substituir validacao profissional ou juridica.
 
 ## Limites intencionais

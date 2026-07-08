@@ -128,6 +128,18 @@
   ativo e token correto; nenhuma policy anonima de leitura direta foi criada.
 - Proximo passo: executar o SQL 020 e enviar os tres totais finais.
 
+### Assinatura e compartilhamento implementados
+
+- SQL 020 confirmado: 3 campos de perfil, 1 token e zero receitas expostas.
+- Configuracoes permite informar UF do CRMV, MAPA e texto de assinatura.
+- A emissao salva esses dados no documento como historico imutavel da receita.
+- Receitas emitidas possuem acao para gerar/copiar e desativar o link.
+- Rota publica: `app/receita/[token]/page.tsx`.
+- Token invalido testado pela Data API: HTTP 200 com corpo `null`.
+- O AuthGuard libera apenas `/login` e caminhos com prefixo `/receita/`.
+- Proximo bloco: reemissao auditada, rotacao de link e regras documentais por
+  tipo de receita.
+
 ### Comandos para continuar
 
 ```powershell

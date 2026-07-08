@@ -25,9 +25,15 @@ export async function updateClinicSettings(settings: ClinicSettings) {
 export async function updateProfessionalProfile({
   crmv,
   especialidade,
+  crmvState,
+  mapaRegistration,
+  signatureText,
 }: {
   crmv: string;
   especialidade: string;
+  crmvState: string;
+  mapaRegistration: string;
+  signatureText: string;
 }) {
   const {
     data: { user },
@@ -42,6 +48,9 @@ export async function updateProfessionalProfile({
     .update({
       crmv: crmv.trim() || null,
       especialidade: especialidade.trim() || null,
+      crmv_state: crmvState.trim().toUpperCase() || null,
+      mapa_registration: mapaRegistration.trim() || null,
+      signature_text: signatureText.trim() || null,
     })
     .eq("id", user.id);
 }

@@ -37,6 +37,13 @@ export default function SettingsPage() {
   const [especialidade, setEspecialidade] = useState(
     profile?.especialidade || "",
   );
+  const [crmvState, setCrmvState] = useState(profile?.crmv_state || "");
+  const [mapaRegistration, setMapaRegistration] = useState(
+    profile?.mapa_registration || "",
+  );
+  const [signatureText, setSignatureText] = useState(
+    profile?.signature_text || profile?.nome || "",
+  );
   const [savingProfessional, setSavingProfessional] = useState(false);
 
   async function loadSettings() {
@@ -93,7 +100,13 @@ export default function SettingsPage() {
 
   async function handleSaveProfessional() {
     setSavingProfessional(true);
-    const { error } = await updateProfessionalProfile({ crmv, especialidade });
+    const { error } = await updateProfessionalProfile({
+      crmv,
+      especialidade,
+      crmvState,
+      mapaRegistration,
+      signatureText,
+    });
     setSavingProfessional(false);
 
     if (error) {
@@ -219,7 +232,7 @@ export default function SettingsPage() {
             title="Perfil profissional"
             description="Identificação exibida em receitas e documentos clínicos."
           >
-            <div className="grid gap-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <div className="grid gap-4 sm:grid-cols-2">
               <SettingsInput
                 label="CRMV"
                 value={crmv}
@@ -227,16 +240,36 @@ export default function SettingsPage() {
                 onChange={setCrmv}
               />
               <SettingsInput
+                label="UF do CRMV"
+                value={crmvState}
+                readOnly={false}
+                onChange={setCrmvState}
+              />
+              <SettingsInput
                 label="Especialidade"
                 value={especialidade}
                 readOnly={false}
                 onChange={setEspecialidade}
               />
+              <SettingsInput
+                label="Registro MAPA"
+                value={mapaRegistration}
+                readOnly={false}
+                onChange={setMapaRegistration}
+              />
+              <div className="sm:col-span-2">
+                <SettingsInput
+                  label="Texto da assinatura eletrônica"
+                  value={signatureText}
+                  readOnly={false}
+                  onChange={setSignatureText}
+                />
+              </div>
               <button
                 type="button"
                 onClick={handleSaveProfessional}
                 disabled={savingProfessional}
-                className="rounded-xl bg-[#8A0EEA] px-5 py-3 text-white disabled:opacity-60"
+                className="rounded-xl bg-[#8A0EEA] px-5 py-3 text-white disabled:opacity-60 sm:col-span-2 sm:justify-self-end"
               >
                 {savingProfessional ? "Salvando..." : "Salvar perfil"}
               </button>

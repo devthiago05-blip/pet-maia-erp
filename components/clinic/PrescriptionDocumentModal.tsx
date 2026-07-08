@@ -245,8 +245,8 @@ export function PrescriptionDocumentModal({
                       {clinicName}
                     </p>
                     <p className="mt-1 text-xs font-medium sm:text-sm">
-                      {record.professional_crmv
-                        ? `CRMV ${record.professional_crmv}`
+                      {document?.professional_crmv || record.professional_crmv
+                        ? `CRMV ${document?.professional_crmv || record.professional_crmv}${document?.professional_crmv_state ? ` ${document.professional_crmv_state}` : ""}`
                         : "Atendimento veterinário"}
                     </p>
                   </div>
@@ -344,11 +344,23 @@ export function PrescriptionDocumentModal({
                     Assinado eletronicamente
                   </p>
                   <p className="mt-1 text-sm font-bold">
-                    {record.professional_name}
+                    {document?.signature_text ||
+                      document?.professional_name ||
+                      record.professional_name}
                   </p>
-                  {record.professional_crmv && (
+                  {(document?.professional_crmv ||
+                    record.professional_crmv) && (
                     <p className="text-xs font-medium">
-                      CRMV {record.professional_crmv}
+                      CRMV{" "}
+                      {document?.professional_crmv || record.professional_crmv}
+                      {document?.professional_crmv_state
+                        ? ` ${document.professional_crmv_state}`
+                        : ""}
+                    </p>
+                  )}
+                  {document?.professional_mapa_registration && (
+                    <p className="text-xs font-medium">
+                      MAPA {document.professional_mapa_registration}
                     </p>
                   )}
                 </div>

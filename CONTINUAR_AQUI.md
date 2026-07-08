@@ -1,217 +1,206 @@
 # Continuar Aqui
 
-## Última tarefa concluída
+- Atualizado em: 08/07/2026
+- Branch: `main`
+  Ultimo commit funcional: `92bce99 feat(clinica): finalizar perfil e auditoria`
 
-- Nova identidade visual "Clínica Veterinária Pet Maia".
-- Logo integrado ao login, sidebar e recibos.
-- Ícone do navegador substituído.
-- SVGs padrão do template removidos.
-- PDV com código automático de produto.
-- Cadastro de fornecedores.
-- Entrada de compras com múltiplos itens.
-- Atualização transacional de custo e estoque.
-- Categorias administráveis no PDV, sem categoria digitada livremente.
-- Variações opcionais de tamanho, cor e sabor por código de produto.
-- Busca, compras, vendas e orçamentos identificam a variação completa.
-- Cadastro em lote de variações com preço e estoque independentes.
-- Mensagem do WhatsApp separada do código PIX copia e cola.
-- Botões independentes para copiar mensagem e copiar somente o PIX.
-- Exclusão segura de produtos, preservando históricos de compras e vendas.
-- Fundação da Clínica na ficha do pet.
-- Prontuário com consulta, profissional, peso, temperatura, queixa, diagnóstico,
-  conduta e retorno.
-- Produtos agrupados no PDV com seleção de variação e quantidade.
-- Histórico detalhado de vendas com itens e impressão.
-- Orçamentos com detalhes, impressão e conversão em venda.
-- Compras integradas ao Financeiro como contas a pagar.
-- Consulta clínica com anamnese, alergias e medicamentos em uso.
-- Prescrições vinculadas ao atendimento clínico.
-- Receita veterinária imprimível com dados do paciente e profissional.
-- Carteira clínica de vacinação com fabricante, lote e próxima dose.
-- Módulo Clínica visível na sidebar e na gestão de permissões.
-- Página Clínica com pacientes, retornos, vacinas e acesso ao prontuário.
-- Exames clínicos com solicitação, coleta, laboratório, status e resultado.
-- Exclusão auditável de vendas com devolução integral ao estoque.
-- Receita financeira da venda removida automaticamente ao cancelar.
-- Módulo CRM com histórico de contatos e próximas ações por tutor.
-- Módulo BI com indicadores financeiros, operacionais, PDV e estoque.
-- BI visual com gráficos de evolução financeira, atendimentos, pagamentos,
-  produtos vendidos e estoque crítico.
-- Leitura de código de barras no PDV com leitor USB e tecla Enter.
-- Lint corrigido em Dashboard, Agenda, Financeiro, Pets, Tutores e Produtos.
-- Agenda com edição e permissão para vários pets no mesmo horário.
-- Vínculo de tutor no Kanban tornado explícito pela chave estrangeira.
-- Clínica com exclusão confirmada de vacinas, exames e documentos.
-- Endereço do tutor carregado na ficha detalhada do pet.
-- Clínica com emissão central de documentos e receitas por tutor e pet.
-- Seis modelos pré-prontos de atestado, declaração, autorização e orientação.
-- Receita com seleção inicial de medicamentos e dose obrigatoriamente manual.
-- Prontuário com edição de consultas e prescrições existentes.
-- Evolução visual dos últimos pesos registrados no paciente.
-- Sino com lembretes de vacinas atrasadas, para hoje, em 7 dias e em 30 dias.
-- Exames clínicos com anexos privados de PDF e imagens no Supabase Storage.
-- Perfil profissional com CRMV e especialidade em Configurações.
-- CRMV registrado em novos prontuários, receitas e documentos clínicos.
-- Auditoria automática de inclusões, alterações e exclusões clínicas.
-- Documentos clínicos imprimíveis: atestado, declaração e orientação.
-- `npm run lint` e `npm run build` concluídos sem erros.
+## Estado confirmado
 
-## Arquivos modificados
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado com 19 rotas.
+- GitHub: `main` atualizado.
+- Vercel: deploy acionado pelo push.
+- Supabase usado pelo projeto: `umlwimsjxbhrrjhrofmd`.
+- `015_clinical_attachments.sql`: tabela e bucket ja existem no Supabase.
+- A tabela `pet_vaccinations` estava com zero registros na ultima verificacao.
 
-- `app/icon.png`
-- `app/layout.tsx`
-- `app/login/page.tsx`
+## O que fazer agora
+
+### 1. Executar o SQL final da Clinica
+
+Abra o SQL Editor do Supabase e execute o arquivo completo:
+
+`supabase/sql/016_clinical_professionals_audit.sql`
+
+Esse script:
+
+- adiciona CRMV e especialidade ao perfil do usuario;
+- registra CRMV em novos prontuarios e documentos;
+- cria a tabela `clinical_audit_logs`;
+- cria auditoria automatica para consultas, prescricoes, vacinas, exames,
+  documentos e anexos.
+
+O script foi validado com `BEGIN` e `ROLLBACK`, mas ainda precisa ser executado
+sem rollback no SQL Editor.
+
+### 2. Configurar o profissional
+
+1. Acesse `Configuracoes`.
+2. Preencha `CRMV` e `Especialidade`.
+3. Clique em `Salvar perfil`.
+4. Crie uma nova consulta e uma nova receita.
+5. Confirme se o CRMV aparece na impressao.
+
+### 3. Testar lembrete de vacina
+
+1. Abra a ficha de um pet.
+2. Entre na aba `Vacinas`.
+3. Cadastre uma vacina preenchendo `Proxima dose`.
+4. Use uma data entre hoje e os proximos 30 dias.
+5. Atualize a pagina e abra o sino no Header.
+
+Faixas implementadas:
+
+- atrasada em ate 90 dias;
+- vence hoje;
+- vence em ate 7 dias;
+- proxima dose em ate 30 dias.
+
+### 4. Testar anexos clinicos
+
+1. Abra `Ficha do Pet > Exames`.
+2. Crie ou edite um exame.
+3. Anexe PDF, JPG, PNG ou WebP de ate 10 MB.
+4. Teste abrir e excluir o arquivo.
+
+## Arquivos da Clinica
+
+- Pagina central: `app/clinica/page.tsx`
+- Ficha e prontuario: `app/pets/[id]/page.tsx`
+- Documentos: `components/clinic/ClinicalDocumentModal.tsx`
+- Receita impressa: `components/clinic/PrescriptionDocumentModal.tsx`
+- Cadastro de medicacao: `components/clinic/PrescriptionModal.tsx`
+- Consulta: `components/clinic/NewClinicalRecordModal.tsx`
+- Vacinas: `components/clinic/VaccinationModal.tsx`
+- Exames: `components/clinic/ExamModal.tsx`
+- Anexos: `components/clinic/ExamAttachments.tsx`
+- Regras Supabase: `services/clinical.ts`
+- Tipos: `types/domain.ts`
+- Notificacoes: `components/layout/Header.tsx` e `services/notifications.ts`
+- Perfil profissional: `app/settings/page.tsx` e `services/settings.ts`
+
+## Proximas alteracoes recomendadas
+
+### Prioridade 1 - Seguranca das tabelas antigas
+
+Criar `supabase/sql/017_legacy_module_rls.sql`.
+
+Revisar RLS de:
+
+- `tutors`;
+- `pets`;
+- `appointments`;
+- `services`;
+- `financial_entries`.
+
+Cada politica deve usar `public.current_user_can_access('<modulo>')`. Nao usar
+somente `to authenticated`, pois isso autentica o usuario sem limitar o modulo.
+
+### Prioridade 2 - Finalizar o PDV
+
+Implementar nesta ordem:
+
+1. abertura e fechamento de caixa;
+2. sangria e suprimento;
+3. pagamentos divididos;
+4. devolucao parcial;
+5. inventario e ajustes de estoque;
+6. testes automatizados.
+
+Arquivos principais:
+
 - `app/pdv/page.tsx`
-- `app/pets/[id]/page.tsx`
-- `app/clinica/page.tsx`
-- `app/crm/page.tsx`
-- `app/bi/page.tsx`
-- `app/page.tsx`
-- `app/agenda/page.tsx`
-- `services/appointments.ts`
-- `services/clinical.ts`
-- `services/pets.ts`
-- `components/agenda/NewAppointmentModal.tsx`
-- `components/agenda/AppointmentTable.tsx`
-- `components/agenda/AppointmentCard.tsx`
-- `components/agenda/KanbanBoard.tsx`
-- `components/agenda/KanbanColumn.tsx`
-- `app/clinica/page.tsx`
-- `components/clinic/ClinicalDocumentModal.tsx`
-- `components/clinic/PrescriptionModal.tsx`
-- `components/clinic/NewClinicalRecordModal.tsx`
-- `components/layout/Header.tsx`
-- `services/notifications.ts`
-- `components/clinic/ExamAttachments.tsx`
-- `supabase/sql/015_clinical_attachments.sql`
-- `supabase/sql/016_clinical_professionals_audit.sql`
-- `app/settings/page.tsx`
-- `services/settings.ts`
-- `components/clinic/PrescriptionDocumentModal.tsx`
-- `app/financeiro/page.tsx`
-- `app/tutors/page.tsx`
-- `components/pos/CategoryModal.tsx`
-- `components/pos/ProductSelectionModal.tsx`
-- `components/pos/PosDocumentModal.tsx`
-- `components/agenda/AppointmentReceiptModal.tsx`
-- `components/agenda/FinishAppointmentModal.tsx`
-- `components/agenda/NewAppointmentModal.tsx`
-- `components/clinic/NewClinicalRecordModal.tsx`
-- `components/clinic/PrescriptionModal.tsx`
-- `components/clinic/PrescriptionDocumentModal.tsx`
-- `components/clinic/VaccinationModal.tsx`
-- `components/clinic/ExamModal.tsx`
-- `components/clinic/ClinicalDocumentModal.tsx`
-- `components/crm/InteractionModal.tsx`
-- `components/branding/BrandLogo.tsx`
-- `components/layout/Sidebar.tsx`
-- `components/pos/ProductModal.tsx`
-- `components/financeiro/EditFinancialModal.tsx`
-- `components/pets/NewPetModal.tsx`
-- `components/pos/PurchaseModal.tsx`
-- `components/pos/SupplierModal.tsx`
-- `components/receipts/ReceiptModal.tsx`
-- `public/pet-maia-logo-web.png`
-- `lib/formatters.ts`
 - `services/pos.ts`
-- `services/clinical.ts`
-- `supabase/sql/004_pos_purchases.sql`
-- `supabase/sql/005_product_categories_variations.sql`
-- `supabase/sql/006_clinical_records.sql`
-- `supabase/sql/007_pos_operations.sql`
-- `supabase/sql/008_clinical_anamnesis_prescriptions.sql`
-- `supabase/sql/009_clinical_vaccines.sql`
-- `supabase/sql/010_clinic_module_access.sql`
-- `supabase/sql/011_clinical_exams.sql`
-- `supabase/sql/012_pos_sale_cancellation.sql`
-- `supabase/sql/013_crm_bi_modules.sql`
-- `supabase/sql/014_clinical_documents.sql`
 - `types/domain.ts`
+- novo SQL `supabase/sql/018_pos_cash_register.sql`
 
-Arquivos padrão removidos:
+### Prioridade 3 - Catalogos administraveis da Clinica
 
-- `app/favicon.ico`
-- `public/file.svg`
-- `public/globe.svg`
-- `public/next.svg`
-- `public/vercel.svg`
-- `public/window.svg`
+Mover os modelos fixos de documentos e medicamentos para modulos proprios e,
+depois, para tabelas administraveis no Supabase.
 
-## Pendências imediatas
+## Exemplo de instrucao de alteracao por arquivo
 
-- Executar `supabase/sql/015_clinical_attachments.sql` no SQL Editor do Supabase.
-- Testar upload, abertura e exclusão de PDF ou imagem em um exame clínico.
-- Executar `supabase/sql/016_clinical_professionals_audit.sql` depois do 015.
-- Preencher CRMV e especialidade em Configurações e testar uma nova receita.
+Use este formato nas proximas tarefas para deixar a continuidade objetiva.
 
-## Pendências
+### Documento clinico
 
-1. Executar `supabase/sql/004_pos_purchases.sql` no SQL Editor do Supabase.
-2. Executar `supabase/sql/005_product_categories_variations.sql` depois do 004.
-3. Testar um produto simples e produtos com tamanho, cor ou sabor.
-4. Confirmar código no formato `PM000001` para cada variação.
-5. Testar produto com tamanhos diferentes, preços e estoques independentes.
-6. Testar WhatsApp e colar o PIX como uma segunda mensagem.
-7. Executar `supabase/sql/006_clinical_records.sql`.
-8. Testar nova consulta na aba Clínica da ficha de um pet.
-9. Executar `supabase/sql/007_pos_operations.sql`.
-10. Testar produto com sabores/tamanhos, selecionando variação e quantidade.
-11. Testar impressão e conversão de orçamento em venda.
-12. Testar compra e confirmar a conta a pagar no Financeiro.
-13. Executar `supabase/sql/008_clinical_anamnesis_prescriptions.sql`.
-14. Testar anamnese e prescrição em uma consulta clínica.
-15. Executar `supabase/sql/009_clinical_vaccines.sql`.
-16. Testar impressão de receita e registro de vacina.
-17. Executar `supabase/sql/010_clinic_module_access.sql`.
-18. Testar o item Clínica no menu e as permissões de usuário.
-19. Executar `supabase/sql/011_clinical_exams.sql`.
-20. Testar solicitação e atualização do resultado de exame.
-21. Executar `supabase/sql/012_pos_sale_cancellation.sql`.
-22. Testar exclusão de venda, devolução de estoque e remoção da receita.
-23. Executar `supabase/sql/013_crm_bi_modules.sql`.
-24. Liberar CRM e BI nas permissões dos usuários necessários.
-25. Testar contato no CRM e os indicadores do BI.
-26. Executar `supabase/sql/014_clinical_documents.sql`.
-27. Testar emissão e impressão de documento clínico.
-28. Aplicar RLS por módulo nas tabelas antigas do ERP.
-29. Criar testes automatizados para vendas, compras e estoque.
-30. Continuar Clínica com anexos e internação.
-31. PDV: implementar abertura e fechamento de caixa com sangria e suprimento.
-32. PDV: implementar trocas e devoluções parciais.
-33. PDV: adicionar pagamentos divididos, descontos e acréscimos controlados.
-34. PDV: adicionar inventário, ajustes e histórico de movimentação de estoque.
-35. PDV: criar testes automatizados dos fluxos de venda, orçamento, compra e cancelamento.
-36. Clínica: definir auditoria antes de liberar exclusão de consultas e prescrições.
-37. Clínica: adicionar anexos de exames via Supabase Storage.
-38. Clínica: permitir administrar o catálogo de medicamentos e modelos de documentos.
-39. Clínica: criar auditoria de alterações clínicas antes de liberar exclusão de consultas.
-40. Testar o sino após cadastrar uma vacina com próxima dose dentro da janela de 30 dias.
+Arquivo: `components/clinic/ClinicalDocumentModal.tsx`
 
-## Próximos passos
+Localize o bloco que inicia com:
 
-1. Segurança: RLS para tutores, pets, agenda, serviços e financeiro.
-2. Clínica: anexos de exames via Supabase Storage.
-3. Clínica: internação em bloco posterior.
-4. PDV: abertura/fechamento de caixa e pagamentos divididos.
-5. PDV: trocas, devoluções parciais e auditoria de estoque.
-6. Qualidade: testes de integração com Supabase.
+```tsx
+const documentTemplates: Array<{
+```
 
-## Comandos necessários
+Remova todo o array local e substitua por:
+
+```tsx
+import { clinicalDocumentTemplates } from "@/lib/clinical-document-templates";
+```
+
+Depois substitua:
+
+```tsx
+documentTemplates.find(...)
+documentTemplates.map(...)
+```
+
+por:
+
+```tsx
+clinicalDocumentTemplates.find(...)
+clinicalDocumentTemplates.map(...)
+```
+
+Crie `lib/clinical-document-templates.ts` exportando o array atual sem alterar
+os textos ou os tipos dos documentos.
+
+### Catalogo de medicamentos
+
+Arquivo: `components/clinic/PrescriptionModal.tsx`
+
+Localize:
+
+```tsx
+const medicationOptions = [
+```
+
+Mova o array para `lib/clinical-medications.ts` e substitua o bloco local por:
+
+```tsx
+import { clinicalMedicationOptions } from "@/lib/clinical-medications";
+```
+
+Substitua todas as referencias a `medicationOptions` por
+`clinicalMedicationOptions`.
+
+## Regras para continuar
+
+- Ler o guia relevante em `node_modules/next/dist/docs/` antes de alterar Next.js.
+- Nao alterar regras de negocio existentes sem aprovacao.
+- Nao executar SQL destrutivo.
+- Criar scripts SQL numerados e idempotentes.
+- Habilitar RLS em toda tabela nova no schema `public`.
+- Validar alteracoes com:
 
 ```bash
-npm run lint
-npm run build
-git status
+npm.cmd run lint
+npm.cmd run build
+git diff --check
 ```
 
-Após executar o SQL no Supabase:
+- Depois de validar:
 
 ```bash
-npm run dev
+git add <arquivos-alterados>
+git commit -m "mensagem objetiva"
+git push origin main
 ```
 
-Acessar:
+## Status aproximado
 
-```text
-http://localhost:3000/pdv
-```
+- Clinica sem internacao/leitos: 95%.
+- Agenda: funcional para a operacao atual.
+- PDV: nucleo funcional; caixa e operacoes avancadas ainda pendentes.
+- Prioridade geral seguinte: RLS antigo, PDV e testes automatizados.

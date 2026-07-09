@@ -2,7 +2,7 @@
 
 - Atualizado em: 08/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `ebb83f3 feat(clinica): reforcar regras do receituario`
+  Ultimo commit funcional: `feat(clinica): conectar reemissao de receita`
 
 ## Estado confirmado
 
@@ -165,9 +165,8 @@
 - Script preparado: `supabase/sql/021_prescription_reissue_rotation.sql`.
 - O script cria a tabela `clinical_prescription_reissues` para registrar cada
   reemissao de receita com token anterior, token novo, motivo, usuario e data.
-- O script cria a funcao `public.rotate_prescription_share_token(document_id,
-reason)` para rotacionar o link publico de uma receita emitida e invalidar o
-  link antigo.
+- O script cria a funcao RPC de rotacao do token publico da receita emitida e
+  invalida o link antigo.
 - A funcao exige acesso ao modulo `clinica` ou `pets`, usa RLS, nao concede
   leitura anonima da tabela e mantem a rota publica usando apenas token valido.
 - Proximo passo obrigatorio: executar o SQL 021 no SQL Editor do Supabase e
@@ -178,6 +177,28 @@ reason)` para rotacionar o link publico de uma receita emitida e invalidar o
   - `prescription_reissues`: `0`
 - Depois do SQL confirmado: conectar a UI para permitir reemitir receita com
   motivo, copiar novo link e exibir contador/historico de reemissoes.
+
+### Reemissao auditada conectada na UI
+
+- SQL 021 confirmado pelo usuario em 08/07/2026:
+  `prescription_reissue_tables=1`, `rotate_token_functions=1`,
+  `prescription_reissues=0`.
+- O prontuario agora carrega o historico de reemissoes junto da receita.
+- O botao de compartilhamento permite reemitir o link publico com motivo
+  opcional, invalida o token anterior, copia o novo link e recarrega o
+  prontuario.
+- O card da receita exibe contador de reemissoes, data da ultima reemissao e o
+  ultimo motivo quando existir.
+- Arquivos alterados neste bloco:
+  - `app/pets/[id]/page.tsx`
+  - `components/clinic/PrescriptionGroups.tsx`
+  - `components/clinic/PrescriptionShareButton.tsx`
+  - `services/clinical.ts`
+  - `types/domain.ts`
+  - `CONTINUAR_AQUI.md`
+- Proximo bloco recomendado: exibir historico completo de reemissoes em um
+  painel expansivel e criar regras especificas por tipo de receita antes de
+  impressao/compartilhamento.
 
 ### Comandos para continuar
 

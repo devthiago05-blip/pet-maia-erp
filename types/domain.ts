@@ -101,7 +101,18 @@ export interface ClinicalPrescriptionDocument {
   share_enabled: boolean;
   reissue_count: number;
   last_reissued_at?: string;
+  clinical_prescription_reissues?: ClinicalPrescriptionReissue[];
   clinical_prescriptions?: ClinicalPrescription[];
+}
+
+export interface ClinicalPrescriptionReissue {
+  id: number;
+  prescription_document_id: number;
+  previous_share_token?: string;
+  new_share_token: string;
+  reason?: string;
+  reissued_by?: string;
+  reissued_at: string;
 }
 
 export interface ClinicalPrescription {

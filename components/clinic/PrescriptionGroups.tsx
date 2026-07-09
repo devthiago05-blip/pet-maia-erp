@@ -30,6 +30,7 @@ export function PrescriptionGroups({
   onSaveItem,
   onDeleteItem,
   onUpdateDocument,
+  onDocumentChanged,
 }: {
   pet: Pet;
   record: ClinicalRecord;
@@ -41,6 +42,7 @@ export function PrescriptionGroups({
     generalInstructions: string,
     status?: "rascunho" | "emitida" | "cancelada",
   ) => Promise<void>;
+  onDocumentChanged?: () => Promise<void>;
 }) {
   const documents = [...(record.clinical_prescription_documents || [])].sort(
     (a, b) => b.created_at.localeCompare(a.created_at),
@@ -79,6 +81,7 @@ export function PrescriptionGroups({
               onSaveItem={onSaveItem}
               onDeleteItem={onDeleteItem}
               onUpdateDocument={onUpdateDocument}
+              onDocumentChanged={onDocumentChanged}
             />
           ))}
 
@@ -118,6 +121,7 @@ function PrescriptionDocumentCard({
   onSaveItem,
   onDeleteItem,
   onUpdateDocument,
+  onDocumentChanged,
 }: {
   document: ClinicalPrescriptionDocument;
   pet: Pet;
@@ -130,6 +134,7 @@ function PrescriptionDocumentCard({
     generalInstructions: string,
     status?: "rascunho" | "emitida" | "cancelada",
   ) => Promise<void>;
+  onDocumentChanged?: () => Promise<void>;
 }) {
   const items = document.clinical_prescriptions || [];
   const isDraft = document.status === "rascunho";
@@ -180,7 +185,10 @@ function PrescriptionDocumentCard({
         {items.length > 0 && document.status !== "cancelada" && (
           <div className="flex flex-col gap-2 sm:flex-row">
             {document.status === "emitida" && (
-              <PrescriptionShareButton document={document} />
+              <PrescriptionShareButton
+                document={document}
+                onChanged={onDocumentChanged}
+              />
             )}
             <PrescriptionDocumentModal
               pet={pet}

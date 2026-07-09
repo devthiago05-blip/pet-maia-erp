@@ -52,6 +52,7 @@ export async function fetchClinicalRecordsByPet(petId: number) {
         ),
         clinical_prescription_documents (
           *,
+          clinical_prescription_reissues (*),
           clinical_prescriptions (
             *,
             prescription_formula_components (*)
@@ -299,6 +300,19 @@ export async function setPrescriptionSharing(id: number, enabled: boolean) {
     .eq("id", id)
     .select("share_token, share_enabled")
     .single();
+}
+
+export async function rotatePrescriptionShareToken(id: number, reason: string) {
+  return supabase
+    .rpc("rotate_prescription_share_token", {
+      requested_document_id: id,
+      reissue_reason: reason.trim() || null,
+    })
+    .single<{
+      share_token: string;
+      reissue_count: number;
+      last_reissued_at: string;
+    }>();
 }
 
 export async function fetchSharedPrescription(token: string) {

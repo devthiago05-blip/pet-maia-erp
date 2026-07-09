@@ -550,6 +550,21 @@ export default function PetPage() {
     toast.success("Item removido da receita");
   }
 
+  async function refreshClinicalRecords() {
+    if (!pet) return;
+
+    const { data, error: reloadError } = await fetchClinicalRecordsByPet(
+      pet.id,
+    );
+
+    if (reloadError) {
+      toast.error("O prontuário não pôde ser atualizado");
+      return;
+    }
+
+    setClinicalRecords(data || []);
+  }
+
   async function handleUpdatePrescriptionDocument(
     id: number,
     generalInstructions: string,
@@ -807,6 +822,7 @@ export default function PetPage() {
                       onPrescriptionDocumentUpdate={
                         handleUpdatePrescriptionDocument
                       }
+                      onPrescriptionDocumentChanged={refreshClinicalRecords}
                     />
                   )}
                   {tab === "vacinas" && (
@@ -895,6 +911,7 @@ function ClinicalHistory({
   onPrescriptionSave,
   onPrescriptionDelete,
   onPrescriptionDocumentUpdate,
+  onPrescriptionDocumentChanged,
 }: {
   pet: Pet;
   records: ClinicalRecord[];
@@ -911,6 +928,7 @@ function ClinicalHistory({
     generalInstructions: string,
     status?: "rascunho" | "emitida" | "cancelada",
   ) => Promise<void>;
+  onPrescriptionDocumentChanged: () => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
@@ -997,6 +1015,7 @@ function ClinicalHistory({
                   onSaveItem={onPrescriptionSave}
                   onDeleteItem={onPrescriptionDelete}
                   onUpdateDocument={onPrescriptionDocumentUpdate}
+                  onDocumentChanged={onPrescriptionDocumentChanged}
                 />
               </article>
             ))}

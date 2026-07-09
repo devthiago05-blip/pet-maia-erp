@@ -2,7 +2,7 @@
 
 - Atualizado em: 08/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `92bce99 feat(clinica): finalizar perfil e auditoria`
+  Ultimo commit funcional: `ebb83f3 feat(clinica): reforcar regras do receituario`
 
 ## Estado confirmado
 
@@ -142,7 +142,7 @@
 
 ### Regras documentais sem novo SQL
 
-- Bloco em validacao em 08/07/2026.
+- Bloco validado em 08/07/2026.
 - Compartilhamento de receita agora confere se o documento esta emitido e se
   possui profissional/CRMV antes de gerar ou copiar link publico.
 - Ao emitir uma receita, o servico reforca o CRMV atual do perfil no historico
@@ -159,6 +159,25 @@
   - `CONTINUAR_AQUI.md`
 - Proximo bloco recomendado: criar SQL para reemissao auditada e rotacao de
   token de compartilhamento.
+
+### Reemissao auditada e rotacao de link iniciado
+
+- Script preparado: `supabase/sql/021_prescription_reissue_rotation.sql`.
+- O script cria a tabela `clinical_prescription_reissues` para registrar cada
+  reemissao de receita com token anterior, token novo, motivo, usuario e data.
+- O script cria a funcao `public.rotate_prescription_share_token(document_id,
+reason)` para rotacionar o link publico de uma receita emitida e invalidar o
+  link antigo.
+- A funcao exige acesso ao modulo `clinica` ou `pets`, usa RLS, nao concede
+  leitura anonima da tabela e mantem a rota publica usando apenas token valido.
+- Proximo passo obrigatorio: executar o SQL 021 no SQL Editor do Supabase e
+  enviar o resultado do `select` final.
+- Resultado esperado apos a primeira execucao:
+  - `prescription_reissue_tables`: `1`
+  - `rotate_token_functions`: `1`
+  - `prescription_reissues`: `0`
+- Depois do SQL confirmado: conectar a UI para permitir reemitir receita com
+  motivo, copiar novo link e exibir contador/historico de reemissoes.
 
 ### Comandos para continuar
 

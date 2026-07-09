@@ -2,7 +2,7 @@
 
 - Atualizado em: 09/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(clinica): adicionar linha do tempo clinica`
+  Ultimo commit funcional: `feat(clinica): adicionar avisos de vacinas`
 
 ## Estado confirmado
 
@@ -551,12 +551,12 @@ Arquivos modificados:
 - `types/domain.ts`
 - `CONTINUAR_AQUI.md`
 
-Pendencias:
+Validacoes:
 
-- Rodar `npm.cmd run lint`.
-- Rodar `npm.cmd run build`.
-- Rodar `git diff --check`.
-- Se aprovado, commitar e enviar para `main`.
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado com 19 rotas.
+- `git diff --check`: aprovado.
+- Pendente apenas commit e push deste bloco.
 
 Proximos passos sugeridos:
 
@@ -573,5 +573,50 @@ npm.cmd run build
 git diff --check
 git add app/clinica/page.tsx types/domain.ts CONTINUAR_AQUI.md
 git commit -m "feat(clinica): adicionar fila semanal de retornos"
+git push origin main
+```
+
+## Bloco em andamento - avisos de vacina na Clinica
+
+Ultima tarefa concluida:
+
+- Clinica recebeu um painel `Vacinas em atencao`.
+- O painel mostra doses atrasadas, doses do dia e proximas doses em ate 30
+  dias.
+- Cada item mostra pet, tutor, vacina, data da aplicacao anterior, data da
+  proxima dose, profissional e link direto para abrir o prontuario.
+- A consulta da Clinica passou a buscar campos ja existentes de
+  `pet_vaccinations`: `id`, `vaccine_name`, `application_date`,
+  `professional_name` e `next_dose_date`.
+- Nenhum SQL novo foi necessario.
+
+Arquivos modificados:
+
+- `app/clinica/page.tsx`
+- `services/clinical.ts`
+- `types/domain.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar `npm.cmd run lint`.
+- Rodar `npm.cmd run build`.
+- Rodar `git diff --check`.
+- Se aprovado, commitar e enviar para `main`.
+
+Proximos passos sugeridos:
+
+1. Criar filtros rapidos para retornos e vacinas.
+2. Avancar para catalogos administraveis da Clinica.
+3. Revisar RLS antigo de tutores, pets, agenda, servicos e financeiro.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/clinica/page.tsx services/clinical.ts types/domain.ts CONTINUAR_AQUI.md
+git commit -m "feat(clinica): adicionar avisos de vacinas"
 git push origin main
 ```

@@ -43,6 +43,10 @@ interface ClinicPatientResponse {
     return_date?: string;
   }>;
   pet_vaccinations?: Array<{
+    id: number;
+    vaccine_name: string;
+    application_date: string;
+    professional_name: string;
     next_dose_date?: string;
   }>;
 }
@@ -54,6 +58,18 @@ interface ReturnQueueItem {
   tutorName?: string;
   returnDate: string;
   consultationDate: string;
+  professionalName: string;
+  daysDiff: number;
+}
+
+interface VaccineQueueItem {
+  id: string;
+  petId: number;
+  petName: string;
+  tutorName?: string;
+  vaccineName: string;
+  applicationDate: string;
+  nextDoseDate: string;
   professionalName: string;
   daysDiff: number;
 }
@@ -84,6 +100,9 @@ export default function ClinicPage() {
           const records = [...(patient.clinical_records || [])].sort((a, b) =>
             b.consultation_date.localeCompare(a.consultation_date),
           );
+          const vaccinations = [...(patient.pet_vaccinations || [])].sort(
+            (a, b) => b.application_date.localeCompare(a.application_date),
+          );
           const nextReturnDate = records
             .map((record) => record.return_date)
             .filter(
@@ -91,7 +110,7 @@ export default function ClinicPage() {
                 typeof date === "string" && date >= today,
             )
             .sort()[0];
-          const nextVaccinationDate = (patient.pet_vaccinations || [])
+          const nextVaccinationDate = vaccinations
             .map((vaccination) => vaccination.next_dose_date)
             .filter(
               (date): date is string =>
@@ -111,6 +130,7 @@ export default function ClinicPage() {
             tutors: patient.tutors,
             lastClinicalRecord: records[0],
             clinicalRecords: records,
+            vaccinationRecords: vaccinations,
             nextReturnDate,
             nextVaccinationDate,
           };
@@ -172,6 +192,40 @@ export default function ClinicPage() {
       .sort(
         (a, b) =>
           a.returnDate.localeCompare(b.returnDate) ||
+          a.petName.localeCompare(b.petName),
+      );
+  }, [patients]);
+  const vaccineAlerts = useMemo(() => {
+    const today = getDateOnly(new Date());
+    const endDate = addDays(today, 30);
+
+    return patients
+      .flatMap((patient) =>
+        (patient.vaccinationRecords || [])
+          .filter(
+            (vaccination) =>
+              vaccination.next_dose_date &&
+              parseDateOnly(vaccination.next_dose_date) <= endDate,
+          )
+          .map((vaccination) => {
+            const nextDoseDate = vaccination.next_dose_date || "";
+
+            return {
+              id: `${patient.id}-${vaccination.id}`,
+              petId: patient.id,
+              petName: patient.nome,
+              tutorName: patient.tutors?.nome,
+              vaccineName: vaccination.vaccine_name,
+              applicationDate: vaccination.application_date,
+              nextDoseDate,
+              professionalName: vaccination.professional_name,
+              daysDiff: differenceInDays(parseDateOnly(nextDoseDate), today),
+            };
+          }),
+      )
+      .sort(
+        (a, b) =>
+          a.nextDoseDate.localeCompare(b.nextDoseDate) ||
           a.petName.localeCompare(b.petName),
       );
   }, [patients]);
@@ -240,6 +294,8 @@ export default function ClinicPage() {
           />
 
           <WeeklyReturnsQueue returns={weeklyReturns} />
+
+          <VaccineAlertsQueue vaccines={vaccineAlerts} />
 
           <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
             <Search size={18} className="text-slate-400" />
@@ -527,6 +583,100 @@ function ReturnStatus({ daysDiff }: { daysDiff: number }) {
     return (
       <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
         Retorno hoje
+      </span>
+    );
+  }
+
+  return (
+    <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+      Em {daysDiff} dia(s)
+    </span>
+  );
+}
+
+function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
+  const overdueCount = vaccines.filter((item) => item.daysDiff < 0).length;
+  const todayCount = vaccines.filter((item) => item.daysDiff === 0).length;
+  const upcomingCount = vaccines.filter((item) => item.daysDiff > 0).length;
+
+  return (
+    <section className="rounded-xl border bg-white p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold">Vacinas em atencao</h2>
+          <p className="text-sm text-slate-500">
+            Doses atrasadas, vencendo hoje e proximas doses em ate 30 dias.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center text-xs sm:min-w-64">
+          <ReturnCounter label="Atrasadas" value={overdueCount} tone="danger" />
+          <ReturnCounter label="Hoje" value={todayCount} tone="warning" />
+          <ReturnCounter label="30 dias" value={upcomingCount} tone="success" />
+        </div>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        {vaccines.length > 0 ? (
+          <div className="min-w-[780px] divide-y">
+            {vaccines.map((item) => (
+              <div
+                key={item.id}
+                className="grid grid-cols-[1.1fr_1.2fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{item.petName}</p>
+                  <p className="truncate text-xs text-slate-500">
+                    {item.tutorName || "Tutor nao informado"}
+                  </p>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{item.vaccineName}</p>
+                  <p className="text-xs text-slate-500">
+                    Aplicada em {formatDate(item.applicationDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">{formatDate(item.nextDoseDate)}</p>
+                  <VaccineStatus daysDiff={item.daysDiff} />
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-slate-500">
+                    Profissional
+                  </p>
+                  <p className="truncate">{item.professionalName || "-"}</p>
+                </div>
+                <Link
+                  href={`/pets/${item.petId}`}
+                  className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                >
+                  Abrir
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
+            Nenhuma vacina atrasada ou prevista para os proximos 30 dias.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function VaccineStatus({ daysDiff }: { daysDiff: number }) {
+  if (daysDiff < 0) {
+    return (
+      <span className="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">
+        Atrasada ha {Math.abs(daysDiff)} dia(s)
+      </span>
+    );
+  }
+
+  if (daysDiff === 0) {
+    return (
+      <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+        Dose hoje
       </span>
     );
   }

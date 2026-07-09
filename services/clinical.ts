@@ -371,6 +371,10 @@ export async function fetchClinicPatients() {
           return_date
         ),
         pet_vaccinations (
+          id,
+          vaccine_name,
+          application_date,
+          professional_name,
           next_dose_date
         )
       `,

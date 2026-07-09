@@ -252,6 +252,16 @@ export interface ClinicPatientOverview extends Pet {
       "id" | "consultation_date" | "professional_name" | "return_date"
     >
   >;
+  vaccinationRecords?: Array<
+    Pick<
+      PetVaccination,
+      | "id"
+      | "vaccine_name"
+      | "application_date"
+      | "next_dose_date"
+      | "professional_name"
+    >
+  >;
 }
 
 export interface ClinicalExam {

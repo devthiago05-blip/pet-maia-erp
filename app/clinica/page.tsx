@@ -74,6 +74,8 @@ interface VaccineQueueItem {
   daysDiff: number;
 }
 
+type QueueFilter = "all" | "overdue" | "today" | "upcoming";
+
 export default function ClinicPage() {
   const { profile } = useAccess();
   const [patients, setPatients] = useState<ClinicPatientOverview[]>([]);
@@ -480,9 +482,11 @@ function ClinicDocumentWorkspace({
 }
 
 function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
+  const [filter, setFilter] = useState<QueueFilter>("all");
   const overdueCount = returns.filter((item) => item.daysDiff < 0).length;
   const todayCount = returns.filter((item) => item.daysDiff === 0).length;
   const upcomingCount = returns.filter((item) => item.daysDiff > 0).length;
+  const filteredReturns = filterQueueItems(returns, filter);
 
   return (
     <section className="rounded-xl border bg-white p-4 sm:p-6">
@@ -499,11 +503,20 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
           <ReturnCounter label="7 dias" value={upcomingCount} tone="success" />
         </div>
       </div>
+      <QueueFilterBar
+        allCount={returns.length}
+        overdueCount={overdueCount}
+        todayCount={todayCount}
+        upcomingCount={upcomingCount}
+        upcomingLabel="7 dias"
+        value={filter}
+        onChange={setFilter}
+      />
 
       <div className="mt-4 overflow-x-auto">
-        {returns.length > 0 ? (
+        {filteredReturns.length > 0 ? (
           <div className="min-w-[720px] divide-y">
-            {returns.map((item) => (
+            {filteredReturns.map((item) => (
               <div
                 key={item.id}
                 className="grid grid-cols-[1.2fr_1.1fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
@@ -539,7 +552,7 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
-            Nenhum retorno atrasado ou previsto para os proximos 7 dias.
+            Nenhum retorno encontrado para este filtro.
           </div>
         )}
       </div>
@@ -570,6 +583,58 @@ function ReturnCounter({
   );
 }
 
+function QueueFilterBar({
+  allCount,
+  overdueCount,
+  todayCount,
+  upcomingCount,
+  upcomingLabel,
+  value,
+  onChange,
+}: {
+  allCount: number;
+  overdueCount: number;
+  todayCount: number;
+  upcomingCount: number;
+  upcomingLabel: string;
+  value: QueueFilter;
+  onChange: (filter: QueueFilter) => void;
+}) {
+  const options: Array<{
+    label: string;
+    value: QueueFilter;
+    count: number;
+  }> = [
+    { label: "Todos", value: "all", count: allCount },
+    { label: "Atrasados", value: "overdue", count: overdueCount },
+    { label: "Hoje", value: "today", count: todayCount },
+    { label: upcomingLabel, value: "upcoming", count: upcomingCount },
+  ];
+
+  return (
+    <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      {options.map((option) => {
+        const isActive = value === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`whitespace-nowrap rounded-full border px-3 py-2 text-sm font-medium transition ${
+              isActive
+                ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]"
+                : "border-slate-200 bg-white text-slate-600 hover:border-purple-200 hover:bg-purple-50"
+            }`}
+          >
+            {option.label} ({option.count})
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ReturnStatus({ daysDiff }: { daysDiff: number }) {
   if (daysDiff < 0) {
     return (
@@ -595,9 +660,11 @@ function ReturnStatus({ daysDiff }: { daysDiff: number }) {
 }
 
 function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
+  const [filter, setFilter] = useState<QueueFilter>("all");
   const overdueCount = vaccines.filter((item) => item.daysDiff < 0).length;
   const todayCount = vaccines.filter((item) => item.daysDiff === 0).length;
   const upcomingCount = vaccines.filter((item) => item.daysDiff > 0).length;
+  const filteredVaccines = filterQueueItems(vaccines, filter);
 
   return (
     <section className="rounded-xl border bg-white p-4 sm:p-6">
@@ -614,11 +681,20 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
           <ReturnCounter label="30 dias" value={upcomingCount} tone="success" />
         </div>
       </div>
+      <QueueFilterBar
+        allCount={vaccines.length}
+        overdueCount={overdueCount}
+        todayCount={todayCount}
+        upcomingCount={upcomingCount}
+        upcomingLabel="30 dias"
+        value={filter}
+        onChange={setFilter}
+      />
 
       <div className="mt-4 overflow-x-auto">
-        {vaccines.length > 0 ? (
+        {filteredVaccines.length > 0 ? (
           <div className="min-w-[780px] divide-y">
-            {vaccines.map((item) => (
+            {filteredVaccines.map((item) => (
               <div
                 key={item.id}
                 className="grid grid-cols-[1.1fr_1.2fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
@@ -656,7 +732,7 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
           </div>
         ) : (
           <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
-            Nenhuma vacina atrasada ou prevista para os proximos 30 dias.
+            Nenhuma vacina encontrada para este filtro.
           </div>
         )}
       </div>
@@ -731,4 +807,23 @@ function differenceInDays(date: Date, baseDate: Date) {
     (getDateOnly(date).getTime() - getDateOnly(baseDate).getTime()) /
       dayInMilliseconds,
   );
+}
+
+function filterQueueItems<T extends { daysDiff: number }>(
+  items: T[],
+  filter: QueueFilter,
+) {
+  if (filter === "overdue") {
+    return items.filter((item) => item.daysDiff < 0);
+  }
+
+  if (filter === "today") {
+    return items.filter((item) => item.daysDiff === 0);
+  }
+
+  if (filter === "upcoming") {
+    return items.filter((item) => item.daysDiff > 0);
+  }
+
+  return items;
 }

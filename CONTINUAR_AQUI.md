@@ -2,7 +2,7 @@
 
 - Atualizado em: 09/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(clinica): adicionar avisos de vacinas`
+  Ultimo commit funcional: `feat(clinica): adicionar filtros nas filas clinicas`
 
 ## Estado confirmado
 
@@ -556,7 +556,7 @@ Validacoes:
 - `npm.cmd run lint`: aprovado.
 - `npm.cmd run build`: aprovado com 19 rotas.
 - `git diff --check`: aprovado.
-- Pendente apenas commit e push deste bloco.
+- Commit e push concluidos.
 
 Proximos passos sugeridos:
 
@@ -597,12 +597,12 @@ Arquivos modificados:
 - `types/domain.ts`
 - `CONTINUAR_AQUI.md`
 
-Pendencias:
+Validacoes:
 
-- Rodar `npm.cmd run lint`.
-- Rodar `npm.cmd run build`.
-- Rodar `git diff --check`.
-- Se aprovado, commitar e enviar para `main`.
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado com 19 rotas.
+- `git diff --check`: aprovado.
+- Commit e push concluidos.
 
 Proximos passos sugeridos:
 
@@ -618,5 +618,50 @@ npm.cmd run build
 git diff --check
 git add app/clinica/page.tsx services/clinical.ts types/domain.ts CONTINUAR_AQUI.md
 git commit -m "feat(clinica): adicionar avisos de vacinas"
+git push origin main
+```
+
+## Bloco em andamento - filtros das filas clinicas
+
+Ultima tarefa concluida:
+
+- As filas `Fila de retornos` e `Vacinas em atencao` receberam filtros rapidos.
+- Filtros disponiveis:
+  - todos;
+  - atrasados;
+  - hoje;
+  - proximos 7 dias para retornos;
+  - proximos 30 dias para vacinas.
+- Os filtros sao locais a cada painel e nao interferem na busca geral de
+  pacientes.
+- Nenhum SQL novo foi necessario.
+
+Arquivos modificados:
+
+- `app/clinica/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Validacoes:
+
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado com 19 rotas.
+- `git diff --check`: aprovado.
+- Pendente apenas commit e push deste bloco.
+
+Proximos passos sugeridos:
+
+1. Avancar para catalogos administraveis da Clinica.
+2. Revisar RLS antigo de tutores, pets, agenda, servicos e financeiro.
+3. Depois da Clinica, retomar PDV avancado: caixa, sangria/suprimento e
+   pagamentos divididos.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/clinica/page.tsx CONTINUAR_AQUI.md
+git commit -m "feat(clinica): adicionar filtros nas filas clinicas"
 git push origin main
 ```

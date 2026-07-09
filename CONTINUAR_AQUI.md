@@ -1,8 +1,8 @@
 # Continuar Aqui
 
-- Atualizado em: 08/07/2026
+- Atualizado em: 09/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(clinica): conectar reemissao de receita`
+  Ultimo commit funcional: `feat(clinica): adicionar linha do tempo clinica`
 
 ## Estado confirmado
 
@@ -532,3 +532,46 @@ git push origin main
 - Agenda: funcional para a operacao atual.
 - PDV: nucleo funcional; caixa e operacoes avancadas ainda pendentes.
 - Prioridade geral seguinte: RLS antigo, PDV e testes automatizados.
+
+## Bloco em andamento - fila semanal de retornos
+
+Ultima tarefa concluida:
+
+- Clinica recebeu uma fila operacional de retornos com atrasados, retornos de
+  hoje e proximos 7 dias.
+- A fila usa o campo existente `clinical_records.return_date`; nenhum SQL novo
+  foi necessario.
+- Cada item mostra pet, tutor, data de retorno, consulta base, profissional e
+  link direto para abrir o prontuario.
+- A tabela tem rolagem horizontal controlada para mobile.
+
+Arquivos modificados:
+
+- `app/clinica/page.tsx`
+- `types/domain.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar `npm.cmd run lint`.
+- Rodar `npm.cmd run build`.
+- Rodar `git diff --check`.
+- Se aprovado, commitar e enviar para `main`.
+
+Proximos passos sugeridos:
+
+1. Melhorar avisos de vacina na tela central da Clinica.
+2. Criar filtros rapidos na fila: atrasados, hoje, 7 dias.
+3. Avancar para catalogos administraveis da Clinica.
+4. Revisar RLS antigo de tutores, pets, agenda, servicos e financeiro.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/clinica/page.tsx types/domain.ts CONTINUAR_AQUI.md
+git commit -m "feat(clinica): adicionar fila semanal de retornos"
+git push origin main
+```

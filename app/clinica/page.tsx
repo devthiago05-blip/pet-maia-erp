@@ -47,6 +47,17 @@ interface ClinicPatientResponse {
   }>;
 }
 
+interface ReturnQueueItem {
+  id: string;
+  petId: number;
+  petName: string;
+  tutorName?: string;
+  returnDate: string;
+  consultationDate: string;
+  professionalName: string;
+  daysDiff: number;
+}
+
 export default function ClinicPage() {
   const { profile } = useAccess();
   const [patients, setPatients] = useState<ClinicPatientOverview[]>([]);
@@ -131,6 +142,39 @@ export default function ClinicPage() {
   const vaccinationsCount = patients.filter(
     (patient) => patient.nextVaccinationDate,
   ).length;
+  const weeklyReturns = useMemo(() => {
+    const today = getDateOnly(new Date());
+    const endDate = addDays(today, 7);
+
+    return patients
+      .flatMap((patient) =>
+        (patient.clinicalRecords || [])
+          .filter(
+            (record) =>
+              record.return_date &&
+              parseDateOnly(record.return_date) <= endDate,
+          )
+          .map((record) => {
+            const returnDate = record.return_date || "";
+
+            return {
+              id: `${patient.id}-${record.id}`,
+              petId: patient.id,
+              petName: patient.nome,
+              tutorName: patient.tutors?.nome,
+              returnDate,
+              consultationDate: record.consultation_date,
+              professionalName: record.professional_name,
+              daysDiff: differenceInDays(parseDateOnly(returnDate), today),
+            };
+          }),
+      )
+      .sort(
+        (a, b) =>
+          a.returnDate.localeCompare(b.returnDate) ||
+          a.petName.localeCompare(b.petName),
+      );
+  }, [patients]);
 
   async function handleCreateDocument(input: ClinicalDocumentInput) {
     const { error } = await createClinicalDocument(input);
@@ -194,6 +238,8 @@ export default function ClinicPage() {
             onDocumentSave={handleCreateDocument}
             onPrescriptionSave={handleCreatePrescription}
           />
+
+          <WeeklyReturnsQueue returns={weeklyReturns} />
 
           <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
             <Search size={18} className="text-slate-400" />
@@ -377,6 +423,121 @@ function ClinicDocumentWorkspace({
   );
 }
 
+function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
+  const overdueCount = returns.filter((item) => item.daysDiff < 0).length;
+  const todayCount = returns.filter((item) => item.daysDiff === 0).length;
+  const upcomingCount = returns.filter((item) => item.daysDiff > 0).length;
+
+  return (
+    <section className="rounded-xl border bg-white p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-bold">Fila de retornos</h2>
+          <p className="text-sm text-slate-500">
+            Atrasados, retornos de hoje e proximos 7 dias.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center text-xs sm:min-w-64">
+          <ReturnCounter label="Atrasados" value={overdueCount} tone="danger" />
+          <ReturnCounter label="Hoje" value={todayCount} tone="warning" />
+          <ReturnCounter label="7 dias" value={upcomingCount} tone="success" />
+        </div>
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        {returns.length > 0 ? (
+          <div className="min-w-[720px] divide-y">
+            {returns.map((item) => (
+              <div
+                key={item.id}
+                className="grid grid-cols-[1.2fr_1.1fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{item.petName}</p>
+                  <p className="truncate text-xs text-slate-500">
+                    {item.tutorName || "Tutor nao informado"}
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium">{formatDate(item.returnDate)}</p>
+                  <ReturnStatus daysDiff={item.daysDiff} />
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Consulta base</p>
+                  <p>{formatDate(item.consultationDate)}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-xs text-slate-500">
+                    Profissional
+                  </p>
+                  <p className="truncate">{item.professionalName || "-"}</p>
+                </div>
+                <Link
+                  href={`/pets/${item.petId}`}
+                  className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                >
+                  Abrir
+                </Link>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
+            Nenhum retorno atrasado ou previsto para os proximos 7 dias.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ReturnCounter({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "danger" | "warning" | "success";
+}) {
+  const toneClasses = {
+    danger: "bg-rose-50 text-rose-700",
+    warning: "bg-amber-50 text-amber-700",
+    success: "bg-emerald-50 text-emerald-700",
+  };
+
+  return (
+    <div className={`rounded-xl px-3 py-2 ${toneClasses[tone]}`}>
+      <p className="text-lg font-bold leading-none">{value}</p>
+      <p className="mt-1 leading-none">{label}</p>
+    </div>
+  );
+}
+
+function ReturnStatus({ daysDiff }: { daysDiff: number }) {
+  if (daysDiff < 0) {
+    return (
+      <span className="mt-1 inline-flex rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700">
+        Atrasado ha {Math.abs(daysDiff)} dia(s)
+      </span>
+    );
+  }
+
+  if (daysDiff === 0) {
+    return (
+      <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700">
+        Retorno hoje
+      </span>
+    );
+  }
+
+  return (
+    <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
+      Em {daysDiff} dia(s)
+    </span>
+  );
+}
+
 function ClinicSummary({
   icon: Icon,
   label,
@@ -396,5 +557,28 @@ function ClinicSummary({
         <p className="text-2xl font-bold">{value}</p>
       </div>
     </div>
+  );
+}
+
+function parseDateOnly(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function getDateOnly(value: Date) {
+  return new Date(value.getFullYear(), value.getMonth(), value.getDate());
+}
+
+function addDays(value: Date, days: number) {
+  const nextDate = new Date(value);
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+}
+
+function differenceInDays(date: Date, baseDate: Date) {
+  const dayInMilliseconds = 24 * 60 * 60 * 1000;
+  return Math.round(
+    (getDateOnly(date).getTime() - getDateOnly(baseDate).getTime()) /
+      dayInMilliseconds,
   );
 }

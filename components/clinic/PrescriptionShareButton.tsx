@@ -1,6 +1,13 @@
 "use client";
 
-import { Link, Link2Off, RotateCcw, X } from "lucide-react";
+import {
+  ChevronDown,
+  History,
+  Link,
+  Link2Off,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,6 +28,7 @@ export function PrescriptionShareButton({
   const [token, setToken] = useState(document.share_token || "");
   const [saving, setSaving] = useState(false);
   const [reissueOpen, setReissueOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [reissueReason, setReissueReason] = useState("");
   const [reissueCount, setReissueCount] = useState(document.reissue_count || 0);
   const [lastReissuedAt, setLastReissuedAt] = useState(
@@ -38,6 +46,9 @@ export function PrescriptionShareButton({
   const lastReissue = document.clinical_prescription_reissues
     ?.slice()
     .sort((a, b) => b.reissued_at.localeCompare(a.reissued_at))[0];
+  const reissues = document.clinical_prescription_reissues
+    ?.slice()
+    .sort((a, b) => b.reissued_at.localeCompare(a.reissued_at));
 
   async function copyLink(currentToken: string) {
     await navigator.clipboard.writeText(
@@ -155,6 +166,18 @@ export function PrescriptionShareButton({
               <RotateCcw size={16} />
             </button>
           )}
+          {Boolean(reissues?.length) && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((current) => !current)}
+              aria-expanded={historyOpen}
+              aria-label="Ver historico de reemissoes"
+              title="Ver historico de reemissoes"
+              className="rounded-lg border p-2 text-slate-600 hover:bg-slate-50"
+            >
+              <History size={16} />
+            </button>
+          )}
           {enabled && (
             <button
               type="button"
@@ -176,6 +199,47 @@ export function PrescriptionShareButton({
               : ""}
             {lastReissue?.reason ? ` - ${lastReissue.reason}` : ""}
           </p>
+        )}
+        {historyOpen && Boolean(reissues?.length) && (
+          <div className="rounded-lg border bg-white p-3 text-xs shadow-sm">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="font-semibold text-slate-700">
+                Historico de reemissoes
+              </p>
+              <button
+                type="button"
+                onClick={() => setHistoryOpen(false)}
+                aria-label="Recolher historico"
+                className="rounded p-1 text-slate-500 hover:bg-slate-100"
+              >
+                <ChevronDown size={14} />
+              </button>
+            </div>
+            <div className="max-h-48 space-y-2 overflow-y-auto">
+              {reissues?.map((reissue, index) => (
+                <div
+                  key={reissue.id}
+                  className="rounded-lg border border-slate-100 bg-slate-50 p-2"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="font-medium text-slate-700">
+                      Reemissao #{reissues.length - index}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {new Date(reissue.reissued_at).toLocaleString("pt-BR")}
+                    </p>
+                  </div>
+                  <p className="mt-1 text-slate-600">
+                    {reissue.reason || "Sem motivo informado"}
+                  </p>
+                  <p className="mt-1 break-all text-[11px] text-slate-400">
+                    Token: {formatToken(reissue.previous_share_token)} para{" "}
+                    {formatToken(reissue.new_share_token)}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -232,4 +296,9 @@ export function PrescriptionShareButton({
       )}
     </>
   );
+}
+
+function formatToken(token?: string) {
+  if (!token) return "sem token anterior";
+  return `${token.slice(0, 8)}...${token.slice(-6)}`;
 }

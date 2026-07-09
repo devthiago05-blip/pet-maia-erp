@@ -200,6 +200,20 @@
   painel expansivel e criar regras especificas por tipo de receita antes de
   impressao/compartilhamento.
 
+### Historico completo de reemissoes
+
+- O botao de compartilhamento da receita agora possui um painel expansivel de
+  historico quando ja existem reemissoes.
+- O painel mostra cada reemissao com data/hora, motivo e token antigo/novo
+  abreviado para auditoria operacional sem poluir a tela.
+- Nenhum novo SQL foi necessario; a tela usa os dados de
+  `clinical_prescription_reissues` ja carregados no prontuario.
+- Arquivo alterado neste bloco:
+  - `components/clinic/PrescriptionShareButton.tsx`
+  - `CONTINUAR_AQUI.md`
+- Proximo bloco recomendado: regras especificas por tipo de receita antes de
+  imprimir/compartilhar.
+
 ### Comandos para continuar
 
 ```powershell

@@ -47,6 +47,90 @@ git commit -m "docs: adicionar manuais do pet maia erp"
 git push origin main
 ```
 
+## Proximo bloco recomendado - revisao de seguranca RLS
+
+Motivo:
+
+- O sistema ja possui varios modulos funcionais.
+- Antes de adicionar recursos grandes, o melhor ganho e revisar seguranca das
+  tabelas antigas no Supabase.
+- A prioridade e evitar que um usuario autenticado acesse modulos ou dados sem
+  permissao correta.
+
+Objetivo do proximo bloco:
+
+- Auditar politicas RLS das tabelas principais.
+- Criar SQL idempotente apenas para corrigir permissoes quando necessario.
+- Nao remover dados.
+- Nao alterar regras de negocio.
+- Nao quebrar integracao com Supabase.
+
+Tabelas para revisar primeiro:
+
+- `tutors`
+- `pets`
+- `appointments`
+- `services`
+- `financial_entries`
+- tabelas do PDV
+- tabelas da Clinica
+- tabelas de CRM/BI
+
+Arquivos provaveis:
+
+- `supabase/sql/*.sql`
+- `lib/access-control.ts`
+- `services/*.ts`
+- `types/domain.ts`
+- `CONTINUAR_AQUI.md`
+
+Comandos de validacao:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+```
+
+Prompt para continuar em outro chat:
+
+```text
+Voce esta trabalhando no projeto PET MAIA ERP em
+C:\Users\thiago lima\Desktop\pet-maia-erp.
+
+Contexto:
+- Next.js 16, TypeScript, Tailwind CSS, Supabase e Vercel.
+- Usar npm.cmd, nao npm.
+- Antes de alterar Next.js, ler guia relevante em node_modules/next/dist/docs/.
+- Para Supabase, criar SQL idempotente e pedir para o usuario executar quando
+  houver mudanca de banco.
+- Depois de qualquer alteracao aprovada, executar:
+  npm.cmd run lint
+  npm.cmd run build
+  git diff --check
+- Se passar, fazer git add, commit e push para main.
+- Atualizar CONTINUAR_AQUI.md antes de encerrar.
+
+Ultimos blocos concluidos:
+- Clinica com fila de retornos.
+- Clinica com avisos de vacinas.
+- Filtros nas filas clinicas.
+- Catalogo de medicamentos na Clinica.
+- PDFs criados:
+  docs/MANUAL_USO_PET_MAIA_ERP.pdf
+  docs/PROXIMOS_PASSOS_PET_MAIA_ERP.pdf
+
+Proxima tarefa:
+Fazer auditoria de seguranca RLS no Supabase.
+Revisar tabelas tutors, pets, appointments, services, financial_entries, PDV,
+Clinica, CRM e BI.
+Identificar politicas que usam apenas authenticated sem autorizacao por modulo.
+Preparar script SQL idempotente para corrigir usando
+public.current_user_can_access('<modulo>') quando necessario.
+Nao executar SQL diretamente; enviar o script para o usuario copiar e colar no
+Supabase.
+```
+
 ## Ultima tarefa concluida
 
 - Receita veterinaria impressa reorganizada em padrao profissional.

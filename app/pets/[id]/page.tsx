@@ -816,6 +816,9 @@ export default function PetPage() {
                       error={clinicalError}
                       professionalName={profile?.nome || ""}
                       clinicSettings={clinicSettings}
+                      vaccinations={vaccinations}
+                      exams={exams}
+                      documents={documents}
                       onSave={handleCreateClinicalRecord}
                       onPrescriptionSave={handleCreatePrescription}
                       onPrescriptionDelete={handleDeletePrescription}
@@ -907,6 +910,9 @@ function ClinicalHistory({
   error,
   professionalName,
   clinicSettings,
+  vaccinations,
+  exams,
+  documents,
   onSave,
   onPrescriptionSave,
   onPrescriptionDelete,
@@ -918,6 +924,9 @@ function ClinicalHistory({
   error: string;
   professionalName: string;
   clinicSettings: ClinicSettings | null;
+  vaccinations: PetVaccination[];
+  exams: ClinicalExam[];
+  documents: ClinicalDocument[];
   onSave: (record: NewClinicalRecordInput) => Promise<void>;
   onPrescriptionSave: (
     prescription: NewClinicalPrescriptionInput,
@@ -956,6 +965,12 @@ function ClinicalHistory({
         </p>
       ) : (
         <div>
+          <ClinicalTimeline
+            records={records}
+            vaccinations={vaccinations}
+            exams={exams}
+            documents={documents}
+          />
           <WeightEvolution records={records} />
           <div className="divide-y">
             {records.map((record) => (
@@ -1024,6 +1039,157 @@ function ClinicalHistory({
       )}
     </section>
   );
+}
+
+type ClinicalTimelineItem = {
+  id: string;
+  date: string;
+  type: string;
+  title: string;
+  description: string;
+  tone: "purple" | "emerald" | "amber" | "sky" | "slate";
+};
+
+function ClinicalTimeline({
+  records,
+  vaccinations,
+  exams,
+  documents,
+}: {
+  records: ClinicalRecord[];
+  vaccinations: PetVaccination[];
+  exams: ClinicalExam[];
+  documents: ClinicalDocument[];
+}) {
+  const items: ClinicalTimelineItem[] = [
+    ...records.map((record) => ({
+      id: `record-${record.id}`,
+      date: record.consultation_date,
+      type: "Consulta",
+      title: record.main_complaint || "Consulta clinica",
+      description: [
+        record.professional_name,
+        record.diagnosis ? `Diagnostico: ${record.diagnosis}` : "",
+        record.return_date ? `Retorno: ${formatDate(record.return_date)}` : "",
+      ]
+        .filter(Boolean)
+        .join(" - "),
+      tone: "purple" as const,
+    })),
+    ...records.flatMap((record) =>
+      (record.clinical_prescription_documents || []).map((document) => ({
+        id: `prescription-document-${document.id}`,
+        date: document.issued_at || document.issue_date,
+        type: "Receita",
+        title:
+          document.status === "rascunho"
+            ? "Receita em rascunho"
+            : document.status === "cancelada"
+              ? "Receita cancelada"
+              : "Receita emitida",
+        description: `${document.clinical_prescriptions?.length || 0} ${
+          document.clinical_prescriptions?.length === 1 ? "item" : "itens"
+        } - ${document.professional_name}`,
+        tone:
+          document.status === "emitida"
+            ? ("emerald" as const)
+            : ("amber" as const),
+      })),
+    ),
+    ...vaccinations.map((vaccination) => ({
+      id: `vaccination-${vaccination.id}`,
+      date: vaccination.application_date,
+      type: "Vacina",
+      title: vaccination.vaccine_name,
+      description: [
+        vaccination.professional_name,
+        vaccination.next_dose_date
+          ? `Proxima dose: ${formatDate(vaccination.next_dose_date)}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join(" - "),
+      tone: "emerald" as const,
+    })),
+    ...exams.map((exam) => ({
+      id: `exam-${exam.id}`,
+      date: exam.request_date,
+      type: "Exame",
+      title: exam.exam_name,
+      description: [exam.status, exam.laboratory, exam.professional_name]
+        .filter(Boolean)
+        .join(" - "),
+      tone: "sky" as const,
+    })),
+    ...documents.map((document) => ({
+      id: `document-${document.id}`,
+      date: document.issue_date,
+      type: "Documento",
+      title: document.title,
+      description: `${document.document_type} - ${document.professional_name}`,
+      tone: "slate" as const,
+    })),
+  ]
+    .filter((item) => item.date)
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 20);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="border-b bg-slate-50 p-4 sm:p-6">
+      <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h4 className="font-bold">Linha do tempo clinica</h4>
+          <p className="text-sm text-slate-500">
+            Ultimos eventos clinicos reunidos em ordem cronologica.
+          </p>
+        </div>
+        <span className="text-xs text-slate-400">{items.length} eventos</span>
+      </div>
+
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="grid grid-cols-[92px_1fr] gap-3">
+            <div className="pt-1 text-right text-xs text-slate-500">
+              {formatDate(item.date)}
+            </div>
+            <article className="relative rounded-xl border bg-white p-3 shadow-sm before:absolute before:top-4 before:-left-[19px] before:h-2 before:w-2 before:rounded-full before:bg-[#8A0EEA]">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${getTimelineToneClass(
+                    item.tone,
+                  )}`}
+                >
+                  {item.type}
+                </span>
+                <h5 className="font-semibold text-slate-800">{item.title}</h5>
+              </div>
+              {item.description && (
+                <p className="mt-1 text-sm text-slate-500">
+                  {item.description}
+                </p>
+              )}
+            </article>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function getTimelineToneClass(tone: ClinicalTimelineItem["tone"]) {
+  const classes = {
+    amber: "bg-amber-100 text-amber-700",
+    emerald: "bg-emerald-100 text-emerald-700",
+    purple: "bg-purple-100 text-[#8A0EEA]",
+    sky: "bg-sky-100 text-sky-700",
+    slate: "bg-slate-100 text-slate-700",
+  };
+
+  return classes[tone];
 }
 
 function WeightEvolution({ records }: { records: ClinicalRecord[] }) {

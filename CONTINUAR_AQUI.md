@@ -243,6 +243,24 @@
   - `CONTINUAR_AQUI.md`
 - Proximo bloco recomendado: linha do tempo clinica unificada na ficha do pet.
 
+### Linha do tempo clinica unificada
+
+- Bloco iniciado em 09/07/2026 sem novo SQL.
+- A aba `Clinica` da ficha do pet agora mostra uma linha do tempo com os
+  eventos clinicos mais recentes.
+- Eventos reunidos:
+  - consultas;
+  - receitas;
+  - vacinas;
+  - exames;
+  - documentos clinicos.
+- A linha do tempo exibe data, tipo, titulo, resumo e marcador visual por
+  categoria.
+- Arquivos alterados neste bloco:
+  - `app/pets/[id]/page.tsx`
+  - `CONTINUAR_AQUI.md`
+- Proximo bloco recomendado: retornos clinicos com fila semanal.
+
 ### Comandos para continuar
 
 ```powershell

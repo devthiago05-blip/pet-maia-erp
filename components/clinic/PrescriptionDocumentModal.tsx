@@ -1,8 +1,10 @@
 "use client";
 
-import { Printer, X } from "lucide-react";
+import { AlertTriangle, Printer, X } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
+import { getPrescriptionDocumentRuleSummary } from "@/lib/prescription-document-rules";
 import type {
   ClinicalPrescription,
   ClinicalPrescriptionDocument,
@@ -171,8 +173,20 @@ export function PrescriptionDocumentModal({
     )?.prescription_type || "simples";
   const clinicName = clinicSettings?.nome || "Clínica Veterinária Pet Maia";
   const clinicCity = clinicSettings?.pix_city || "Fortaleza";
+  const ruleSummary = getPrescriptionDocumentRuleSummary({
+    document,
+    pet,
+    record,
+    prescriptions,
+  });
+  const hasCriticalRules = ruleSummary.critical.length > 0;
 
   async function handlePrint() {
+    if (hasCriticalRules) {
+      toast.error("Revise as pendencias criticas antes de emitir ou imprimir");
+      return;
+    }
+
     if (document?.status === "rascunho" && onUpdateDocument) {
       setIssuing(true);
       try {
@@ -234,6 +248,42 @@ export function PrescriptionDocumentModal({
                   A emissão encerra este rascunho. Novos itens formarão uma nova
                   receita.
                 </p>
+              </div>
+            )}
+
+            {(ruleSummary.critical.length > 0 ||
+              ruleSummary.warnings.length > 0) && (
+              <div className="border-b bg-amber-50 p-4 text-sm text-amber-800 print:hidden">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="mt-0.5 shrink-0" size={17} />
+                  <div>
+                    <p className="font-semibold">Revisao antes da emissao</p>
+                    {ruleSummary.critical.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-semibold uppercase">
+                          Corrigir antes de imprimir
+                        </p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-xs">
+                          {ruleSummary.critical.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {ruleSummary.warnings.length > 0 && (
+                      <div className="mt-2">
+                        <p className="text-xs font-semibold uppercase">
+                          Alertas
+                        </p>
+                        <ul className="mt-1 list-disc space-y-1 pl-4 text-xs">
+                          {ruleSummary.warnings.map((item) => (
+                            <li key={item}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -378,7 +428,12 @@ export function PrescriptionDocumentModal({
               <button
                 type="button"
                 onClick={handlePrint}
-                disabled={issuing}
+                disabled={issuing || hasCriticalRules}
+                title={
+                  hasCriticalRules
+                    ? "Corrija as pendencias criticas antes de imprimir"
+                    : undefined
+                }
                 className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-50"
               >
                 <Printer size={18} />

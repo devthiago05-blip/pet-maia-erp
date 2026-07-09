@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { getPrescriptionDocumentRuleSummary } from "@/lib/prescription-document-rules";
 import {
   rotatePrescriptionShareToken,
   setPrescriptionSharing,
@@ -36,12 +37,16 @@ export function PrescriptionShareButton({
   );
   const missingProfessionalData =
     !document.professional_name?.trim() || !document.professional_crmv?.trim();
+  const ruleSummary = getPrescriptionDocumentRuleSummary({
+    document,
+    prescriptions: document.clinical_prescriptions || [],
+  });
   const disabledReason =
     document.status !== "emitida"
       ? "Emita a receita antes de compartilhar"
       : missingProfessionalData
         ? "Informe o profissional e CRMV antes de compartilhar"
-        : "";
+        : ruleSummary.critical[0] || "";
   const canRotate = enabled && token && !disabledReason;
   const lastReissue = document.clinical_prescription_reissues
     ?.slice()

@@ -214,6 +214,35 @@
 - Proximo bloco recomendado: regras especificas por tipo de receita antes de
   imprimir/compartilhar.
 
+### Regras por tipo de receita
+
+- Bloco iniciado em 09/07/2026 sem novo SQL.
+- Criado o utilitario `lib/prescription-document-rules.ts` para centralizar
+  regras de emissao, impressao e compartilhamento.
+- A impressao/emissao agora mostra uma revisao antes da receita e bloqueia o
+  botao quando existe pendencia critica.
+- O compartilhamento tambem usa as mesmas regras e nao gera link publico se
+  faltar dado critico.
+- Regras aplicadas neste bloco:
+  - receita sem item;
+  - profissional sem identificacao;
+  - receita emitida sem CRMV;
+  - item sem dose, frequencia ou via de administracao;
+  - receita especial/antimicrobiana sem quantidade e unidade;
+  - antimicrobiano sem duracao;
+  - formula manipulada sem composicao estruturada.
+- Alertas nao bloqueantes:
+  - UF do CRMV ausente no historico da emissao;
+  - responsavel ou endereco do tutor ausente;
+  - forma farmaceutica ausente em controle especial manipulado quando aplicavel.
+- Arquivos alterados neste bloco:
+  - `lib/prescription-document-rules.ts`
+  - `components/clinic/PrescriptionDocumentModal.tsx`
+  - `components/clinic/PrescriptionGroups.tsx`
+  - `components/clinic/PrescriptionShareButton.tsx`
+  - `CONTINUAR_AQUI.md`
+- Proximo bloco recomendado: linha do tempo clinica unificada na ficha do pet.
+
 ### Comandos para continuar
 
 ```powershell

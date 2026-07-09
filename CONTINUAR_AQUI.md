@@ -2,7 +2,7 @@
 
 - Atualizado em: 09/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(clinica): adicionar filtros nas filas clinicas`
+  Ultimo commit funcional: `feat(clinica): adicionar catalogo de medicamentos`
 
 ## Estado confirmado
 
@@ -646,7 +646,7 @@ Validacoes:
 - `npm.cmd run lint`: aprovado.
 - `npm.cmd run build`: aprovado com 19 rotas.
 - `git diff --check`: aprovado.
-- Pendente apenas commit e push deste bloco.
+- Commit e push concluidos.
 
 Proximos passos sugeridos:
 
@@ -663,5 +663,74 @@ npm.cmd run build
 git diff --check
 git add app/clinica/page.tsx CONTINUAR_AQUI.md
 git commit -m "feat(clinica): adicionar filtros nas filas clinicas"
+git push origin main
+```
+
+## Bloco em andamento - catalogo administravel da Clinica
+
+Ultima tarefa concluida:
+
+- A tela da Clinica recebeu a secao `Catalogo da clinica`.
+- Agora e possivel cadastrar, editar, favoritar e arquivar medicamentos do
+  catalogo usado pelo receituario.
+- O cadastro usa a tabela existente `medication_catalog`; nenhum SQL novo foi
+  necessario.
+- Campos do cadastro:
+  - nome;
+  - principio ativo;
+  - farmacia padrao;
+  - forma padrao;
+  - via padrao;
+  - observacoes;
+  - favorito.
+- Medicamentos arquivados deixam de aparecer no catalogo ativo usado pelo
+  receituario.
+
+Arquivos modificados:
+
+- `app/clinica/page.tsx`
+- `components/clinic/ClinicalCatalogManager.tsx`
+- `services/clinical.ts`
+- `types/domain.ts`
+- `CONTINUAR_AQUI.md`
+
+Validacoes:
+
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado com 19 rotas.
+- `git diff --check`: aprovado.
+- Supabase Data API: `medication_catalog` respondeu HTTP 200 em consulta anonima
+  de verificacao; retorno vazio esperado quando RLS nao libera dados anonimos.
+- Pendente apenas commit e push deste bloco.
+
+Status comparado ao VetSmart:
+
+- O fluxo da Clinica esta parecido na estrutura principal: prontuario por pet,
+  receituario, medicamentos/catalogo, modelos de posologia, documentos, exames,
+  vacinas, retornos e filas operacionais.
+- Ainda nao esta igual ao VetSmart em profundidade. Faltam recursos avancados
+  como catalogos completos com bulas/monografias, protocolos clinicos,
+  documentos administraveis via banco, assinatura/documentacao regulatoria mais
+  ampla e automacoes de comunicacao.
+- Para a operacao atual do Pet Maia, a Clinica esta funcional e bem proxima no
+  fluxo basico de uso, mantendo a estetica propria do sistema.
+
+Proximos passos sugeridos:
+
+1. Se quiser aproximar mais do VetSmart, criar SQL para modelos de documentos
+   clinicos administraveis.
+2. Criar catalogo clinico avancado: principios ativos, observacoes, alertas e
+   modelos por especie.
+3. Revisar RLS antigo de tutores, pets, agenda, servicos e financeiro.
+4. Retomar PDV avancado: caixa, sangria/suprimento e pagamentos divididos.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/clinica/page.tsx components/clinic/ClinicalCatalogManager.tsx services/clinical.ts types/domain.ts CONTINUAR_AQUI.md
+git commit -m "feat(clinica): adicionar catalogo de medicamentos"
 git push origin main
 ```

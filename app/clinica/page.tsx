@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
+import { ClinicalCatalogManager } from "@/components/clinic/ClinicalCatalogManager";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
@@ -294,6 +295,8 @@ export default function ClinicPage() {
             onDocumentSave={handleCreateDocument}
             onPrescriptionSave={handleCreatePrescription}
           />
+
+          <ClinicalCatalogManager />
 
           <WeeklyReturnsQueue returns={weeklyReturns} />
 

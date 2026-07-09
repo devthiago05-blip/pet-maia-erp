@@ -3,6 +3,7 @@ import type {
   ClinicalAttachment,
   ClinicalDocumentInput,
   ClinicalExamInput,
+  MedicationCatalogInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
   NewPetVaccinationInput,
@@ -212,10 +213,59 @@ export async function fetchMedicationCatalog() {
     .order("name");
 }
 
+export async function createMedicationCatalogItem(
+  input: MedicationCatalogInput,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return supabase.from("medication_catalog").insert({
+    name: input.name.trim(),
+    active_ingredient: input.activeIngredient?.trim() || null,
+    default_pharmacy_type: input.defaultPharmacyType || null,
+    default_pharmaceutical_form:
+      input.defaultPharmaceuticalForm?.trim() || null,
+    default_administration_route:
+      input.defaultAdministrationRoute?.trim() || null,
+    notes: input.notes?.trim() || null,
+    is_favorite: Boolean(input.isFavorite),
+    created_by: user?.id || null,
+  });
+}
+
+export async function updateMedicationCatalogItem(
+  id: number,
+  input: MedicationCatalogInput,
+) {
+  return supabase
+    .from("medication_catalog")
+    .update({
+      name: input.name.trim(),
+      active_ingredient: input.activeIngredient?.trim() || null,
+      default_pharmacy_type: input.defaultPharmacyType || null,
+      default_pharmaceutical_form:
+        input.defaultPharmaceuticalForm?.trim() || null,
+      default_administration_route:
+        input.defaultAdministrationRoute?.trim() || null,
+      notes: input.notes?.trim() || null,
+      is_favorite: Boolean(input.isFavorite),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+}
+
 export async function updateMedicationFavorite(id: number, favorite: boolean) {
   return supabase
     .from("medication_catalog")
     .update({ is_favorite: favorite, updated_at: new Date().toISOString() })
+    .eq("id", id);
+}
+
+export async function archiveMedicationCatalogItem(id: number) {
+  return supabase
+    .from("medication_catalog")
+    .update({ is_active: false, updated_at: new Date().toISOString() })
     .eq("id", id);
 }
 

@@ -157,6 +157,16 @@ export interface MedicationCatalogItem {
   is_active: boolean;
 }
 
+export interface MedicationCatalogInput {
+  name: string;
+  activeIngredient?: string;
+  defaultPharmacyType?: PrescriptionPharmacyType;
+  defaultPharmaceuticalForm?: string;
+  defaultAdministrationRoute?: string;
+  notes?: string;
+  isFavorite?: boolean;
+}
+
 export interface MedicationDosageTemplate {
   id: number;
   medication_id: number;

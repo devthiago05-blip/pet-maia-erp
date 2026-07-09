@@ -1,0 +1,356 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Length 2647 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 22 Tf 54 780 Td (Manual de uso - PET MAIA ERP) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 734 Td (Atualizado em: 09/07/2026) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 709 Td (Visao geral) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 677 Td (O PET MAIA ERP centraliza a rotina da Clinica Veterinaria Pet Maia em um unico) Tj ET
+BT /F1 10.5 Tf 54 660 Td (sistema: tutores, pets, agenda, servicos, financeiro, recibos, PDV, clinica,) Tj ET
+BT /F1 10.5 Tf 54 643 Td (CRM, BI, usuarios e configuracoes.) Tj ET
+BT /F1 10.5 Tf 54 618 Td (O sistema foi construido para uso no computador e no celular. No celular, use o) Tj ET
+BT /F1 10.5 Tf 54 601 Td (menu lateral recolhivel para acessar os modulos.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 576 Td (Acesso ao sistema) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 544 Td (- Abra o sistema pela URL publicada na Vercel.) Tj ET
+BT /F1 10.5 Tf 54 529 Td (- Informe e-mail e senha do usuario.) Tj ET
+BT /F1 10.5 Tf 54 514 Td (- Apos entrar, use o menu lateral para navegar pelos modulos.) Tj ET
+BT /F1 10.5 Tf 54 491 Td (Se algum modulo nao aparecer ou nao abrir, verifique as permissoes do usuario) Tj ET
+BT /F1 10.5 Tf 54 474 Td (na tela `Usuarios`.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 449 Td (Dashboard) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 417 Td (O Dashboard mostra uma visao rapida da operacao:) Tj ET
+BT /F1 10.5 Tf 54 392 Td (- resumo financeiro;) Tj ET
+BT /F1 10.5 Tf 54 377 Td (- ultimos recebimentos;) Tj ET
+BT /F1 10.5 Tf 54 362 Td (- informacoes recentes da rotina;) Tj ET
+BT /F1 10.5 Tf 54 347 Td (- atalhos para acompanhar o movimento do dia.) Tj ET
+BT /F1 10.5 Tf 54 324 Td (Use o Dashboard para verificar rapidamente se ha movimentacao financeira,) Tj ET
+BT /F1 10.5 Tf 54 307 Td (agendamentos ou informacoes que precisam de acompanhamento.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 282 Td (Tutores) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 250 Td (A tela `Tutores` guarda os dados dos responsaveis pelos pets.) Tj ET
+BT /F1 10.5 Tf 54 225 Td (Fluxo recomendado:) Tj ET
+BT /F1 10.5 Tf 54 200 Td (- Cadastre o tutor antes do pet.) Tj ET
+BT /F1 10.5 Tf 54 185 Td (- Informe nome, telefone, e-mail e endereco.) Tj ET
+BT /F1 10.5 Tf 54 170 Td (- Mantenha o telefone atualizado para contato, envio de recibos e comunicacoes.) Tj ET
+BT /F1 10.5 Tf 54 155 Td (- Use a busca para localizar rapidamente um tutor ja cadastrado.) Tj ET
+BT /F1 10.5 Tf 54 132 Td (O endereco do tutor tambem pode ser usado nos documentos clinicos e receitas.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 107 Td (Pets) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 75 Td (A tela `Pets` centraliza os animais cadastrados.) Tj ET
+BT /F1 9 Tf 285 28 Td (1) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 2663 >>
+stream
+BT /F1 10.5 Tf 54 780 Td (Fluxo recomendado:) Tj ET
+BT /F1 10.5 Tf 54 755 Td (- Cadastre o pet vinculado ao tutor correto.) Tj ET
+BT /F1 10.5 Tf 54 740 Td (- Informe nome, especie, raca, sexo, idade e porte.) Tj ET
+BT /F1 10.5 Tf 54 725 Td (- Abra a ficha do pet para ver historico, clinica, vacinas, exames, documentos,) Tj ET
+BT /F1 10.5 Tf 54 710 Td (agenda e financeiro relacionados.) Tj ET
+BT /F1 10.5 Tf 54 685 Td (A ficha do pet e o ponto principal para acompanhar o historico individual.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 660 Td (Agenda) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 628 Td (A tela `Agenda` organiza os atendimentos e servicos marcados.) Tj ET
+BT /F1 10.5 Tf 54 603 Td (Use para:) Tj ET
+BT /F1 10.5 Tf 54 578 Td (- cadastrar novos agendamentos;) Tj ET
+BT /F1 10.5 Tf 54 563 Td (- acompanhar data e horario;) Tj ET
+BT /F1 10.5 Tf 54 548 Td (- vincular tutor e pet;) Tj ET
+BT /F1 10.5 Tf 54 533 Td (- informar o servico;) Tj ET
+BT /F1 10.5 Tf 54 518 Td (- acompanhar status do atendimento.) Tj ET
+BT /F1 10.5 Tf 54 495 Td (Por enquanto, o fluxo nao exige horario final. O controle principal e feito por) Tj ET
+BT /F1 10.5 Tf 54 478 Td (data, horario inicial, pet, tutor, servico e status.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 453 Td (Servicos) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 421 Td (A tela `Servicos` guarda os servicos oferecidos pela clinica.) Tj ET
+BT /F1 10.5 Tf 54 396 Td (Use para cadastrar e revisar:) Tj ET
+BT /F1 10.5 Tf 54 371 Td (- banho;) Tj ET
+BT /F1 10.5 Tf 54 356 Td (- tosa;) Tj ET
+BT /F1 10.5 Tf 54 341 Td (- consulta;) Tj ET
+BT /F1 10.5 Tf 54 326 Td (- vacinas;) Tj ET
+BT /F1 10.5 Tf 54 311 Td (- outros servicos cobrados.) Tj ET
+BT /F1 10.5 Tf 54 288 Td (Mantenha os valores atualizados, pois eles ajudam no financeiro, recibos,) Tj ET
+BT /F1 10.5 Tf 54 271 Td (agendamentos e PDV quando aplicavel.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 246 Td (Financeiro) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 214 Td (A tela `Financeiro` acompanha entradas, vencimentos e recebimentos.) Tj ET
+BT /F1 10.5 Tf 54 189 Td (Boas praticas:) Tj ET
+BT /F1 10.5 Tf 54 164 Td (- revise a descricao antes de salvar;) Tj ET
+BT /F1 10.5 Tf 54 149 Td (- confira tutor e pet quando o registro estiver relacionado a atendimento;) Tj ET
+BT /F1 10.5 Tf 54 134 Td (- use filtros para localizar valores por data, status ou contexto;) Tj ET
+BT /F1 10.5 Tf 54 119 Td (- mantenha baixas e recebimentos em dia.) Tj ET
+BT /F1 10.5 Tf 54 96 Td (Quando uma venda do PDV e cancelada corretamente, o sistema deve manter a) Tj ET
+BT /F1 10.5 Tf 54 79 Td (consistencia da operacao e devolver o estoque conforme fluxo implementado.) Tj ET
+BT /F1 9 Tf 285 28 Td (2) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2509 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 780 Td (Recibos) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 748 Td (A tela `Recibos` permite consultar e emitir comprovantes.) Tj ET
+BT /F1 10.5 Tf 54 723 Td (Use quando precisar:) Tj ET
+BT /F1 10.5 Tf 54 698 Td (- comprovar pagamento;) Tj ET
+BT /F1 10.5 Tf 54 683 Td (- enviar informacoes ao tutor;) Tj ET
+BT /F1 10.5 Tf 54 668 Td (- revisar servicos prestados;) Tj ET
+BT /F1 10.5 Tf 54 653 Td (- conferir valores.) Tj ET
+BT /F1 10.5 Tf 54 630 Td (No fluxo com PIX, copie apenas o codigo copia e cola quando for enviar pelo) Tj ET
+BT /F1 10.5 Tf 54 613 Td (WhatsApp, sem misturar com textos explicativos.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 588 Td (PDV) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 556 Td (O PDV e usado para produtos, orcamentos e vendas.) Tj ET
+BT /F1 10.5 Tf 54 531 Td (Fluxo de produto:) Tj ET
+BT /F1 10.5 Tf 54 506 Td (- Cadastre o produto.) Tj ET
+BT /F1 10.5 Tf 54 491 Td (- Defina categoria.) Tj ET
+BT /F1 10.5 Tf 54 476 Td (- Use variacoes quando o mesmo produto tiver tamanho, cor ou sabor.) Tj ET
+BT /F1 10.5 Tf 54 461 Td (- Controle preco e estoque por variacao quando aplicavel.) Tj ET
+BT /F1 10.5 Tf 54 446 Td (- Use codigo interno do produto para facilitar busca e organizacao.) Tj ET
+BT /F1 10.5 Tf 54 423 Td (Fluxo de venda:) Tj ET
+BT /F1 10.5 Tf 54 398 Td (- Selecione produto e variacao correta.) Tj ET
+BT /F1 10.5 Tf 54 383 Td (- Informe quantidade.) Tj ET
+BT /F1 10.5 Tf 54 368 Td (- Confira subtotal e total.) Tj ET
+BT /F1 10.5 Tf 54 353 Td (- Finalize a venda.) Tj ET
+BT /F1 10.5 Tf 54 338 Td (- Se precisar excluir/cancelar venda, use o botao correto para devolver o) Tj ET
+BT /F1 10.5 Tf 54 323 Td (produto ao estoque.) Tj ET
+BT /F1 10.5 Tf 54 298 Td (Fluxo de compra:) Tj ET
+BT /F1 10.5 Tf 54 273 Td (- Registre fornecedor.) Tj ET
+BT /F1 10.5 Tf 54 258 Td (- Informe produtos comprados.) Tj ET
+BT /F1 10.5 Tf 54 243 Td (- Atualize custo, quantidade e estoque.) Tj ET
+BT /F1 10.5 Tf 54 228 Td (- Quando houver contas a pagar, vincule a compra ao financeiro.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 205 Td (Clinica) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 173 Td (A tela `Clinica` e o hub operacional da area veterinaria.) Tj ET
+BT /F1 10.5 Tf 54 148 Td (Ela inclui:) Tj ET
+BT /F1 10.5 Tf 54 123 Td (- selecao de tutor e pet para documentos e receitas;) Tj ET
+BT /F1 10.5 Tf 54 108 Td (- catalogo de medicamentos;) Tj ET
+BT /F1 10.5 Tf 54 93 Td (- fila de retornos;) Tj ET
+BT /F1 10.5 Tf 54 78 Td (- avisos de vacinas;) Tj ET
+BT /F1 9 Tf 285 28 Td (3) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 2396 >>
+stream
+BT /F1 10.5 Tf 54 780 Td (- filtros rapidos de atrasados, hoje e proximos dias;) Tj ET
+BT /F1 10.5 Tf 54 765 Td (- lista de pacientes;) Tj ET
+BT /F1 10.5 Tf 54 750 Td (- acesso direto ao prontuario do pet.) Tj ET
+BT /F2 13 Tf 54 727 Td (Prontuario do pet) Tj ET
+BT /F1 10.5 Tf 54 699 Td (Na ficha do pet, aba `Clinica`, registre consultas com:) Tj ET
+BT /F1 10.5 Tf 54 674 Td (- profissional;) Tj ET
+BT /F1 10.5 Tf 54 659 Td (- data;) Tj ET
+BT /F1 10.5 Tf 54 644 Td (- peso;) Tj ET
+BT /F1 10.5 Tf 54 629 Td (- temperatura;) Tj ET
+BT /F1 10.5 Tf 54 614 Td (- queixa principal;) Tj ET
+BT /F1 10.5 Tf 54 599 Td (- anamnese;) Tj ET
+BT /F1 10.5 Tf 54 584 Td (- alergias;) Tj ET
+BT /F1 10.5 Tf 54 569 Td (- medicamentos em uso;) Tj ET
+BT /F1 10.5 Tf 54 554 Td (- diagnostico;) Tj ET
+BT /F1 10.5 Tf 54 539 Td (- conduta;) Tj ET
+BT /F1 10.5 Tf 54 524 Td (- data de retorno.) Tj ET
+BT /F2 13 Tf 54 501 Td (Receituario) Tj ET
+BT /F1 10.5 Tf 54 473 Td (O receituario permite:) Tj ET
+BT /F1 10.5 Tf 54 448 Td (- cadastrar medicamentos industrializados ou manipulados;) Tj ET
+BT /F1 10.5 Tf 54 433 Td (- definir tipo de receita;) Tj ET
+BT /F1 10.5 Tf 54 418 Td (- informar via, quantidade, forma, posologia, duracao e instrucoes;) Tj ET
+BT /F1 10.5 Tf 54 403 Td (- agrupar itens em uma receita;) Tj ET
+BT /F1 10.5 Tf 54 388 Td (- emitir e imprimir;) Tj ET
+BT /F1 10.5 Tf 54 373 Td (- compartilhar receita emitida por link publico;) Tj ET
+BT /F1 10.5 Tf 54 358 Td (- reemitir link com historico.) Tj ET
+BT /F1 10.5 Tf 54 335 Td (Antes de imprimir ou compartilhar, o sistema valida pendencias importantes,) Tj ET
+BT /F1 10.5 Tf 54 318 Td (como CRMV, quantidade em receitas especiais e dados obrigatorios do item.) Tj ET
+BT /F2 13 Tf 54 293 Td (Catalogo da clinica) Tj ET
+BT /F1 10.5 Tf 54 265 Td (Use o `Catalogo da clinica` para cadastrar medicamentos usados no receituario.) Tj ET
+BT /F1 10.5 Tf 54 240 Td (Campos disponiveis:) Tj ET
+BT /F1 10.5 Tf 54 215 Td (- nome;) Tj ET
+BT /F1 10.5 Tf 54 200 Td (- principio ativo;) Tj ET
+BT /F1 10.5 Tf 54 185 Td (- farmacia padrao;) Tj ET
+BT /F1 10.5 Tf 54 170 Td (- forma padrao;) Tj ET
+BT /F1 10.5 Tf 54 155 Td (- via padrao;) Tj ET
+BT /F1 10.5 Tf 54 140 Td (- observacoes;) Tj ET
+BT /F1 10.5 Tf 54 125 Td (- favorito.) Tj ET
+BT /F1 10.5 Tf 54 102 Td (Arquivar um medicamento remove ele do catalogo ativo sem apagar o historico.) Tj ET
+BT /F1 9 Tf 285 28 Td (4) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 2062 >>
+stream
+BT /F2 13 Tf 54 780 Td (Vacinas) Tj ET
+BT /F1 10.5 Tf 54 752 Td (Registre vacinas na ficha do pet com:) Tj ET
+BT /F1 10.5 Tf 54 727 Td (- nome da vacina;) Tj ET
+BT /F1 10.5 Tf 54 712 Td (- fabricante;) Tj ET
+BT /F1 10.5 Tf 54 697 Td (- lote;) Tj ET
+BT /F1 10.5 Tf 54 682 Td (- data da aplicacao;) Tj ET
+BT /F1 10.5 Tf 54 667 Td (- proxima dose;) Tj ET
+BT /F1 10.5 Tf 54 652 Td (- profissional;) Tj ET
+BT /F1 10.5 Tf 54 637 Td (- observacoes.) Tj ET
+BT /F1 10.5 Tf 54 614 Td (A tela `Clinica` mostra vacinas atrasadas, vencendo hoje e proximas doses em) Tj ET
+BT /F1 10.5 Tf 54 597 Td (ate 30 dias.) Tj ET
+BT /F2 13 Tf 54 572 Td (Exames) Tj ET
+BT /F1 10.5 Tf 54 544 Td (Use a area de exames para registrar:) Tj ET
+BT /F1 10.5 Tf 54 519 Td (- exame solicitado;) Tj ET
+BT /F1 10.5 Tf 54 504 Td (- data de solicitacao;) Tj ET
+BT /F1 10.5 Tf 54 489 Td (- coleta;) Tj ET
+BT /F1 10.5 Tf 54 474 Td (- resultado;) Tj ET
+BT /F1 10.5 Tf 54 459 Td (- laboratorio;) Tj ET
+BT /F1 10.5 Tf 54 444 Td (- status;) Tj ET
+BT /F1 10.5 Tf 54 429 Td (- observacoes.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 406 Td (CRM) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 374 Td (O CRM ajuda a acompanhar contato com tutores.) Tj ET
+BT /F1 10.5 Tf 54 349 Td (Use para:) Tj ET
+BT /F1 10.5 Tf 54 324 Td (- registrar historico de contato;) Tj ET
+BT /F1 10.5 Tf 54 309 Td (- acompanhar proximas acoes;) Tj ET
+BT /F1 10.5 Tf 54 294 Td (- manter relacionamento com clientes;) Tj ET
+BT /F1 10.5 Tf 54 279 Td (- planejar retornos comerciais ou pos-atendimento.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 256 Td (BI) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 224 Td (O BI mostra indicadores visuais do negocio.) Tj ET
+BT /F1 10.5 Tf 54 199 Td (Use para acompanhar:) Tj ET
+BT /F1 10.5 Tf 54 174 Td (- receitas;) Tj ET
+BT /F1 10.5 Tf 54 159 Td (- comparativos;) Tj ET
+BT /F1 10.5 Tf 54 144 Td (- evolucao por periodo;) Tj ET
+BT /F1 10.5 Tf 54 129 Td (- desempenho geral da operacao.) Tj ET
+BT /F1 10.5 Tf 54 106 Td (Os graficos ajudam a enxergar tendencias sem depender apenas de totais.) Tj ET
+BT /F1 9 Tf 285 28 Td (5) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Length 2331 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 780 Td (Usuarios e permissoes) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 748 Td (A tela `Usuarios` permite controlar quem acessa cada modulo.) Tj ET
+BT /F1 10.5 Tf 54 723 Td (Boas praticas:) Tj ET
+BT /F1 10.5 Tf 54 698 Td (- crie um usuario por pessoa;) Tj ET
+BT /F1 10.5 Tf 54 683 Td (- evite compartilhar senha;) Tj ET
+BT /F1 10.5 Tf 54 668 Td (- libere apenas os modulos necessarios;) Tj ET
+BT /F1 10.5 Tf 54 653 Td (- revise permissoes quando alguem mudar de funcao;) Tj ET
+BT /F1 10.5 Tf 54 638 Td (- mantenha administradores restritos.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 615 Td (Configuracoes) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 583 Td (Use `Configuracoes` para manter dados da clinica e do profissional:) Tj ET
+BT /F1 10.5 Tf 54 558 Td (- nome da clinica;) Tj ET
+BT /F1 10.5 Tf 54 543 Td (- telefone;) Tj ET
+BT /F1 10.5 Tf 54 528 Td (- endereco;) Tj ET
+BT /F1 10.5 Tf 54 513 Td (- chave PIX;) Tj ET
+BT /F1 10.5 Tf 54 498 Td (- CRMV;) Tj ET
+BT /F1 10.5 Tf 54 483 Td (- UF do CRMV;) Tj ET
+BT /F1 10.5 Tf 54 468 Td (- registro MAPA quando aplicavel;) Tj ET
+BT /F1 10.5 Tf 54 453 Td (- texto de assinatura.) Tj ET
+BT /F1 10.5 Tf 54 430 Td (Esses dados podem aparecer em recibos, documentos e receitas.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 405 Td (Rotina recomendada) Tj ET
+0 0 0 rg
+BT /F2 13 Tf 54 373 Td (Inicio do dia) Tj ET
+BT /F1 10.5 Tf 54 345 Td (- Verifique agenda.) Tj ET
+BT /F1 10.5 Tf 54 330 Td (- Confira fila de retornos.) Tj ET
+BT /F1 10.5 Tf 54 315 Td (- Confira vacinas em atencao.) Tj ET
+BT /F1 10.5 Tf 54 300 Td (- Revise pendencias financeiras.) Tj ET
+BT /F2 13 Tf 54 277 Td (Durante atendimentos) Tj ET
+BT /F1 10.5 Tf 54 249 Td (- Atualize tutor e pet.) Tj ET
+BT /F1 10.5 Tf 54 234 Td (- Registre atendimento clinico.) Tj ET
+BT /F1 10.5 Tf 54 219 Td (- Emita receita ou documento quando necessario.) Tj ET
+BT /F1 10.5 Tf 54 204 Td (- Registre financeiro ou venda.) Tj ET
+BT /F1 10.5 Tf 54 189 Td (- Envie recibo ao tutor quando aplicavel.) Tj ET
+BT /F2 13 Tf 54 166 Td (Final do dia) Tj ET
+BT /F1 10.5 Tf 54 138 Td (- Confira vendas do PDV.) Tj ET
+BT /F1 10.5 Tf 54 123 Td (- Confira financeiro.) Tj ET
+BT /F1 10.5 Tf 54 108 Td (- Revise agendamentos pendentes.) Tj ET
+BT /F1 10.5 Tf 54 93 Td (- Confirme se nao ha registros incompletos.) Tj ET
+BT /F1 9 Tf 285 28 Td (6) Tj ET
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 13 0 R >>
+endobj
+15 0 obj
+<< /Length 567 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 780 Td (Cuidados importantes) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 748 Td (- Nao exclua dados sem necessidade.) Tj ET
+BT /F1 10.5 Tf 54 733 Td (- Sempre confira tutor e pet antes de salvar atendimento.) Tj ET
+BT /F1 10.5 Tf 54 718 Td (- Antes de enviar receita ou recibo, revise dados do tutor, pet e valores.) Tj ET
+BT /F1 10.5 Tf 54 703 Td (- Mantenha o catalogo de medicamentos organizado.) Tj ET
+BT /F1 10.5 Tf 54 688 Td (- Em caso de erro de permissao, confira o usuario e as regras do modulo.) Tj ET
+BT /F1 9 Tf 285 28 Td (7) Tj ET
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 17 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 15 0 R >>
+endobj
+17 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R] /Count 7 >>
+endobj
+18 0 obj
+<< /Type /Catalog /Pages 17 0 R >>
+endobj
+xref
+0 19
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000154 00000 n 
+0000002853 00000 n 
+0000002990 00000 n 
+0000005705 00000 n 
+0000005842 00000 n 
+0000008403 00000 n 
+0000008540 00000 n 
+0000010988 00000 n 
+0000011126 00000 n 
+0000013241 00000 n 
+0000013380 00000 n 
+0000015764 00000 n 
+0000015903 00000 n 
+0000016522 00000 n 
+0000016661 00000 n 
+0000016759 00000 n 
+trailer
+<< /Size 19 /Root 18 0 R >>
+startxref
+16810
+%%EOF

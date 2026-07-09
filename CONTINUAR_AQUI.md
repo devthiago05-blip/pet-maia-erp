@@ -2,7 +2,7 @@
 
 - Atualizado em: 09/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(clinica): adicionar catalogo de medicamentos`
+  Ultimo commit funcional: `docs: adicionar manuais do pet maia erp`
 
 ## Estado confirmado
 
@@ -13,6 +13,39 @@
 - Supabase usado pelo projeto: `umlwimsjxbhrrjhrofmd`.
 - `015_clinical_attachments.sql`: tabela e bucket ja existem no Supabase.
 - A tabela `pet_vaccinations` estava com zero registros na ultima verificacao.
+
+## Bloco em andamento - manuais em PDF
+
+Ultima tarefa concluida:
+
+- Criado manual de uso do PET MAIA ERP em Markdown e PDF.
+- Criado documento de proximos passos em Markdown e PDF.
+- Criado script reproduzivel para gerar novamente os PDFs a partir dos
+  arquivos Markdown.
+
+Arquivos criados:
+
+- `docs/MANUAL_USO_PET_MAIA_ERP.md`
+- `docs/MANUAL_USO_PET_MAIA_ERP.pdf`
+- `docs/PROXIMOS_PASSOS_PET_MAIA_ERP.md`
+- `docs/PROXIMOS_PASSOS_PET_MAIA_ERP.pdf`
+- `docs/generate-pdfs.mjs`
+
+Validacoes:
+
+- PDFs gerados em `docs/`.
+- Cabecalho dos dois PDFs confirmado como `%PDF-1.4`.
+- Pendente apenas commit e push deste bloco.
+
+Comandos necessarios para continuar:
+
+```bash
+node docs/generate-pdfs.mjs
+git diff --check
+git add docs/MANUAL_USO_PET_MAIA_ERP.md docs/MANUAL_USO_PET_MAIA_ERP.pdf docs/PROXIMOS_PASSOS_PET_MAIA_ERP.md docs/PROXIMOS_PASSOS_PET_MAIA_ERP.pdf docs/generate-pdfs.mjs CONTINUAR_AQUI.md
+git commit -m "docs: adicionar manuais do pet maia erp"
+git push origin main
+```
 
 ## Ultima tarefa concluida
 

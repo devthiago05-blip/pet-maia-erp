@@ -1,0 +1,268 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Length 2357 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 22 Tf 54 780 Td (Proximos passos - PET MAIA ERP) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 734 Td (Atualizado em: 09/07/2026) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 709 Td (Situacao atual) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 677 Td (O PET MAIA ERP ja possui uma base funcional ampla:) Tj ET
+BT /F1 10.5 Tf 54 652 Td (- Dashboard;) Tj ET
+BT /F1 10.5 Tf 54 637 Td (- Tutores;) Tj ET
+BT /F1 10.5 Tf 54 622 Td (- Pets;) Tj ET
+BT /F1 10.5 Tf 54 607 Td (- Agenda;) Tj ET
+BT /F1 10.5 Tf 54 592 Td (- Servicos;) Tj ET
+BT /F1 10.5 Tf 54 577 Td (- Financeiro;) Tj ET
+BT /F1 10.5 Tf 54 562 Td (- Recibos;) Tj ET
+BT /F1 10.5 Tf 54 547 Td (- PDV;) Tj ET
+BT /F1 10.5 Tf 54 532 Td (- Clinica;) Tj ET
+BT /F1 10.5 Tf 54 517 Td (- CRM;) Tj ET
+BT /F1 10.5 Tf 54 502 Td (- BI;) Tj ET
+BT /F1 10.5 Tf 54 487 Td (- Usuarios e permissoes;) Tj ET
+BT /F1 10.5 Tf 54 472 Td (- Configuracoes;) Tj ET
+BT /F1 10.5 Tf 54 457 Td (- Supabase;) Tj ET
+BT /F1 10.5 Tf 54 442 Td (- Vercel.) Tj ET
+BT /F1 10.5 Tf 54 419 Td (A Clinica esta bem encaminhada no fluxo principal: prontuario, receitas,) Tj ET
+BT /F1 10.5 Tf 54 402 Td (catalogo de medicamentos, modelos de posologia, documentos, vacinas, exames,) Tj ET
+BT /F1 10.5 Tf 54 385 Td (retornos e filas operacionais.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 360 Td (Prioridade 1 - Revisar seguranca e RLS) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 328 Td (Objetivo: garantir que usuarios autenticados vejam apenas o que devem ver.) Tj ET
+BT /F1 10.5 Tf 54 303 Td (Revisar principalmente:) Tj ET
+BT /F1 10.5 Tf 54 278 Td (- `tutors`;) Tj ET
+BT /F1 10.5 Tf 54 263 Td (- `pets`;) Tj ET
+BT /F1 10.5 Tf 54 248 Td (- `appointments`;) Tj ET
+BT /F1 10.5 Tf 54 233 Td (- `services`;) Tj ET
+BT /F1 10.5 Tf 54 218 Td (- `financial_entries`;) Tj ET
+BT /F1 10.5 Tf 54 203 Td (- tabelas do PDV;) Tj ET
+BT /F1 10.5 Tf 54 188 Td (- tabelas clinicas;) Tj ET
+BT /F1 10.5 Tf 54 173 Td (- tabelas de CRM e BI quando aplicavel.) Tj ET
+BT /F1 10.5 Tf 54 150 Td (Regra recomendada:) Tj ET
+BT /F1 10.5 Tf 54 125 Td (- nao depender apenas de `to authenticated`;) Tj ET
+BT /F1 10.5 Tf 54 110 Td (- usar politicas ligadas a `public.current_user_can_access\\\('<modulo>'\\\)`;) Tj ET
+BT /F1 10.5 Tf 54 95 Td (- confirmar que inserts, updates e deletes possuem `using` e `with check`) Tj ET
+BT /F1 10.5 Tf 54 80 Td (coerentes.) Tj ET
+BT /F1 9 Tf 285 28 Td (1) Tj ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Length 2323 >>
+stream
+BT /F1 10.5 Tf 54 780 Td (Entrega esperada:) Tj ET
+BT /F1 10.5 Tf 54 755 Td (- scripts SQL idempotentes;) Tj ET
+BT /F1 10.5 Tf 54 740 Td (- teste por usuario com permissao diferente;) Tj ET
+BT /F1 10.5 Tf 54 725 Td (- documento com tabelas revisadas.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 702 Td (Prioridade 2 - Fechamento do PDV) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 670 Td (Objetivo: deixar o PDV pronto para operacao diaria completa.) Tj ET
+BT /F1 10.5 Tf 54 645 Td (Implementar:) Tj ET
+BT /F1 10.5 Tf 54 620 Td (- abertura de caixa;) Tj ET
+BT /F1 10.5 Tf 54 605 Td (- fechamento de caixa;) Tj ET
+BT /F1 10.5 Tf 54 590 Td (- sangria;) Tj ET
+BT /F1 10.5 Tf 54 575 Td (- suprimento;) Tj ET
+BT /F1 10.5 Tf 54 560 Td (- pagamentos divididos;) Tj ET
+BT /F1 10.5 Tf 54 545 Td (- devolucao parcial;) Tj ET
+BT /F1 10.5 Tf 54 530 Td (- historico detalhado de vendas;) Tj ET
+BT /F1 10.5 Tf 54 515 Td (- integracao de compras com contas a pagar;) Tj ET
+BT /F1 10.5 Tf 54 500 Td (- relatorio de estoque e giro de produtos.) Tj ET
+BT /F1 10.5 Tf 54 477 Td (Entrega esperada:) Tj ET
+BT /F1 10.5 Tf 54 452 Td (- caixa por usuario e data;) Tj ET
+BT /F1 10.5 Tf 54 437 Td (- conciliacao simples;) Tj ET
+BT /F1 10.5 Tf 54 422 Td (- logs de cancelamento;) Tj ET
+BT /F1 10.5 Tf 54 407 Td (- estoque consistente.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 384 Td (Prioridade 3 - Documentos clinicos administraveis) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 352 Td (Objetivo: permitir que modelos de documentos sejam gerenciados sem alterar) Tj ET
+BT /F1 10.5 Tf 54 335 Td (codigo.) Tj ET
+BT /F1 10.5 Tf 54 310 Td (Hoje o sistema ja possui documentos clinicos, mas os modelos podem evoluir para) Tj ET
+BT /F1 10.5 Tf 54 293 Td (tabela no Supabase.) Tj ET
+BT /F1 10.5 Tf 54 268 Td (Criar:) Tj ET
+BT /F1 10.5 Tf 54 243 Td (- tabela `clinical_document_templates`;) Tj ET
+BT /F1 10.5 Tf 54 228 Td (- campos: tipo, titulo, conteudo, ativo, ordem;) Tj ET
+BT /F1 10.5 Tf 54 213 Td (- tela de cadastro/edicao;) Tj ET
+BT /F1 10.5 Tf 54 198 Td (- uso dos modelos na modal de documento clinico.) Tj ET
+BT /F1 10.5 Tf 54 175 Td (Entrega esperada:) Tj ET
+BT /F1 10.5 Tf 54 150 Td (- modelos editaveis pela clinica;) Tj ET
+BT /F1 10.5 Tf 54 135 Td (- documentos padronizados;) Tj ET
+BT /F1 10.5 Tf 54 120 Td (- menos codigo fixo.) Tj ET
+BT /F1 9 Tf 285 28 Td (2) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2577 >>
+stream
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 780 Td (Prioridade 4 - Clinica mais proxima do VetSmart) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 748 Td (Objetivo: aproximar a profundidade clinica sem copiar identidade visual externa.) Tj ET
+BT /F1 10.5 Tf 54 723 Td (Melhorias possiveis:) Tj ET
+BT /F1 10.5 Tf 54 698 Td (- catalogo clinico com principios ativos mais detalhados;) Tj ET
+BT /F1 10.5 Tf 54 683 Td (- alertas por especie;) Tj ET
+BT /F1 10.5 Tf 54 668 Td (- observacoes e contraindicacoes cadastradas pela propria clinica;) Tj ET
+BT /F1 10.5 Tf 54 653 Td (- protocolos internos;) Tj ET
+BT /F1 10.5 Tf 54 638 Td (- modelos de posologia por especie;) Tj ET
+BT /F1 10.5 Tf 54 623 Td (- impressao de documentos mais completa;) Tj ET
+BT /F1 10.5 Tf 54 608 Td (- area de anexos mais visivel;) Tj ET
+BT /F1 10.5 Tf 54 593 Td (- melhor painel resumo do pet;) Tj ET
+BT /F1 10.5 Tf 54 578 Td (- filtros mais avancados no prontuario.) Tj ET
+BT /F1 10.5 Tf 54 555 Td (Entrega esperada:) Tj ET
+BT /F1 10.5 Tf 54 530 Td (- fluxo mais denso e profissional;) Tj ET
+BT /F1 10.5 Tf 54 515 Td (- menos digitacao repetida;) Tj ET
+BT /F1 10.5 Tf 54 500 Td (- melhor apoio ao veterinario.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 477 Td (Prioridade 5 - Comunicacao com tutor) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 445 Td (Objetivo: facilitar comunicacao pos-atendimento.) Tj ET
+BT /F1 10.5 Tf 54 420 Td (Implementar:) Tj ET
+BT /F1 10.5 Tf 54 395 Td (- envio facilitado por WhatsApp;) Tj ET
+BT /F1 10.5 Tf 54 380 Td (- texto pronto para recibo;) Tj ET
+BT /F1 10.5 Tf 54 365 Td (- texto pronto para receita;) Tj ET
+BT /F1 10.5 Tf 54 350 Td (- aviso de proxima vacina;) Tj ET
+BT /F1 10.5 Tf 54 335 Td (- aviso de retorno;) Tj ET
+BT /F1 10.5 Tf 54 320 Td (- lembretes de atraso.) Tj ET
+BT /F1 10.5 Tf 54 297 Td (Observacao:) Tj ET
+BT /F1 10.5 Tf 54 272 Td (- antes de automatizar envio real, definir ferramenta oficial e custo;) Tj ET
+BT /F1 10.5 Tf 54 257 Td (- manter LGPD e consentimento do tutor em mente.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 234 Td (Prioridade 6 - BI mais completo) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 202 Td (Objetivo: transformar dados operacionais em decisao.) Tj ET
+BT /F1 10.5 Tf 54 177 Td (Adicionar indicadores:) Tj ET
+BT /F1 10.5 Tf 54 152 Td (- faturamento por periodo;) Tj ET
+BT /F1 10.5 Tf 54 137 Td (- servicos mais vendidos;) Tj ET
+BT /F1 10.5 Tf 54 122 Td (- produtos mais vendidos;) Tj ET
+BT /F1 10.5 Tf 54 107 Td (- ticket medio;) Tj ET
+BT /F1 10.5 Tf 54 92 Td (- tutores recorrentes;) Tj ET
+BT /F1 10.5 Tf 54 77 Td (- pets mais atendidos;) Tj ET
+BT /F1 9 Tf 285 28 Td (3) Tj ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Length 2355 >>
+stream
+BT /F1 10.5 Tf 54 780 Td (- vacinas previstas;) Tj ET
+BT /F1 10.5 Tf 54 765 Td (- retornos atrasados;) Tj ET
+BT /F1 10.5 Tf 54 750 Td (- inadimplencia;) Tj ET
+BT /F1 10.5 Tf 54 735 Td (- estoque baixo.) Tj ET
+BT /F1 10.5 Tf 54 712 Td (Entrega esperada:) Tj ET
+BT /F1 10.5 Tf 54 687 Td (- BI visual;) Tj ET
+BT /F1 10.5 Tf 54 672 Td (- filtros por periodo;) Tj ET
+BT /F1 10.5 Tf 54 657 Td (- graficos claros;) Tj ET
+BT /F1 10.5 Tf 54 642 Td (- exportacao futura.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 619 Td (Prioridade 7 - Testes e qualidade) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 587 Td (Objetivo: reduzir risco a cada nova alteracao.) Tj ET
+BT /F1 10.5 Tf 54 562 Td (Implementar:) Tj ET
+BT /F1 10.5 Tf 54 537 Td (- testes dos services principais;) Tj ET
+BT /F1 10.5 Tf 54 522 Td (- testes de regras financeiras;) Tj ET
+BT /F1 10.5 Tf 54 507 Td (- testes do cancelamento de venda;) Tj ET
+BT /F1 10.5 Tf 54 492 Td (- testes de validacao de receita;) Tj ET
+BT /F1 10.5 Tf 54 477 Td (- testes de permissoes quando possivel;) Tj ET
+BT /F1 10.5 Tf 54 462 Td (- checklist manual de producao.) Tj ET
+BT /F1 10.5 Tf 54 439 Td (Comandos atuais de validacao:) Tj ET
+BT /F1 10.5 Tf 54 406 Td (npm.cmd run lint) Tj ET
+BT /F1 10.5 Tf 54 389 Td (npm.cmd run build) Tj ET
+BT /F1 10.5 Tf 54 372 Td (git diff --check) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 339 Td (Prioridade 8 - Backup e operacao) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 307 Td (Objetivo: proteger dados da clinica.) Tj ET
+BT /F1 10.5 Tf 54 282 Td (Recomendar:) Tj ET
+BT /F1 10.5 Tf 54 257 Td (- rotina de backup Supabase;) Tj ET
+BT /F1 10.5 Tf 54 242 Td (- exportacao periodica de dados criticos;) Tj ET
+BT /F1 10.5 Tf 54 227 Td (- controle de usuarios administradores;) Tj ET
+BT /F1 10.5 Tf 54 212 Td (- revisao de logs;) Tj ET
+BT /F1 10.5 Tf 54 197 Td (- documentacao de recuperacao.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 174 Td (Ordem sugerida de execucao) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 142 Td (- Revisar RLS e permissoes antigas.) Tj ET
+BT /F1 10.5 Tf 54 127 Td (- Fechar PDV com caixa e pagamentos.) Tj ET
+BT /F1 10.5 Tf 54 112 Td (- Transformar modelos de documentos clinicos em catalogo administravel.) Tj ET
+BT /F1 10.5 Tf 54 97 Td (- Evoluir Clinica com protocolos e catalogo clinico avancado.) Tj ET
+BT /F1 10.5 Tf 54 82 Td (- Criar comunicacoes com tutor.) Tj ET
+BT /F1 9 Tf 285 28 Td (4) Tj ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 9 0 R >>
+endobj
+11 0 obj
+<< /Length 1254 >>
+stream
+BT /F1 10.5 Tf 54 780 Td (- Expandir BI.) Tj ET
+BT /F1 10.5 Tf 54 765 Td (- Adicionar testes.) Tj ET
+BT /F1 10.5 Tf 54 750 Td (- Fortalecer backup e rotina operacional.) Tj ET
+0.54 0.05 0.92 rg
+BT /F2 16 Tf 54 727 Td (Status comparado ao VetSmart) Tj ET
+0 0 0 rg
+BT /F1 10.5 Tf 54 695 Td (O PET MAIA ERP esta parecido com o VetSmart no fluxo principal de Clinica:) Tj ET
+BT /F1 10.5 Tf 54 670 Td (- prontuario por pet;) Tj ET
+BT /F1 10.5 Tf 54 655 Td (- receitas;) Tj ET
+BT /F1 10.5 Tf 54 640 Td (- medicamentos;) Tj ET
+BT /F1 10.5 Tf 54 625 Td (- modelos de posologia;) Tj ET
+BT /F1 10.5 Tf 54 610 Td (- documentos;) Tj ET
+BT /F1 10.5 Tf 54 595 Td (- exames;) Tj ET
+BT /F1 10.5 Tf 54 580 Td (- vacinas;) Tj ET
+BT /F1 10.5 Tf 54 565 Td (- retornos;) Tj ET
+BT /F1 10.5 Tf 54 550 Td (- filas de acompanhamento.) Tj ET
+BT /F1 10.5 Tf 54 527 Td (Ainda nao esta igual em profundidade. O VetSmart possui recursos mais completos) Tj ET
+BT /F1 10.5 Tf 54 510 Td (de catalogo medico, referencias, protocolos, automacoes e conteudo clinico.) Tj ET
+BT /F1 10.5 Tf 54 485 Td (Para a realidade atual do PET MAIA, o sistema esta funcional e pronto para) Tj ET
+BT /F1 10.5 Tf 54 468 Td (evoluir por blocos sem perder estabilidade.) Tj ET
+BT /F1 9 Tf 285 28 Td (5) Tj ET
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 13 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 11 0 R >>
+endobj
+13 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R 10 0 R 12 0 R] /Count 5 >>
+endobj
+14 0 obj
+<< /Type /Catalog /Pages 13 0 R >>
+endobj
+xref
+0 15
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000000154 00000 n 
+0000002563 00000 n 
+0000002700 00000 n 
+0000005075 00000 n 
+0000005212 00000 n 
+0000007841 00000 n 
+0000007978 00000 n 
+0000010385 00000 n 
+0000010523 00000 n 
+0000011830 00000 n 
+0000011969 00000 n 
+0000012053 00000 n 
+trailer
+<< /Size 15 /Root 14 0 R >>
+startxref
+12104
+%%EOF

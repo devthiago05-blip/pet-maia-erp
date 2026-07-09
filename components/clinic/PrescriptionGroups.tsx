@@ -1,6 +1,6 @@
 "use client";
 
-import { FileCheck2, FileClock } from "lucide-react";
+import { AlertTriangle, FileCheck2, FileClock } from "lucide-react";
 
 import { formatDate } from "@/lib/formatters";
 import type {
@@ -16,6 +16,12 @@ import { PrescriptionDeleteButton } from "./PrescriptionDeleteButton";
 import { PrescriptionDocumentModal } from "./PrescriptionDocumentModal";
 import { PrescriptionModal } from "./PrescriptionModal";
 import { PrescriptionShareButton } from "./PrescriptionShareButton";
+
+const prescriptionTypeLabels = {
+  simples: "Simples",
+  controle_especial: "Controle especial",
+  antimicrobiano: "Antimicrobiano",
+};
 
 export function PrescriptionGroups({
   pet,
@@ -127,6 +133,10 @@ function PrescriptionDocumentCard({
 }) {
   const items = document.clinical_prescriptions || [];
   const isDraft = document.status === "rascunho";
+  const prescriptionTypes = Array.from(
+    new Set(items.map((item) => item.prescription_type)),
+  );
+  const pendingChecks = getPrescriptionDocumentPendingChecks(document, items);
 
   return (
     <article className="overflow-hidden rounded-lg border bg-white">
@@ -149,6 +159,22 @@ function PrescriptionDocumentCard({
                   : "Receita emitida"}
               {` · ${items.length} ${items.length === 1 ? "item" : "itens"}`}
             </p>
+            {prescriptionTypes.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {prescriptionTypes.map((type) => (
+                  <span
+                    key={type}
+                    className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      type === "simples"
+                        ? "bg-slate-200 text-slate-700"
+                        : "bg-purple-100 text-[#8A0EEA]"
+                    }`}
+                  >
+                    {prescriptionTypeLabels[type]}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </div>
         {items.length > 0 && document.status !== "cancelada" && (
@@ -186,6 +212,22 @@ function PrescriptionDocumentCard({
         </p>
       )}
 
+      {pendingChecks.length > 0 && (
+        <div className="border-t border-amber-100 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 shrink-0" size={16} />
+            <div>
+              <p className="font-semibold">Pendencias para revisar</p>
+              <ul className="mt-1 list-disc space-y-1 pl-4 text-xs">
+                {pendingChecks.map((check) => (
+                  <li key={check}>{check}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       {document.general_instructions && (
         <div className="border-t bg-purple-50/50 p-4 text-sm">
           <span className="font-semibold">Instruções gerais: </span>
@@ -196,6 +238,58 @@ function PrescriptionDocumentCard({
       )}
     </article>
   );
+}
+
+function getPrescriptionDocumentPendingChecks(
+  document: ClinicalPrescriptionDocument,
+  items: ClinicalPrescription[],
+) {
+  const checks = new Set<string>();
+
+  if (items.length === 0) {
+    checks.add("Inclua pelo menos um item antes de emitir.");
+  }
+
+  if (document.status === "emitida" && !document.professional_crmv?.trim()) {
+    checks.add("Receita emitida sem CRMV salvo no historico.");
+  }
+
+  if (
+    document.status === "emitida" &&
+    document.professional_crmv?.trim() &&
+    !document.professional_crmv_state?.trim()
+  ) {
+    checks.add("UF do CRMV nao foi salva no historico da emissao.");
+  }
+
+  items.forEach((item) => {
+    if (
+      item.prescription_type !== "simples" &&
+      (item.quantity == null || !item.quantity_unit?.trim())
+    ) {
+      checks.add(
+        "Receitas especiais ou antimicrobianas devem ter quantidade estruturada.",
+      );
+    }
+
+    if (item.item_type === "manipulado") {
+      const hasFormulaComponents =
+        item.prescription_formula_components?.some(
+          (component) =>
+            component.component_name?.trim() && component.concentration?.trim(),
+        ) || false;
+
+      if (!item.composition?.trim() && !hasFormulaComponents) {
+        checks.add("Formula manipulada sem composicao estruturada.");
+      }
+    }
+
+    if (!item.administration_route?.trim()) {
+      checks.add("Existe item sem via de administracao.");
+    }
+  });
+
+  return Array.from(checks);
 }
 
 function PrescriptionItem({

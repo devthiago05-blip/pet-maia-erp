@@ -140,6 +140,26 @@
 - Proximo bloco: reemissao auditada, rotacao de link e regras documentais por
   tipo de receita.
 
+### Regras documentais sem novo SQL
+
+- Bloco em validacao em 08/07/2026.
+- Compartilhamento de receita agora confere se o documento esta emitido e se
+  possui profissional/CRMV antes de gerar ou copiar link publico.
+- Ao emitir uma receita, o servico reforca o CRMV atual do perfil no historico
+  do documento, junto com UF do CRMV, MAPA e assinatura ja existentes.
+- O card do receituario exibe etiquetas de tipo da receita: simples, controle
+  especial e antimicrobiano.
+- O card tambem mostra pendencias para revisao quando faltar item, CRMV/UF no
+  historico, quantidade estruturada em receitas especiais, composicao de formula
+  manipulada ou via de administracao.
+- Arquivos alterados neste bloco:
+  - `components/clinic/PrescriptionGroups.tsx`
+  - `components/clinic/PrescriptionShareButton.tsx`
+  - `services/clinical.ts`
+  - `CONTINUAR_AQUI.md`
+- Proximo bloco recomendado: criar SQL para reemissao auditada e rotacao de
+  token de compartilhamento.
+
 ### Comandos para continuar
 
 ```powershell

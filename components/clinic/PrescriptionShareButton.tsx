@@ -15,8 +15,21 @@ export function PrescriptionShareButton({
   const [enabled, setEnabled] = useState(document.share_enabled);
   const [token, setToken] = useState(document.share_token || "");
   const [saving, setSaving] = useState(false);
+  const missingProfessionalData =
+    !document.professional_name?.trim() || !document.professional_crmv?.trim();
+  const disabledReason =
+    document.status !== "emitida"
+      ? "Emita a receita antes de compartilhar"
+      : missingProfessionalData
+        ? "Informe o profissional e CRMV antes de compartilhar"
+        : "";
 
   async function enableAndCopy() {
+    if (disabledReason) {
+      toast.error(disabledReason);
+      return;
+    }
+
     setSaving(true);
     let currentToken = token;
 
@@ -63,7 +76,8 @@ export function PrescriptionShareButton({
       <button
         type="button"
         onClick={enableAndCopy}
-        disabled={saving}
+        disabled={saving || Boolean(disabledReason)}
+        title={disabledReason || undefined}
         className="flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium text-[#8A0EEA] disabled:opacity-50"
       >
         <Link size={16} />

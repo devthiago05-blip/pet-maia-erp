@@ -280,6 +280,7 @@ export async function updateClinicalPrescriptionDocument({
 
   if (status === "emitida") {
     const professional = await getCurrentProfessional();
+    values.professional_crmv = professional.crmv;
     values.professional_crmv_state = professional.crmvState;
     values.professional_mapa_registration = professional.mapaRegistration;
     values.signature_text = professional.signatureText;

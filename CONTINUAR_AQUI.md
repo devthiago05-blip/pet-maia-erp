@@ -1,8 +1,8 @@
 # Continuar Aqui
 
-- Atualizado em: 09/07/2026
+- Atualizado em: 10/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `docs: adicionar manuais do pet maia erp`
+  Ultimo commit funcional: `fix(grooming): remover estados nao utilizados`
 
 ## Estado confirmado
 
@@ -13,6 +13,64 @@
 - Supabase usado pelo projeto: `umlwimsjxbhrrjhrofmd`.
 - `015_clinical_attachments.sql`: tabela e bucket ja existem no Supabase.
 - A tabela `pet_vaccinations` estava com zero registros na ultima verificacao.
+
+## Bloco em andamento - Grooming e insumos
+
+Ultima tarefa concluida:
+
+- Corrigidos warnings de lint em
+  `components/grooming/GroomingSuppliesManager.tsx`.
+- Removidos estados declarados e nao utilizados:
+  - `movementToDelete`;
+  - `setMovementToDelete`;
+  - `deletingMovement`;
+  - `setDeletingMovement`.
+- Formatados os arquivos do modulo de grooming/insumos.
+- O build atual reconhece 21 rotas, incluindo:
+  - `/services/insumos`;
+  - `/services/insumos/entrada`.
+
+Arquivos no bloco atual:
+
+- `app/page.tsx`
+- `app/services/page.tsx`
+- `app/services/insumos/page.tsx`
+- `app/services/insumos/entrada/page.tsx`
+- `components/grooming/GroomingSuppliesManager.tsx`
+- `services/grooming.ts`
+- `types/domain.ts`
+- `supabase/sql/023_grooming_supplies.sql`
+- `supabase/sql/024_legacy_rls_audit.sql`
+- `supabase/sql/025_grooming_financial_rls.sql`
+- `supabase/sql/026_grooming_supply_invoice_reference.sql`
+- `supabase/sql/027_delete_grooming_supply_movement.sql`
+- `CONTINUAR_AQUI.md`
+
+Validacoes:
+
+- `npm.cmd run lint`: aprovado sem warnings.
+- `npm.cmd run build`: aprovado com 21 rotas.
+- `git diff --check`: aprovado.
+
+Proximos cuidados:
+
+- Confirmar se os SQLs `023` a `027` ja foram executados no Supabase antes de
+  usar o modulo em producao.
+- Se ainda nao foram executados, enviar os scripts ao usuario para copiar e
+  colar no SQL Editor.
+- Depois de confirmar SQL, testar cadastro de insumo, entrada/saida,
+  vencimento, alerta e diaria.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add .
+git commit -m "fix(grooming): remover estados nao utilizados"
+git push origin main
+```
 
 ## Bloco em andamento - manuais em PDF
 

@@ -578,3 +578,103 @@ export interface UpdateFinancialEntryInput {
   tutorId?: string;
   petId?: string;
 }
+
+export type GroomingSupplyMovementType =
+  | "entrada"
+  | "saida"
+  | "descarte"
+  | "vencido"
+  | "perda"
+  | "ajuste_positivo"
+  | "ajuste_negativo";
+
+export type GroomingPaymentStatus = "Pago" | "Pendente";
+
+export interface GroomingSupply {
+  id: number;
+  name: string;
+  category: string;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number;
+  supplier?: string;
+  notes?: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroomingSupplyInput {
+  id?: number;
+  name: string;
+  category: string;
+  unit: string;
+  minimumStock: number;
+  supplier?: string;
+  notes?: string;
+  active?: boolean;
+}
+
+export interface GroomingSupplyMovement {
+  id: number;
+  supply_id: number;
+  movement_type: GroomingSupplyMovementType;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  supplier?: string;
+  movement_date: string;
+  expiration_date?: string;
+  payment_status: GroomingPaymentStatus;
+  payment_method?: string;
+  due_date?: string;
+  document_number?: string;
+  purchase_group_id?: string;
+  financial_entry_id?: number;
+  notes?: string;
+  created_at: string;
+  grooming_supplies?: {
+    name: string;
+    unit: string;
+    category: string;
+  };
+}
+
+export interface GroomingSupplyMovementInput {
+  supplyId: number;
+  movementType: GroomingSupplyMovementType;
+  quantity: number;
+  unitCost: number;
+  supplier?: string;
+  movementDate: string;
+  expirationDate?: string;
+  paymentStatus: GroomingPaymentStatus;
+  paymentMethod?: string;
+  dueDate?: string;
+  notes?: string;
+}
+
+export interface GroomerDailyPayment {
+  id: number;
+  professional_name: string;
+  work_date: string;
+  payment_type: "diaria" | "comissao" | "extra";
+  amount: number;
+  payment_status: GroomingPaymentStatus;
+  payment_method?: string;
+  due_date?: string;
+  financial_entry_id?: number;
+  notes?: string;
+  created_at: string;
+}
+
+export interface GroomerDailyPaymentInput {
+  professionalName: string;
+  workDate: string;
+  paymentType: "diaria" | "comissao" | "extra";
+  amount: number;
+  paymentStatus: GroomingPaymentStatus;
+  paymentMethod?: string;
+  dueDate?: string;
+  notes?: string;
+}

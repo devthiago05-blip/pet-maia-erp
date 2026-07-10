@@ -1,5 +1,6 @@
-"use client";
+﻿"use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -102,11 +103,20 @@ export default function ServicesPage() {
               </p>
             </div>
 
-            <ServiceModal
-              triggerLabel="Novo Serviço"
-              title="Novo Serviço"
-              onSave={(service) => handleCreateService(service)}
-            />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Link
+                href="/services/insumos"
+                className="inline-flex items-center justify-center rounded-xl border border-[#8A0EEA]/20 bg-purple-50 px-4 py-2 font-medium text-[#8A0EEA] hover:bg-purple-100"
+              >
+                Insumos do banho e tosa
+              </Link>
+
+              <ServiceModal
+                triggerLabel="Novo Serviço"
+                title="Novo Serviço"
+                onSave={(service) => handleCreateService(service)}
+              />
+            </div>
           </div>
 
           {loadError && (

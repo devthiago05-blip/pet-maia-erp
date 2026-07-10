@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   CalendarDays,
   MessageCircle,
   PawPrint,
@@ -25,7 +26,14 @@ import {
   fetchWeeklyPaidRevenue,
   fetchWeeklyPendingRevenue,
 } from "@/services/financial";
-import type { Appointment, FinancialEntry } from "@/types/domain";
+import { fetchGroomingSupplyAlerts } from "@/services/grooming";
+import type {
+  Appointment,
+  FinancialEntry,
+  GroomerDailyPayment,
+  GroomingSupply,
+  GroomingSupplyMovement,
+} from "@/types/domain";
 
 type DashboardDetail =
   | "pets"
@@ -35,7 +43,8 @@ type DashboardDetail =
   | "pendingAppointments"
   | "pendingRevenue"
   | "paidRevenue"
-  | "bathReminders";
+  | "bathReminders"
+  | "groomingAlerts";
 
 interface BathReminder {
   petId: number;
@@ -167,6 +176,15 @@ export default function HomePage() {
     FinancialEntry[]
   >([]);
   const [bathReminders, setBathReminders] = useState<BathReminder[]>([]);
+  const [lowStockSupplies, setLowStockSupplies] = useState<GroomingSupply[]>(
+    [],
+  );
+  const [pendingSupplyPayments, setPendingSupplyPayments] = useState<
+    GroomingSupplyMovement[]
+  >([]);
+  const [pendingGroomerPayments, setPendingGroomerPayments] = useState<
+    GroomerDailyPayment[]
+  >([]);
 
   const [activeDetail, setActiveDetail] = useState<DashboardDetail | null>(
     null,
@@ -186,6 +204,7 @@ export default function HomePage() {
           pending,
           petsForReminders,
           finalizedBathAppointments,
+          groomingAlerts,
         ] = await Promise.all([
           fetchDashboardCounts(),
           fetchRecentAppointments(),
@@ -197,6 +216,7 @@ export default function HomePage() {
           fetchWeeklyAppointmentsByStatus("Agendado"),
           fetchPetsForBathReminders(),
           fetchFinalizedBathAppointmentsForReminders(),
+          fetchGroomingSupplyAlerts(),
         ]);
 
         const weeklyAppointmentsData = weeklyAppointments.data || [];
@@ -238,6 +258,14 @@ export default function HomePage() {
             finalizedBathAppointments.data || [],
           ),
         );
+
+        if (!groomingAlerts.error && groomingAlerts.data) {
+          setLowStockSupplies(groomingAlerts.data.lowStockSupplies || []);
+          setPendingSupplyPayments(groomingAlerts.data.pendingPayables || []);
+          setPendingGroomerPayments(
+            groomingAlerts.data.pendingGroomerPayments || [],
+          );
+        }
       } catch (error) {
         console.error(error);
       }
@@ -406,6 +434,76 @@ Equipe Pet Maia Banho e Tosa.`;
       </div>
     );
   }
+  function renderGroomingAlertsList() {
+    const hasAlerts =
+      lowStockSupplies.length > 0 ||
+      pendingSupplyPayments.length > 0 ||
+      pendingGroomerPayments.length > 0;
+
+    if (!hasAlerts) {
+      return (
+        <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+          Nenhum alerta de insumo no momento.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {lowStockSupplies.length > 0 && (
+          <DashboardAlertSection title="Estoque baixo">
+            {lowStockSupplies.map((supply) => (
+              <DashboardAlertItem
+                key={supply.id}
+                title={supply.name}
+                description={`Estoque atual: ${formatStockValue(
+                  supply.current_stock,
+                )} ${supply.unit}. Mínimo: ${formatStockValue(
+                  supply.minimum_stock,
+                )} ${supply.unit}.`}
+              />
+            ))}
+          </DashboardAlertSection>
+        )}
+
+        {pendingSupplyPayments.length > 0 && (
+          <DashboardAlertSection title="Contas de insumos pendentes">
+            {pendingSupplyPayments.map((movement) => (
+              <DashboardAlertItem
+                key={movement.id}
+                title={movement.grooming_supplies?.name || "Compra de insumo"}
+                description={`Vencimento: ${formatDateLabel(
+                  movement.due_date,
+                )}. Valor: ${formatCurrency(Number(movement.total_cost || 0))}.`}
+              />
+            ))}
+          </DashboardAlertSection>
+        )}
+
+        {pendingGroomerPayments.length > 0 && (
+          <DashboardAlertSection title="Diárias de tosador pendentes">
+            {pendingGroomerPayments.map((payment) => (
+              <DashboardAlertItem
+                key={payment.id}
+                title={payment.professional_name}
+                description={`Vencimento: ${formatDateLabel(
+                  payment.due_date,
+                )}. Valor: ${formatCurrency(Number(payment.amount || 0))}.`}
+              />
+            ))}
+          </DashboardAlertSection>
+        )}
+
+        <a
+          href="/services/insumos"
+          className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+        >
+          Abrir insumos
+        </a>
+      </div>
+    );
+  }
+
   function renderBathRemindersList() {
     if (bathReminders.length === 0) {
       return (
@@ -585,6 +683,20 @@ Equipe Pet Maia Banho e Tosa.`;
             >
               {renderBathRemindersList()}
             </StatCard>
+
+            <StatCard
+              title="Alertas de Insumos"
+              value={String(
+                lowStockSupplies.length +
+                  pendingSupplyPayments.length +
+                  pendingGroomerPayments.length,
+              )}
+              icon={<AlertTriangle size={24} />}
+              active={activeDetail === "groomingAlerts"}
+              onClick={() => handleSelectDetail("groomingAlerts")}
+            >
+              {renderGroomingAlertsList()}
+            </StatCard>
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
@@ -676,4 +788,54 @@ Equipe Pet Maia Banho e Tosa.`;
       </main>
     </div>
   );
+}
+
+function DashboardAlertSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-sm font-bold text-slate-800">{title}</p>
+      <div className="space-y-2">{children}</div>
+    </div>
+  );
+}
+
+function DashboardAlertItem({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
+      <p className="font-semibold text-amber-900">{title}</p>
+      <p className="mt-1 text-sm text-amber-800">{description}</p>
+    </div>
+  );
+}
+
+function formatDateLabel(value?: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const [year, month, day] = value.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return new Date(year, month - 1, day).toLocaleDateString("pt-BR");
+}
+
+function formatStockValue(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    maximumFractionDigits: 3,
+  }).format(Number(value || 0));
 }

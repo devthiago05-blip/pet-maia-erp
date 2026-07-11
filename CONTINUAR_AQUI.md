@@ -31,6 +31,12 @@ Ultima tarefa concluida:
 - O build atual reconhece 21 rotas, incluindo:
   - `/services/insumos`;
   - `/services/insumos/entrada`.
+- Verificacao pela Data API do Supabase em 10/07/2026 indicou que as tabelas
+  `grooming_supplies`, `grooming_supply_movements` e
+  `groomer_daily_payments` ainda nao existem no projeto remoto: HTTP 404,
+  codigo `PGRST205`.
+- Criado guia de execucao:
+  `docs/EXECUTAR_SQL_GROOMING_SUPABASE.md`.
 
 Arquivos no bloco atual:
 
@@ -46,6 +52,7 @@ Arquivos no bloco atual:
 - `supabase/sql/025_grooming_financial_rls.sql`
 - `supabase/sql/026_grooming_supply_invoice_reference.sql`
 - `supabase/sql/027_delete_grooming_supply_movement.sql`
+- `docs/EXECUTAR_SQL_GROOMING_SUPABASE.md`
 - `CONTINUAR_AQUI.md`
 
 Validacoes:
@@ -56,9 +63,7 @@ Validacoes:
 
 Proximos cuidados:
 
-- Confirmar se os SQLs `023` a `027` ja foram executados no Supabase.
-- Se ainda nao foram executados, enviar os scripts ao usuario para copiar e
-  colar no SQL Editor nesta ordem:
+- Executar os scripts no Supabase antes de usar o modulo em producao:
   1. `023_grooming_supplies.sql`
   2. `025_grooming_financial_rls.sql`
   3. `026_grooming_supply_invoice_reference.sql`

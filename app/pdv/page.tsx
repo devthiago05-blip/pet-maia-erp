@@ -72,6 +72,24 @@ interface ProductGroup {
   products: Product[];
 }
 
+type ManualCashMovementType = Extract<
+  PosCashMovementType,
+  "suprimento" | "sangria"
+>;
+
+function formatCashMovementType(type: PosCashMovementType) {
+  const labels: Record<PosCashMovementType, string> = {
+    abertura: "Abertura",
+    suprimento: "Suprimento",
+    sangria: "Sangria",
+    venda: "Venda",
+    cancelamento_venda: "Cancelamento de venda",
+    fechamento: "Fechamento",
+  };
+
+  return labels[type];
+}
+
 export default function PosPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -312,6 +330,12 @@ export default function PosPage() {
       return;
     }
 
+    if (!openCashRegister) {
+      toast.error("Abra o caixa antes de finalizar a venda");
+      setView("cash");
+      return;
+    }
+
     setProcessing(true);
     const customer = getCustomer();
     const { error } = await createPosSale({
@@ -417,6 +441,12 @@ export default function PosPage() {
   }
 
   async function handleQuoteConvert(quoteId: number, paymentMethod: string) {
+    if (!openCashRegister) {
+      toast.error("Abra o caixa antes de converter o orcamento em venda");
+      setView("cash");
+      return;
+    }
+
     const { error } = await convertPosQuote(quoteId, paymentMethod);
 
     if (error) {
@@ -464,7 +494,7 @@ export default function PosPage() {
     amount,
     notes,
   }: {
-    movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+    movementType: ManualCashMovementType;
     amount: number;
     notes: string;
   }) {
@@ -671,7 +701,7 @@ function CashRegisterView({
   openCashRegister: PosCashRegister | null;
   onOpen: (input: { openingAmount: number; notes: string }) => Promise<void>;
   onMovement: (input: {
-    movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+    movementType: ManualCashMovementType;
     amount: number;
     notes: string;
   }) => Promise<void>;
@@ -680,9 +710,7 @@ function CashRegisterView({
   const [openingAmount, setOpeningAmount] = useState("");
   const [openingNotes, setOpeningNotes] = useState("");
   const [movementType, setMovementType] =
-    useState<Exclude<PosCashMovementType, "abertura" | "fechamento">>(
-      "suprimento",
-    );
+    useState<ManualCashMovementType>("suprimento");
   const [movementAmount, setMovementAmount] = useState("");
   const [movementNotes, setMovementNotes] = useState("");
   const [closingAmount, setClosingAmount] = useState("");
@@ -826,10 +854,7 @@ function CashRegisterView({
                   value={movementType}
                   onChange={(event) =>
                     setMovementType(
-                      event.target.value as Exclude<
-                        PosCashMovementType,
-                        "abertura" | "fechamento"
-                      >,
+                      event.target.value as ManualCashMovementType,
                     )
                   }
                   className="rounded-xl border p-3"
@@ -913,8 +938,8 @@ function CashRegisterView({
                   {openMovements.map((movement) => (
                     <tr key={movement.id} className="border-t">
                       <td className="p-4">{formatDate(movement.created_at)}</td>
-                      <td className="p-4 capitalize">
-                        {movement.movement_type}
+                      <td className="p-4">
+                        {formatCashMovementType(movement.movement_type)}
                       </td>
                       <td className="p-4">{formatCurrency(movement.amount)}</td>
                       <td className="p-4">{movement.notes || "-"}</td>
@@ -1485,12 +1510,13 @@ function SalesView({
     <>
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px]">
+          <table className="w-full min-w-[940px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-4 text-left">Número</th>
                 <th className="p-4 text-left">Cliente</th>
                 <th className="p-4 text-left">Data</th>
+                <th className="p-4 text-left">Caixa</th>
                 <th className="p-4 text-left">Pagamento</th>
                 <th className="p-4 text-left">Status</th>
                 <th className="p-4 text-left">Total</th>
@@ -1500,7 +1526,7 @@ function SalesView({
             <tbody>
               {sales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                  <td colSpan={8} className="p-6 text-center text-slate-500">
                     Nenhuma venda registrada.
                   </td>
                 </tr>
@@ -1512,6 +1538,11 @@ function SalesView({
                       {sale.tutors?.nome || sale.cliente_nome || "Consumidor"}
                     </td>
                     <td className="p-4">{formatDate(sale.created_at)}</td>
+                    <td className="p-4">
+                      {sale.cash_register_id
+                        ? `#${String(sale.cash_register_id).padStart(6, "0")}`
+                        : "-"}
+                    </td>
                     <td className="p-4">{sale.forma_pagamento}</td>
                     <td className="p-4">
                       <span

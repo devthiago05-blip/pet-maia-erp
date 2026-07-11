@@ -185,6 +185,7 @@ export async function fetchPosCashRegisters() {
           cash_register_id,
           movement_type,
           amount,
+          sale_id,
           notes,
           created_by,
           created_at
@@ -216,7 +217,7 @@ export async function addPosCashMovement({
   notes,
 }: {
   cashRegisterId: number;
-  movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+  movementType: Extract<PosCashMovementType, "suprimento" | "sangria">;
   amount: number;
   notes: string;
 }) {

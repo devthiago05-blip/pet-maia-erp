@@ -492,6 +492,7 @@ export interface PosSale {
   total: number;
   forma_pagamento: string;
   status?: "Concluída" | "Cancelada";
+  cash_register_id?: number;
   created_at: string;
   tutors?: {
     nome: string;
@@ -504,6 +505,8 @@ export type PosCashMovementType =
   | "abertura"
   | "suprimento"
   | "sangria"
+  | "venda"
+  | "cancelamento_venda"
   | "fechamento";
 
 export interface PosCashMovement {
@@ -511,6 +514,7 @@ export interface PosCashMovement {
   cash_register_id: number;
   movement_type: PosCashMovementType;
   amount: number;
+  sale_id?: number;
   notes?: string;
   created_by?: string;
   created_at: string;

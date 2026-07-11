@@ -1223,3 +1223,72 @@ git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/032_pos_ca
 git commit -m "feat(pdv): adicionar controle de caixa"
 git push origin main
 ```
+
+## Bloco em andamento - vendas vinculadas ao caixa do PDV
+
+Ultima tarefa concluida:
+
+- Criado script versionado:
+  `supabase/sql/033_pos_sales_cash_link.sql`.
+- A tabela `pos_sales` recebeu o campo `cash_register_id`.
+- A tabela `pos_cash_movements` recebeu o campo `sale_id`.
+- Movimentos do caixa agora aceitam:
+  - `venda`;
+  - `cancelamento_venda`.
+- A funcao `create_pos_sale(...)` agora:
+  - exige caixa aberto para finalizar venda;
+  - grava a venda vinculada ao caixa aberto;
+  - registra movimento `venda` no caixa;
+  - recalcula o valor esperado do caixa.
+- A funcao `cancel_pos_sale(bigint)` agora:
+  - devolve estoque como antes;
+  - cancela a venda como antes;
+  - remove a receita financeira como antes;
+  - quando a venda pertence a um caixa ainda aberto, registra
+    `cancelamento_venda` e recalcula o esperado.
+- A tela do PDV agora bloqueia venda/conversao de orcamento quando nao existe
+  caixa aberto.
+- O historico de vendas mostra o numero do caixa vinculado quando existir.
+
+Confirmacoes no Supabase:
+
+- Migracao `pos_sales_cash_link` aplicada no projeto `umlwimsjxbhrrjhrofmd`.
+- Teste transacional executado com rollback:
+  - caixa usado no teste: `#000002`;
+  - produto testado: `#000001`;
+  - estoque antes da venda: `5`;
+  - estoque apos venda: `4`;
+  - estoque apos cancelamento: `5`;
+  - esperado apos venda: `R$ 204,80`;
+  - esperado apos cancelamento: `R$ 200,00`;
+  - movimento `venda`: `1`;
+  - movimento `cancelamento_venda`: `1`;
+  - status final da venda testada: `Cancelada`.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `services/pos.ts`
+- `types/domain.ts`
+- `supabase/sql/033_pos_sales_cash_link.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: pagamentos divididos no PDV.
+- Bloco futuro: relatorio/impressao de fechamento de caixa.
+- Bloco futuro: dashboard do caixa por periodo e operador.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/033_pos_sales_cash_link.sql CONTINUAR_AQUI.md
+git commit -m "feat(pdv): vincular vendas ao caixa"
+git push origin main
+```

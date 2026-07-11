@@ -124,6 +124,38 @@ git commit -m "chore(supabase): reforcar rls grants e indices"
 git push origin main
 ```
 
+## Bloco em andamento - validacao do cadastro de pet
+
+Ultima tarefa concluida:
+
+- Identificado pela foto do usuario que o cadastro de pet era bloqueado porque
+  o campo obrigatorio `Especie` ainda estava no placeholder.
+- Ajustado `components/pets/NewPetModal.tsx` para mostrar exatamente quais
+  campos obrigatorios faltam no toast.
+- Campos obrigatorios agora aparecem com `*`:
+  - nome;
+  - especie;
+  - tutor.
+- Apos tentar salvar, campos obrigatorios pendentes ficam destacados em
+  vermelho.
+- Nenhuma regra de banco foi alterada.
+
+Arquivos modificados:
+
+- `components/pets/NewPetModal.tsx`
+- `CONTINUAR_AQUI.md`
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/pets/NewPetModal.tsx CONTINUAR_AQUI.md
+git commit -m "fix(pets): detalhar campos obrigatorios no cadastro"
+git push origin main
+```
+
 ## Estado confirmado
 
 - `npm.cmd run lint`: aprovado.

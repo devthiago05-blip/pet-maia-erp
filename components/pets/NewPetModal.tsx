@@ -30,6 +30,7 @@ export function NewPetModal({
   const [idade, setIdade] = useState("");
   const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState(defaultTutorId);
+  const [submitted, setSubmitted] = useState(false);
 
   const modalOpen = open ?? internalOpen;
 
@@ -59,6 +60,7 @@ export function NewPetModal({
     setIdade("");
     setPorte("Pequeno");
     setTutorId(defaultTutorId || "");
+    setSubmitted(false);
   }
 
   function handleClose() {
@@ -67,12 +69,20 @@ export function NewPetModal({
   }
 
   async function handleSave() {
+    setSubmitted(true);
+
     const tutorSelecionado = tutors.find(
       (tutor) => String(tutor.id) === tutorId,
     );
 
-    if (!nome.trim() || !especie || !tutorSelecionado) {
-      toast.error("Preencha os campos obrigatórios");
+    const camposPendentes = [
+      !nome.trim() ? "nome" : "",
+      !especie ? "espécie" : "",
+      !tutorSelecionado ? "tutor" : "",
+    ].filter(Boolean);
+
+    if (camposPendentes.length > 0) {
+      toast.error(`Preencha: ${camposPendentes.join(", ")}`);
       return;
     }
 
@@ -93,6 +103,12 @@ export function NewPetModal({
     handleClose();
   }
 
+  function getRequiredFieldClass(hasError: boolean) {
+    return hasError
+      ? "w-full rounded-lg border border-red-400 bg-red-50 p-2 outline-none ring-2 ring-red-100"
+      : "w-full rounded-lg border p-2";
+  }
+
   return (
     <>
       {!hideTrigger && (
@@ -109,21 +125,30 @@ export function NewPetModal({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
             <h2 className="mb-4 text-xl font-bold sm:text-2xl">Novo Pet</h2>
+            <p className="mb-4 text-sm text-slate-500">
+              Campos com * são obrigatórios.
+            </p>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <input
-                placeholder="Nome"
+                placeholder="Nome *"
                 value={nome}
                 onChange={(event) => setNome(event.target.value)}
-                className="w-full rounded-lg border p-2 sm:col-span-2"
+                required
+                aria-invalid={submitted && !nome.trim()}
+                className={`${getRequiredFieldClass(
+                  submitted && !nome.trim(),
+                )} sm:col-span-2`}
               />
 
               <select
                 value={especie}
                 onChange={(event) => setEspecie(event.target.value)}
-                className="w-full rounded-lg border p-2"
+                required
+                aria-invalid={submitted && !especie}
+                className={getRequiredFieldClass(submitted && !especie)}
               >
-                <option value="">Espécie</option>
+                <option value="">Espécie *</option>
                 <option value="Cachorro">Cachorro</option>
                 <option value="Gato">Gato</option>
                 <option value="Ave">Ave</option>
@@ -167,9 +192,11 @@ export function NewPetModal({
               <select
                 value={tutorId}
                 onChange={(event) => setTutorId(event.target.value)}
-                className="w-full rounded-lg border p-2"
+                required
+                aria-invalid={submitted && !tutorId}
+                className={getRequiredFieldClass(submitted && !tutorId)}
               >
-                <option value="">Selecione o Tutor</option>
+                <option value="">Selecione o Tutor *</option>
 
                 {tutors.map((tutor) => (
                   <option key={tutor.id} value={tutor.id}>

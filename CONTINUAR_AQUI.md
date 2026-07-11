@@ -1161,3 +1161,65 @@ git add app/clinica/page.tsx components/clinic/ClinicalCatalogManager.tsx servic
 git commit -m "feat(clinica): adicionar catalogo de medicamentos"
 git push origin main
 ```
+
+## Bloco em andamento - caixa do PDV
+
+Ultima tarefa concluida:
+
+- Criada a estrutura de caixa do PDV no Supabase.
+- Criado script versionado:
+  `supabase/sql/032_pos_cash_register.sql`.
+- Novas tabelas:
+  - `pos_cash_registers`;
+  - `pos_cash_movements`.
+- Novas RPCs:
+  - `open_pos_cash_register(numeric, text)`;
+  - `add_pos_cash_movement(bigint, text, numeric, text)`;
+  - `close_pos_cash_register(bigint, numeric, text)`;
+  - `recalculate_pos_cash_expected(bigint)`.
+- A tela do PDV recebeu a aba `Caixa`.
+- A aba permite:
+  - abrir caixa;
+  - registrar suprimento;
+  - registrar sangria;
+  - fechar caixa;
+  - ver movimentacoes do caixa aberto;
+  - ver historico recente de caixas.
+
+Confirmacoes no Supabase:
+
+- Migracao `pos_cash_register` aplicada no projeto `umlwimsjxbhrrjhrofmd`.
+- Teste transacional executado com rollback:
+  - abertura: R$ 100,00;
+  - suprimento: R$ 50,00;
+  - sangria: R$ 20,00;
+  - fechamento: R$ 130,00;
+  - diferenca final: R$ 0,00.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `services/pos.ts`
+- `types/domain.ts`
+- `supabase/sql/032_pos_cash_register.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: ligar vendas finalizadas ao caixa aberto.
+- Bloco futuro: pagamentos divididos no PDV.
+- Bloco futuro: incluir fechamento com relatorio/impressao do caixa.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/032_pos_cash_register.sql CONTINUAR_AQUI.md
+git commit -m "feat(pdv): adicionar controle de caixa"
+git push origin main
+```

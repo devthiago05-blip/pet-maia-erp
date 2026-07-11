@@ -3,6 +3,8 @@ import type {
   NewProductCategoryInput,
   NewProductInput,
   NewSupplierInput,
+  PosCashMovementType,
+  PosCashRegister,
   Product,
 } from "@/types/domain";
 
@@ -44,8 +46,8 @@ export async function updateProduct(product: Product) {
     .update({
       nome: product.nome,
       sku: product.sku || product.barcode || null,
-barcode: product.barcode || product.sku || null,
-profit_margin: product.profit_margin ?? 0,
+      barcode: product.barcode || product.sku || null,
+      profit_margin: product.profit_margin ?? 0,
       categoria: product.categoria || null,
       category_id: product.category_id || null,
       tamanho: product.tamanho || null,
@@ -170,6 +172,76 @@ export async function fetchPosSales() {
     )
     .order("created_at", { ascending: false })
     .limit(50);
+}
+
+export async function fetchPosCashRegisters() {
+  return supabase
+    .from("pos_cash_registers")
+    .select(
+      `
+        *,
+        pos_cash_movements (
+          id,
+          cash_register_id,
+          movement_type,
+          amount,
+          notes,
+          created_by,
+          created_at
+        )
+      `,
+    )
+    .order("opened_at", { ascending: false })
+    .limit(20)
+    .returns<PosCashRegister[]>();
+}
+
+export async function openPosCashRegister({
+  openingAmount,
+  notes,
+}: {
+  openingAmount: number;
+  notes: string;
+}) {
+  return supabase.rpc("open_pos_cash_register", {
+    opening_amount: openingAmount,
+    notes,
+  });
+}
+
+export async function addPosCashMovement({
+  cashRegisterId,
+  movementType,
+  amount,
+  notes,
+}: {
+  cashRegisterId: number;
+  movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+  amount: number;
+  notes: string;
+}) {
+  return supabase.rpc("add_pos_cash_movement", {
+    selected_register_id: cashRegisterId,
+    selected_movement_type: movementType,
+    selected_amount: amount,
+    notes,
+  });
+}
+
+export async function closePosCashRegister({
+  cashRegisterId,
+  closingAmount,
+  notes,
+}: {
+  cashRegisterId: number;
+  closingAmount: number;
+  notes: string;
+}) {
+  return supabase.rpc("close_pos_cash_register", {
+    selected_register_id: cashRegisterId,
+    selected_closing_amount: closingAmount,
+    selected_notes: notes,
+  });
 }
 
 export async function convertPosQuote(quoteId: number, paymentMethod: string) {

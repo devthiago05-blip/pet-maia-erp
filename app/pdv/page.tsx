@@ -23,8 +23,10 @@ import {
   formatProductName,
 } from "@/lib/formatters";
 import {
+  addPosCashMovement,
   archiveProduct,
   cancelPosSale,
+  closePosCashRegister,
   convertPosQuote,
   createPosQuote,
   createPosSale,
@@ -32,12 +34,14 @@ import {
   createProductPurchase,
   createProducts,
   createSupplier,
+  fetchPosCashRegisters,
   fetchPosQuotes,
   fetchPosSales,
   fetchProductCategories,
   fetchProductPurchases,
   fetchProducts,
   fetchSuppliers,
+  openPosCashRegister,
   updateProduct,
 } from "@/services/pos";
 import { fetchTutors } from "@/services/tutors";
@@ -45,6 +49,8 @@ import type {
   NewProductCategoryInput,
   NewProductInput,
   NewSupplierInput,
+  PosCashMovementType,
+  PosCashRegister,
   PosQuote,
   PosSale,
   Product,
@@ -71,12 +77,13 @@ export default function PosPage() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [quotes, setQuotes] = useState<PosQuote[]>([]);
   const [sales, setSales] = useState<PosSale[]>([]);
+  const [cashRegisters, setCashRegisters] = useState<PosCashRegister[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [view, setView] = useState<
-    "sale" | "products" | "purchases" | "quotes" | "sales"
+    "sale" | "cash" | "products" | "purchases" | "quotes" | "sales"
   >("sale");
   const [search, setSearch] = useState("");
   const [tutorId, setTutorId] = useState("");
@@ -132,6 +139,8 @@ export default function PosPage() {
   const lowStockCount = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
   ).length;
+  const openCashRegister =
+    cashRegisters.find((register) => register.status === "Aberto") || null;
 
   async function loadData() {
     setLoading(true);
@@ -141,6 +150,7 @@ export default function PosPage() {
       categoriesResponse,
       quotesResponse,
       salesResponse,
+      cashRegistersResponse,
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
@@ -149,6 +159,7 @@ export default function PosPage() {
       fetchProductCategories(),
       fetchPosQuotes(),
       fetchPosSales(),
+      fetchPosCashRegisters(),
       fetchTutors(),
       fetchSuppliers(),
       fetchProductPurchases(),
@@ -159,6 +170,7 @@ export default function PosPage() {
       categoriesResponse.error ||
       quotesResponse.error ||
       salesResponse.error ||
+      cashRegistersResponse.error ||
       tutorsResponse.error ||
       suppliersResponse.error ||
       purchasesResponse.error;
@@ -176,6 +188,7 @@ export default function PosPage() {
     setCategories(categoriesResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
     setSales((salesResponse.data || []) as PosSale[]);
+    setCashRegisters((cashRegistersResponse.data || []) as PosCashRegister[]);
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
@@ -428,6 +441,85 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleOpenCashRegister({
+    openingAmount,
+    notes,
+  }: {
+    openingAmount: number;
+    notes: string;
+  }) {
+    const { error } = await openPosCashRegister({ openingAmount, notes });
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Caixa aberto com sucesso!");
+    await loadData();
+  }
+
+  async function handleCashMovement({
+    movementType,
+    amount,
+    notes,
+  }: {
+    movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+    amount: number;
+    notes: string;
+  }) {
+    if (!openCashRegister) {
+      toast.error("Abra um caixa antes de registrar movimentações");
+      return;
+    }
+
+    const { error } = await addPosCashMovement({
+      cashRegisterId: openCashRegister.id,
+      movementType,
+      amount,
+      notes,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success(
+      movementType === "suprimento"
+        ? "Suprimento registrado!"
+        : "Sangria registrada!",
+    );
+    await loadData();
+  }
+
+  async function handleCloseCashRegister({
+    closingAmount,
+    notes,
+  }: {
+    closingAmount: number;
+    notes: string;
+  }) {
+    if (!openCashRegister) {
+      toast.error("Nenhum caixa aberto para fechar");
+      return;
+    }
+
+    const { error } = await closePosCashRegister({
+      cashRegisterId: openCashRegister.id,
+      closingAmount,
+      notes,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Caixa fechado com sucesso!");
+    await loadData();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -464,7 +556,7 @@ export default function PosPage() {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Summary
               label="Produtos ativos"
               value={products.filter((p) => p.ativo).length}
@@ -474,11 +566,18 @@ export default function PosPage() {
               label="Orçamentos abertos"
               value={quotes.filter((q) => q.status === "Aberto").length}
             />
+            <Summary
+              label="Caixa"
+              value={openCashRegister ? 1 : 0}
+              textValue={openCashRegister ? "Aberto" : "Fechado"}
+              warning={!openCashRegister}
+            />
           </div>
 
           <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:w-fit">
             {[
               ["sale", "Venda"],
+              ["cash", "Caixa"],
               ["products", "Produtos"],
               ["purchases", "Compras"],
               ["quotes", "Orçamentos"],
@@ -533,6 +632,14 @@ export default function PosPage() {
               onSale={handleSale}
               onClear={clearSale}
             />
+          ) : view === "cash" ? (
+            <CashRegisterView
+              cashRegisters={cashRegisters}
+              openCashRegister={openCashRegister}
+              onOpen={handleOpenCashRegister}
+              onMovement={handleCashMovement}
+              onClose={handleCloseCashRegister}
+            />
           ) : view === "products" ? (
             <ProductsView
               products={products}
@@ -549,6 +656,331 @@ export default function PosPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function CashRegisterView({
+  cashRegisters,
+  openCashRegister,
+  onOpen,
+  onMovement,
+  onClose,
+}: {
+  cashRegisters: PosCashRegister[];
+  openCashRegister: PosCashRegister | null;
+  onOpen: (input: { openingAmount: number; notes: string }) => Promise<void>;
+  onMovement: (input: {
+    movementType: Exclude<PosCashMovementType, "abertura" | "fechamento">;
+    amount: number;
+    notes: string;
+  }) => Promise<void>;
+  onClose: (input: { closingAmount: number; notes: string }) => Promise<void>;
+}) {
+  const [openingAmount, setOpeningAmount] = useState("");
+  const [openingNotes, setOpeningNotes] = useState("");
+  const [movementType, setMovementType] =
+    useState<Exclude<PosCashMovementType, "abertura" | "fechamento">>(
+      "suprimento",
+    );
+  const [movementAmount, setMovementAmount] = useState("");
+  const [movementNotes, setMovementNotes] = useState("");
+  const [closingAmount, setClosingAmount] = useState("");
+  const [closingNotes, setClosingNotes] = useState("");
+  const [processing, setProcessing] = useState(false);
+
+  const openMovements =
+    openCashRegister?.pos_cash_movements
+      ?.slice()
+      .sort(
+        (first, second) =>
+          new Date(first.created_at).getTime() -
+          new Date(second.created_at).getTime(),
+      ) || [];
+
+  async function submitOpen() {
+    const amount = Number(openingAmount || 0);
+
+    if (amount < 0) {
+      toast.error("Informe um valor de abertura válido");
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await onOpen({ openingAmount: amount, notes: openingNotes });
+      setOpeningAmount("");
+      setOpeningNotes("");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function submitMovement() {
+    const amount = Number(movementAmount || 0);
+
+    if (amount <= 0) {
+      toast.error("Informe um valor maior que zero");
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await onMovement({ movementType, amount, notes: movementNotes });
+      setMovementAmount("");
+      setMovementNotes("");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  async function submitClose() {
+    const amount = Number(closingAmount || 0);
+
+    if (amount < 0) {
+      toast.error("Informe um valor de fechamento válido");
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      await onClose({ closingAmount: amount, notes: closingNotes });
+      setClosingAmount("");
+      setClosingNotes("");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <section className="space-y-6">
+        <div className="rounded-xl border bg-white p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-bold">Caixa do PDV</h2>
+              <p className="text-sm text-slate-500">
+                Controle de abertura, suprimento, sangria e fechamento.
+              </p>
+            </div>
+            <span
+              className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
+                openCashRegister
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-slate-100 text-slate-600"
+              }`}
+            >
+              {openCashRegister ? "Aberto" : "Fechado"}
+            </span>
+          </div>
+
+          {openCashRegister ? (
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <Summary
+                label="Abertura"
+                value={Number(openCashRegister.opening_amount || 0)}
+                currency
+              />
+              <Summary
+                label="Esperado"
+                value={Number(openCashRegister.expected_amount || 0)}
+                currency
+              />
+              <Summary label="Movimentos" value={openMovements.length} />
+            </div>
+          ) : (
+            <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto]">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={openingAmount}
+                onChange={(event) => setOpeningAmount(event.target.value)}
+                placeholder="Valor inicial"
+                className="rounded-xl border bg-white p-3"
+              />
+              <input
+                value={openingNotes}
+                onChange={(event) => setOpeningNotes(event.target.value)}
+                placeholder="Observação"
+                className="rounded-xl border bg-white p-3"
+              />
+              <button
+                type="button"
+                onClick={submitOpen}
+                disabled={processing}
+                className="rounded-xl bg-[#8A0EEA] px-5 py-3 font-semibold text-white disabled:opacity-50"
+              >
+                Abrir caixa
+              </button>
+            </div>
+          )}
+        </div>
+
+        {openCashRegister && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <div className="rounded-xl border bg-white p-4 sm:p-5">
+              <h3 className="font-bold">Suprimento ou sangria</h3>
+              <div className="mt-4 grid gap-3">
+                <select
+                  value={movementType}
+                  onChange={(event) =>
+                    setMovementType(
+                      event.target.value as Exclude<
+                        PosCashMovementType,
+                        "abertura" | "fechamento"
+                      >,
+                    )
+                  }
+                  className="rounded-xl border p-3"
+                >
+                  <option value="suprimento">Suprimento</option>
+                  <option value="sangria">Sangria</option>
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={movementAmount}
+                  onChange={(event) => setMovementAmount(event.target.value)}
+                  placeholder="Valor"
+                  className="rounded-xl border p-3"
+                />
+                <input
+                  value={movementNotes}
+                  onChange={(event) => setMovementNotes(event.target.value)}
+                  placeholder="Motivo"
+                  className="rounded-xl border p-3"
+                />
+                <button
+                  type="button"
+                  onClick={submitMovement}
+                  disabled={processing}
+                  className="rounded-xl border py-3 font-semibold disabled:opacity-50"
+                >
+                  Registrar movimentação
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-xl border bg-white p-4 sm:p-5">
+              <h3 className="font-bold">Fechamento</h3>
+              <div className="mt-4 grid gap-3">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={closingAmount}
+                  onChange={(event) => setClosingAmount(event.target.value)}
+                  placeholder="Valor contado no caixa"
+                  className="rounded-xl border p-3"
+                />
+                <input
+                  value={closingNotes}
+                  onChange={(event) => setClosingNotes(event.target.value)}
+                  placeholder="Observação de fechamento"
+                  className="rounded-xl border p-3"
+                />
+                <button
+                  type="button"
+                  onClick={submitClose}
+                  disabled={processing}
+                  className="rounded-xl bg-slate-900 py-3 font-semibold text-white disabled:opacity-50"
+                >
+                  Fechar caixa
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {openCashRegister && (
+          <div className="overflow-hidden rounded-xl border bg-white">
+            <div className="border-b p-4">
+              <h3 className="font-bold">Movimentações do caixa aberto</h3>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[680px]">
+                <thead className="bg-slate-50">
+                  <tr>
+                    <th className="p-4 text-left">Data</th>
+                    <th className="p-4 text-left">Tipo</th>
+                    <th className="p-4 text-left">Valor</th>
+                    <th className="p-4 text-left">Observação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {openMovements.map((movement) => (
+                    <tr key={movement.id} className="border-t">
+                      <td className="p-4">{formatDate(movement.created_at)}</td>
+                      <td className="p-4 capitalize">
+                        {movement.movement_type}
+                      </td>
+                      <td className="p-4">{formatCurrency(movement.amount)}</td>
+                      <td className="p-4">{movement.notes || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <aside className="h-fit rounded-xl border bg-white p-4 sm:p-5">
+        <h3 className="font-bold">Histórico recente</h3>
+        <div className="mt-4 space-y-3">
+          {cashRegisters.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+              Nenhum caixa registrado.
+            </p>
+          ) : (
+            cashRegisters.slice(0, 8).map((register) => (
+              <div key={register.id} className="rounded-xl border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">
+                      Caixa #{String(register.id).padStart(6, "0")}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {formatDate(register.opened_at)}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                      register.status === "Aberto"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-slate-100 text-slate-600"
+                    }`}
+                  >
+                    {register.status}
+                  </span>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                  <span className="text-slate-500">Esperado</span>
+                  <strong className="text-right">
+                    {formatCurrency(register.expected_amount)}
+                  </strong>
+                  {register.status === "Fechado" && (
+                    <>
+                      <span className="text-slate-500">Diferença</span>
+                      <strong
+                        className={`text-right ${
+                          Number(register.difference_amount || 0) !== 0
+                            ? "text-red-600"
+                            : "text-emerald-600"
+                        }`}
+                      >
+                        {formatCurrency(register.difference_amount || 0)}
+                      </strong>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </aside>
     </div>
   );
 }
@@ -1147,19 +1579,23 @@ function SalesView({
 function Summary({
   label,
   value,
+  textValue,
+  currency = false,
   warning = false,
 }: {
   label: string;
   value: number;
+  textValue?: string;
+  currency?: boolean;
   warning?: boolean;
 }) {
+  const displayValue = textValue ?? (currency ? formatCurrency(value) : value);
+
   return (
     <div className="rounded-xl border bg-white p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p
-        className={`mt-1 text-2xl font-bold ${warning && value > 0 ? "text-red-600" : ""}`}
-      >
-        {value}
+      <p className={`mt-1 text-2xl font-bold ${warning ? "text-red-600" : ""}`}>
+        {displayValue}
       </p>
     </div>
   );

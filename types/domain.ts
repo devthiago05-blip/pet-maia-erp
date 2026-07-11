@@ -499,6 +499,37 @@ export interface PosSale {
   pos_sale_items?: PosItem[];
 }
 
+export type PosCashRegisterStatus = "Aberto" | "Fechado";
+export type PosCashMovementType =
+  | "abertura"
+  | "suprimento"
+  | "sangria"
+  | "fechamento";
+
+export interface PosCashMovement {
+  id: number;
+  cash_register_id: number;
+  movement_type: PosCashMovementType;
+  amount: number;
+  notes?: string;
+  created_by?: string;
+  created_at: string;
+}
+
+export interface PosCashRegister {
+  id: number;
+  opened_by?: string;
+  opening_amount: number;
+  expected_amount: number;
+  closing_amount?: number;
+  difference_amount?: number;
+  status: PosCashRegisterStatus;
+  notes?: string;
+  opened_at: string;
+  closed_at?: string;
+  pos_cash_movements?: PosCashMovement[];
+}
+
 export interface Supplier {
   id: number;
   nome: string;

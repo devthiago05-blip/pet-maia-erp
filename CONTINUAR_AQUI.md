@@ -30,11 +30,20 @@ Arquivos modificados:
 - `supabase/sql/028_appointment_observation.sql`
 - `CONTINUAR_AQUI.md`
 
-Pendente obrigatorio:
+Confirmado no Supabase:
 
-- Executar no SQL Editor do Supabase o conteudo de
-  `supabase/sql/028_appointment_observation.sql` antes de salvar observacoes em
-  producao.
+- Migração `appointment_observation` aplicada no projeto
+  `umlwimsjxbhrrjhrofmd`.
+- Coluna confirmada em `public.appointments`:
+  `observacao text null`.
+- Advisors executados após a migração.
+
+Pendencias identificadas pelos advisors para bloco futuro:
+
+- `appointment_services` está no schema público sem RLS habilitado.
+- Há funções `SECURITY DEFINER` executáveis por `anon`/`authenticated` que
+  precisam de revisão de grants.
+- Há chaves estrangeiras sem índice, incluindo `appointments.pet_id`.
 
 Comandos necessarios para continuar:
 

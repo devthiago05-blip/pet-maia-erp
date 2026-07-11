@@ -156,6 +156,55 @@ git commit -m "fix(pets): detalhar campos obrigatorios no cadastro"
 git push origin main
 ```
 
+## Bloco concluido - otimizacao RLS de usuarios
+
+Ultima tarefa concluida:
+
+- Aplicada migração `optimize_user_access_rls` no Supabase.
+- Criado script versionado:
+  `supabase/sql/031_optimize_user_access_rls.sql`.
+- Atualizadas as funcoes:
+  - `public.current_user_is_admin()`;
+  - `public.current_user_can_access(text)`.
+- As funcoes agora usam `(select auth.uid())` para evitar reavaliacao
+  desnecessaria por linha.
+- Recriadas as policies:
+  - `Users can read own profile`;
+  - `Users can read own permissions`.
+- As policies agora usam `(select auth.uid())`, mantendo a mesma regra de
+  acesso.
+- Grants das funcoes foram reforcados:
+  - sem acesso para `public`/`anon`;
+  - acesso para `authenticated`.
+
+Confirmacoes no Supabase:
+
+- Policies confirmadas com `SELECT auth.uid()` no catalogo `pg_policies`.
+- Advisor de performance nao mostra mais os avisos `auth_rls_initplan` para
+  `user_profiles` e `user_permissions`.
+
+Pendencias restantes dos advisors:
+
+- Indices recem-criados aparecem como `unused_index`; isso e esperado ate o
+  sistema acumular consultas reais e nao deve ser removido agora.
+- Persistem avisos de `SECURITY DEFINER` em RPCs autenticadas. Elas exigem um
+  bloco proprio para avaliar se podem virar `SECURITY INVOKER` ou se devem
+  continuar como estao com checagem por modulo.
+- `get_shared_prescription(uuid)` permanece publica por token de forma
+  intencional.
+- Ativar `Leaked Password Protection` no painel do Supabase Auth.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add supabase/sql/031_optimize_user_access_rls.sql CONTINUAR_AQUI.md
+git commit -m "chore(supabase): otimizar policies de usuarios"
+git push origin main
+```
+
 ## Estado confirmado
 
 - `npm.cmd run lint`: aprovado.

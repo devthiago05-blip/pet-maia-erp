@@ -45,6 +45,12 @@ export function AppointmentCard({
           <p className="truncate text-sm font-medium text-slate-700">
             {appointment.servico}
           </p>
+
+          {appointment.observacao && (
+            <p className="line-clamp-3 rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
+              {appointment.observacao}
+            </p>
+          )}
         </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">

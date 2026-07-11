@@ -44,6 +44,7 @@ export async function createAppointment(
       data: appointment.data,
       hora: appointment.hora,
       status: appointment.status,
+      observacao: appointment.observacao?.trim() || null,
     },
   ]);
 }
@@ -61,6 +62,7 @@ export async function updateAppointment(
       data: appointment.data,
       hora: appointment.hora,
       status: appointment.status,
+      observacao: appointment.observacao?.trim() || null,
     })
     .eq("id", id);
 }

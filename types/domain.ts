@@ -375,6 +375,7 @@ export interface Appointment {
   data: string;
   hora: string;
   status: AppointmentStatus;
+  observacao?: string;
   pets?: {
     nome: string;
     porte?: string;
@@ -555,6 +556,7 @@ export interface NewAppointmentInput {
   data: string;
   hora: string;
   status: AppointmentStatus;
+  observacao?: string;
 }
 
 export interface NewFinancialEntryInput {

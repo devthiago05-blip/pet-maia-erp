@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Printer, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -118,7 +118,8 @@ export default function AgendaPage() {
         !term ||
         normalizeText(appointment.pets?.nome || "").includes(term) ||
         normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
-        normalizeText(appointment.servico).includes(term);
+        normalizeText(appointment.servico).includes(term) ||
+        normalizeText(appointment.observacao || "").includes(term);
 
       const matchesDate =
         (!startDate || appointment.data >= startDate) &&
@@ -143,7 +144,8 @@ export default function AgendaPage() {
         !term ||
         normalizeText(appointment.pets?.nome || "").includes(term) ||
         normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
-        normalizeText(appointment.servico).includes(term);
+        normalizeText(appointment.servico).includes(term) ||
+        normalizeText(appointment.observacao || "").includes(term);
 
       const matchesStatus =
         filterStatus === "Todos" || appointment.status === filterStatus;
@@ -441,6 +443,13 @@ export default function AgendaPage() {
     });
   }
 
+  function handlePrintAppointments() {
+    window.print();
+  }
+
+  const appointmentsToPrint =
+    viewMode === "kanban" ? filteredKanbanAppointments : filteredAppointments;
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -448,7 +457,7 @@ export default function AgendaPage() {
       <main className="min-w-0 flex-1 bg-slate-50">
         <Header />
 
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
@@ -457,23 +466,34 @@ export default function AgendaPage() {
               <p className="text-slate-500">Gerencie os agendamentos</p>
             </div>
 
-            <NewAppointmentModal
-              tutors={tutors}
-              pets={pets}
-              services={services}
-              onSave={handleCreateAppointment}
-              open={appointmentModalOpen}
-              onOpenChange={(open) => {
-                setAppointmentModalOpen(open);
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={handlePrintAppointments}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
+              >
+                <Printer size={18} />
+                Imprimir
+              </button>
 
-                if (!open) {
-                  setAppointmentToEdit(null);
-                }
-              }}
-              defaultTutorId={defaultAppointmentTutorId}
-              defaultPetId={preselectedPetId}
-              appointment={appointmentToEdit}
-            />
+              <NewAppointmentModal
+                tutors={tutors}
+                pets={pets}
+                services={services}
+                onSave={handleCreateAppointment}
+                open={appointmentModalOpen}
+                onOpenChange={(open) => {
+                  setAppointmentModalOpen(open);
+
+                  if (!open) {
+                    setAppointmentToEdit(null);
+                  }
+                }}
+                defaultTutorId={defaultAppointmentTutorId}
+                defaultPetId={preselectedPetId}
+                appointment={appointmentToEdit}
+              />
+            </div>
           </div>
 
           <div className="flex w-full rounded-2xl bg-white p-1 shadow-sm sm:w-fit">
@@ -591,7 +611,77 @@ export default function AgendaPage() {
             onClose={() => setCompletedReceipt(null)}
           />
         )}
+
+        <AppointmentPrintView
+          appointments={appointmentsToPrint}
+          title={
+            viewMode === "kanban"
+              ? `Agendamentos de ${kanbanDate.split("-").reverse().join("/")}`
+              : "Agendamentos filtrados"
+          }
+        />
       </main>
     </div>
+  );
+}
+
+function AppointmentPrintView({
+  appointments,
+  title,
+}: {
+  appointments: Appointment[];
+  title: string;
+}) {
+  const printedAt = new Date().toLocaleString("pt-BR");
+
+  return (
+    <section className="document-print-area hidden bg-white p-8 print:block">
+      <div className="mb-6 border-b-2 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          PET MAIA ERP
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">{title}</h1>
+        <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
+      </div>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Data</th>
+            <th className="border p-2">Hora</th>
+            <th className="border p-2">Pet</th>
+            <th className="border p-2">Tutor</th>
+            <th className="border p-2">Serviço</th>
+            <th className="border p-2">Status</th>
+            <th className="border p-2">Observação</th>
+          </tr>
+        </thead>
+        <tbody>
+          {appointments.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={7}>
+                Nenhum agendamento encontrado.
+              </td>
+            </tr>
+          ) : (
+            appointments.map((appointment) => (
+              <tr key={appointment.id}>
+                <td className="border p-2">
+                  {appointment.data.split("-").reverse().join("/")}
+                </td>
+                <td className="border p-2">{appointment.hora}</td>
+                <td className="border p-2">{appointment.pets?.nome || "-"}</td>
+                <td className="border p-2">
+                  {appointment.pets?.tutors?.nome || "-"}
+                </td>
+                <td className="border p-2">{appointment.servico}</td>
+                <td className="border p-2">{appointment.status}</td>
+                <td className="border p-2">{appointment.observacao || "-"}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </section>
   );
 }

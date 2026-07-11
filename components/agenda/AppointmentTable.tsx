@@ -26,12 +26,13 @@ export function AppointmentTable({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[820px]">
+        <table className="w-full min-w-[980px]">
           <thead className="bg-slate-50">
             <tr>
               <th className="p-3 text-left sm:p-4">Hora</th>
               <th className="p-3 text-left sm:p-4">Pet</th>
               <th className="p-3 text-left sm:p-4">Serviço</th>
+              <th className="p-3 text-left sm:p-4">Observação</th>
               <th className="p-3 text-left sm:p-4">Status</th>
               <th className="p-3 text-left sm:p-4">Ações</th>
             </tr>
@@ -41,7 +42,7 @@ export function AppointmentTable({
             {appointments.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="p-6 text-center text-sm text-slate-500"
                 >
                   Nenhum agendamento encontrado.
@@ -57,6 +58,10 @@ export function AppointmentTable({
                   </td>
 
                   <td className="p-3 sm:p-4">{appointment.servico}</td>
+
+                  <td className="max-w-72 p-3 text-sm text-slate-500 sm:p-4">
+                    {appointment.observacao || "-"}
+                  </td>
 
                   <td className="p-3 sm:p-4">
                     <span

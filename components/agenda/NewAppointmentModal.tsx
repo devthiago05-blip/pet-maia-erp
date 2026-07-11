@@ -48,6 +48,7 @@ export function NewAppointmentModal({
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
   const [status, setStatus] = useState<AppointmentStatus>("Agendado");
+  const [observacao, setObservacao] = useState("");
   const [saving, setSaving] = useState(false);
 
   const modalOpen = open ?? internalOpen;
@@ -77,6 +78,7 @@ export function NewAppointmentModal({
         setData(appointment?.data || "");
         setHora(appointment?.hora || "");
         setStatus(appointment?.status || "Agendado");
+        setObservacao(appointment?.observacao || "");
       }
     }, 0);
 
@@ -98,6 +100,7 @@ export function NewAppointmentModal({
     setData("");
     setHora("");
     setStatus("Agendado");
+    setObservacao("");
   }
 
   function handleTutorChange(nextTutorId: string) {
@@ -124,6 +127,7 @@ export function NewAppointmentModal({
       data,
       hora,
       status,
+      observacao,
     });
 
     setSaving(false);
@@ -253,6 +257,17 @@ export function NewAppointmentModal({
                 <option>Finalizado</option>
                 <option>Cancelado</option>
               </select>
+
+              <label className="grid gap-2 text-sm font-medium">
+                Observação
+                <textarea
+                  value={observacao}
+                  onChange={(event) => setObservacao(event.target.value)}
+                  placeholder="Ex.: pet sensível ao secador, buscar após 16h, usar shampoo específico..."
+                  rows={4}
+                  className="min-h-28 w-full resize-y rounded-xl border p-3 font-normal"
+                />
+              </label>
 
               <div className="flex flex-col gap-3 sm:flex-row">
                 <button

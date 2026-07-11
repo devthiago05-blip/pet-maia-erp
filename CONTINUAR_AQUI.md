@@ -4,6 +4,49 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
 
+## Bloco em andamento - observacao e impressao da Agenda
+
+Ultima tarefa concluida:
+
+- Adicionado campo `Observacao` no cadastro e edicao de agendamento.
+- A observacao aparece nos cards do kanban e na tabela da agenda.
+- A busca da agenda tambem considera o texto da observacao.
+- Adicionado botao `Imprimir` na Agenda.
+- A impressao usa os agendamentos filtrados:
+  - no kanban, imprime o dia exibido;
+  - na lista, imprime busca, periodo e status filtrados.
+- Criado SQL idempotente para adicionar a coluna no Supabase:
+  `supabase/sql/028_appointment_observation.sql`.
+
+Arquivos modificados:
+
+- `app/agenda/page.tsx`
+- `app/globals.css`
+- `components/agenda/AppointmentCard.tsx`
+- `components/agenda/AppointmentTable.tsx`
+- `components/agenda/NewAppointmentModal.tsx`
+- `services/appointments.ts`
+- `types/domain.ts`
+- `supabase/sql/028_appointment_observation.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendente obrigatorio:
+
+- Executar no SQL Editor do Supabase o conteudo de
+  `supabase/sql/028_appointment_observation.sql` antes de salvar observacoes em
+  producao.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/agenda/page.tsx app/globals.css components/agenda/AppointmentCard.tsx components/agenda/AppointmentTable.tsx components/agenda/NewAppointmentModal.tsx services/appointments.ts types/domain.ts supabase/sql/028_appointment_observation.sql CONTINUAR_AQUI.md
+git commit -m "feat(agenda): adicionar observacao e impressao"
+git push origin main
+```
+
 ## Estado confirmado
 
 - `npm.cmd run lint`: aprovado.

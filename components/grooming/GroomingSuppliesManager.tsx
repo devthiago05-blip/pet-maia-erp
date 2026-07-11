@@ -70,6 +70,7 @@ const movementTypeLabels: Record<GroomingSupplyMovementType, string> = {
 export function GroomingSuppliesManager() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("insumos");
   const [loading, setLoading] = useState(true);
+  const [setupMissing, setSetupMissing] = useState(false);
   const [movementToDelete, setMovementToDelete] =
     useState<GroomingSupplyMovement | null>(null);
   const [deletingMovement, setDeletingMovement] = useState(false);
@@ -114,6 +115,7 @@ export function GroomingSuppliesManager() {
 
   async function loadData() {
     setLoading(true);
+    setSetupMissing(false);
 
     const [suppliesResponse, movementsResponse, paymentsResponse] =
       await Promise.all([
@@ -121,6 +123,16 @@ export function GroomingSuppliesManager() {
         fetchGroomingSupplyMovements(),
         fetchGroomerDailyPayments(),
       ]);
+
+    if (
+      isMissingGroomingSchemaError(suppliesResponse.error) ||
+      isMissingGroomingSchemaError(movementsResponse.error) ||
+      isMissingGroomingSchemaError(paymentsResponse.error)
+    ) {
+      setSetupMissing(true);
+      setLoading(false);
+      return;
+    }
 
     if (suppliesResponse.error) {
       console.error(suppliesResponse.error);
@@ -431,7 +443,9 @@ export function GroomingSuppliesManager() {
         </div>
       </div>
 
-      {loading ? (
+      {setupMissing ? (
+        <GroomingSetupPanel />
+      ) : loading ? (
         <div className="rounded-2xl border bg-white p-6 text-sm text-slate-500">
           Carregando insumos...
         </div>
@@ -1254,6 +1268,47 @@ function AlertPanel({
         )}
       </div>
     </div>
+  );
+}
+
+function GroomingSetupPanel() {
+  return (
+    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="rounded-xl bg-white p-2 text-amber-700">
+          <AlertTriangle size={20} />
+        </div>
+        <div className="space-y-3">
+          <div>
+            <h3 className="font-bold text-amber-950">
+              Instalação do módulo pendente no Supabase
+            </h3>
+            <p className="text-sm text-amber-900">
+              Execute os SQLs de insumos no Supabase antes de usar esta tela em
+              produção.
+            </p>
+          </div>
+          <ol className="list-decimal space-y-1 pl-5 text-sm text-amber-950">
+            <li>supabase/sql/023_grooming_supplies.sql</li>
+            <li>supabase/sql/025_grooming_financial_rls.sql</li>
+            <li>supabase/sql/026_grooming_supply_invoice_reference.sql</li>
+            <li>supabase/sql/027_delete_grooming_supply_movement.sql</li>
+          </ol>
+          <p className="text-xs text-amber-800">
+            O guia completo está em docs/EXECUTAR_SQL_GROOMING_SUPABASE.md.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function isMissingGroomingSchemaError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "PGRST205"
   );
 }
 

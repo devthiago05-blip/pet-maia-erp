@@ -37,6 +37,8 @@ Ultima tarefa concluida:
   codigo `PGRST205`.
 - Criado guia de execucao:
   `docs/EXECUTAR_SQL_GROOMING_SUPABASE.md`.
+- A tela de insumos agora identifica `PGRST205` e mostra um painel claro de
+  instalacao pendente em vez de liberar formularios que falhariam no Supabase.
 
 Arquivos no bloco atual:
 

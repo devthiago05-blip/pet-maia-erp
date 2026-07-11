@@ -205,6 +205,43 @@ git commit -m "chore(supabase): otimizar policies de usuarios"
 git push origin main
 ```
 
+## Bloco concluido - teste transacional da Agenda apos RLS
+
+Ultima tarefa concluida:
+
+- Testado no Supabase o fluxo sensivel apos ativar RLS em
+  `appointment_services`.
+- O teste simulou um usuario autenticado com acesso a:
+  - `agenda`;
+  - `financeiro`;
+  - `recibos`.
+- A transacao executou:
+  - selecao de pet real;
+  - criacao de agendamento;
+  - insercao de servico realizado;
+  - exclusao/substituicao de servico realizado, como o app faz ao finalizar;
+  - criacao de lancamento financeiro vinculado ao agendamento;
+  - leitura de servicos para recibo;
+  - leitura do financeiro para recibo;
+  - atualizacao do agendamento para `Finalizado`.
+- A transacao terminou com `ROLLBACK`, sem deixar dados de teste no banco.
+
+Resultado confirmado:
+
+- `selected_pet_count`: `1`;
+- `appointment_created`: `1`;
+- `service_delete_policy_ok`: `1`;
+- `services_visible_after_replace`: `1`;
+- `financial_visible`: `1`;
+- `final_status`: `Finalizado`.
+
+Conclusao:
+
+- O RLS novo de `appointment_services` nao quebrou o fluxo de finalizar
+  atendimento nem a leitura do recibo para usuario com permissoes corretas.
+- Proximo passo funcional recomendado: seguir para PDV avancado
+  abertura/fechamento de caixa, sangria/suprimento e pagamentos divididos.
+
 ## Estado confirmado
 
 - `npm.cmd run lint`: aprovado.

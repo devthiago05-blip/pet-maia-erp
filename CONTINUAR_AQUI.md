@@ -56,6 +56,74 @@ git commit -m "feat(agenda): adicionar observacao e impressao"
 git push origin main
 ```
 
+## Bloco concluido - seguranca inicial Supabase
+
+Ultima tarefa concluida:
+
+- Aplicada migração `security_rls_indexes` no Supabase.
+- Criado script versionado:
+  `supabase/sql/029_security_rls_indexes.sql`.
+- `appointment_services` agora tem RLS habilitado.
+- Criadas policies para `appointment_services`:
+  - leitura para usuarios com acesso a `agenda`, `financeiro` ou `recibos`;
+  - insert/update/delete para usuarios com acesso a `agenda`.
+- Removido `anon` de RPCs internas do PDV, permissoes e insumos.
+- Mantida a funcao publica `get_shared_prescription(uuid)` com acesso `anon`
+  porque ela sustenta a rota publica `/receita/[token]`.
+- Criados indices de chaves estrangeiras prioritarias em agenda, pets, clinica,
+  PDV, compras e produtos.
+- Aplicada migração `grooming_function_search_path` no Supabase.
+- Criado script versionado:
+  `supabase/sql/030_grooming_function_search_path.sql`.
+- A funcao `get_grooming_supply_stock_delta(text, numeric)` agora tem
+  `search_path = public`.
+
+Confirmacoes no Supabase:
+
+- `appointment_services`: `rls_enabled = true`.
+- Policies de select/insert/update/delete confirmadas na tabela.
+- Grants confirmados sem `anon` nas RPCs internas.
+- Indices principais confirmados, incluindo:
+  - `idx_appointment_services_appointment_id`;
+  - `idx_appointments_pet_id`;
+  - `idx_pets_tutor_id`;
+  - `idx_pos_sale_items_sale_id`;
+  - `idx_product_purchases_supplier_id`.
+
+Resultado dos advisors apos o bloco:
+
+- O erro `RLS Disabled in Public` de `appointment_services` foi resolvido.
+- O aviso `function_search_path_mutable` da funcao de insumos foi resolvido.
+- Os avisos de `anon` em funcoes internas foram resolvidos.
+- Permanecem avisos de `SECURITY DEFINER` para funcoes autenticadas do PDV,
+  permissoes e insumos. Elas continuam acessiveis para `authenticated` por
+  necessidade operacional, com checagem interna por modulo.
+- Permanece aviso de `get_shared_prescription(uuid)` para `anon`, intencional
+  enquanto a receita publica por token existir.
+- Permanece configuracao externa do Supabase Auth:
+  `Leaked Password Protection Disabled`.
+
+Proximo bloco recomendado:
+
+1. Testar fluxo de agenda finalizada/recibo apos RLS em
+   `appointment_services`.
+2. Criar auditoria/refatoracao das RPCs `SECURITY DEFINER` para reduzir avisos
+   sem quebrar PDV, receitas publicas e permissoes.
+3. Otimizar policies de `user_profiles` e `user_permissions` usando
+   `(select auth.uid())`.
+4. Ativar no painel do Supabase Auth a protecao contra senhas vazadas.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add supabase/sql/029_security_rls_indexes.sql supabase/sql/030_grooming_function_search_path.sql CONTINUAR_AQUI.md
+git commit -m "chore(supabase): reforcar rls grants e indices"
+git push origin main
+```
+
 ## Estado confirmado
 
 - `npm.cmd run lint`: aprovado.

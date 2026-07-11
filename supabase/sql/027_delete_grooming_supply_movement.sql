@@ -71,6 +71,8 @@ begin
 end;
 $$;
 
+revoke execute on function public.delete_grooming_supply_movement(bigint) from public;
+revoke execute on function public.delete_grooming_supply_movement(bigint) from anon;
 grant execute on function public.delete_grooming_supply_movement(bigint) to authenticated;
 
 select

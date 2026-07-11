@@ -1,13 +1,21 @@
 ﻿"use client";
 
-import { AlertTriangle, Package, PlusCircle, Scissors } from "lucide-react";
+import {
+  AlertTriangle,
+  Package,
+  PlusCircle,
+  Scissors,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   createGroomerDailyPayment,
   createGroomingSupply,
   createGroomingSupplyMovement,
+  deleteGroomingSupplyMovement,
   fetchGroomerDailyPayments,
   fetchGroomingSupplies,
   fetchGroomingSupplyMovements,
@@ -62,6 +70,9 @@ const movementTypeLabels: Record<GroomingSupplyMovementType, string> = {
 export function GroomingSuppliesManager() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("insumos");
   const [loading, setLoading] = useState(true);
+  const [movementToDelete, setMovementToDelete] =
+    useState<GroomingSupplyMovement | null>(null);
+  const [deletingMovement, setDeletingMovement] = useState(false);
 
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [movements, setMovements] = useState<GroomingSupplyMovement[]>([]);
@@ -293,6 +304,27 @@ export function GroomingSuppliesManager() {
       dueDate: "",
       notes: "",
     });
+    await loadData();
+  }
+
+  async function handleDeleteMovement() {
+    if (!movementToDelete) {
+      return;
+    }
+
+    setDeletingMovement(true);
+    const { error } = await deleteGroomingSupplyMovement(movementToDelete.id);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao excluir movimentação.");
+      setDeletingMovement(false);
+      return;
+    }
+
+    toast.success("Movimentação excluída com sucesso.");
+    setMovementToDelete(null);
+    setDeletingMovement(false);
     await loadData();
   }
 
@@ -716,6 +748,7 @@ export function GroomingSuppliesManager() {
                         <th className="p-3">Total</th>
                         <th className="p-3">Validade</th>
                         <th className="p-3">Pagamento</th>
+                        <th className="p-3 text-right">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -746,13 +779,23 @@ export function GroomingSuppliesManager() {
                               : "-"}
                           </td>
                           <td className="p-3">{movement.payment_status}</td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => setMovementToDelete(movement)}
+                              className="inline-flex items-center justify-center gap-1 rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                            >
+                              <Trash2 size={15} />
+                              Excluir
+                            </button>
+                          </td>
                         </tr>
                       ))}
 
                       {movements.length === 0 && (
                         <tr>
                           <td
-                            colSpan={7}
+                            colSpan={8}
                             className="p-6 text-center text-slate-500"
                           >
                             Nenhuma movimentação registrada.
@@ -983,6 +1026,31 @@ export function GroomingSuppliesManager() {
           )}
         </>
       )}
+
+      <ConfirmationDialog
+        isOpen={Boolean(movementToDelete)}
+        title="Excluir movimentação"
+        description={
+          movementToDelete
+            ? `Esta ação vai ajustar o estoque de ${
+                movementToDelete.grooming_supplies?.name || "insumo"
+              } e remover/atualizar a conta a pagar vinculada se ela ainda estiver pendente. Movimentação: ${
+                movementTypeLabels[movementToDelete.movement_type]
+              } de ${formatNumber(movementToDelete.quantity)}.`
+            : ""
+        }
+        confirmText={deletingMovement ? "Excluindo..." : "Excluir"}
+        onCancel={() => {
+          if (!deletingMovement) {
+            setMovementToDelete(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!deletingMovement) {
+            void handleDeleteMovement();
+          }
+        }}
+      />
     </section>
   );
 }

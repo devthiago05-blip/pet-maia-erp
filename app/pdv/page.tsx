@@ -1,6 +1,13 @@
 "use client";
 
-import { Minus, Plus, Search, ShoppingCart, Trash2 } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Printer,
+  Search,
+  ShoppingCart,
+  Trash2,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -95,6 +102,63 @@ function formatCashMovementType(type: PosCashMovementType) {
   };
 
   return labels[type];
+}
+
+function getCashMovements(register: PosCashRegister) {
+  return (
+    register.pos_cash_movements
+      ?.slice()
+      .sort(
+        (first, second) =>
+          new Date(first.created_at).getTime() -
+          new Date(second.created_at).getTime(),
+      ) || []
+  );
+}
+
+function sumCashMovements(
+  register: PosCashRegister,
+  movementType: PosCashMovementType,
+) {
+  return getCashMovements(register)
+    .filter((movement) => movement.movement_type === movementType)
+    .reduce((total, movement) => total + Number(movement.amount || 0), 0);
+}
+
+function getCashPaymentSummary(register: PosCashRegister) {
+  const summary = new Map<string, number>();
+
+  getCashMovements(register).forEach((movement) => {
+    if (
+      movement.movement_type !== "venda" &&
+      movement.movement_type !== "cancelamento_venda"
+    ) {
+      return;
+    }
+
+    const sign = movement.movement_type === "cancelamento_venda" ? -1 : 1;
+    const salePayments = movement.pos_sales?.pos_sale_payments || [];
+
+    if (salePayments.length > 0) {
+      salePayments.forEach((payment) => {
+        const current = summary.get(payment.payment_method) || 0;
+        summary.set(
+          payment.payment_method,
+          current + sign * Number(payment.amount || 0),
+        );
+      });
+      return;
+    }
+
+    const method = movement.pos_sales?.forma_pagamento || "Nao informado";
+    const current = summary.get(method) || 0;
+    summary.set(method, current + sign * Number(movement.amount || 0));
+  });
+
+  return Array.from(summary.entries())
+    .map(([method, amount]) => ({ method, amount }))
+    .filter((item) => Math.abs(item.amount) >= 0.01)
+    .sort((first, second) => second.amount - first.amount);
 }
 
 export default function PosPage() {
@@ -807,15 +871,17 @@ function CashRegisterView({
   const [closingAmount, setClosingAmount] = useState("");
   const [closingNotes, setClosingNotes] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [registerToPrint, setRegisterToPrint] =
+    useState<PosCashRegister | null>(null);
 
-  const openMovements =
-    openCashRegister?.pos_cash_movements
-      ?.slice()
-      .sort(
-        (first, second) =>
-          new Date(first.created_at).getTime() -
-          new Date(second.created_at).getTime(),
-      ) || [];
+  const openMovements = openCashRegister
+    ? getCashMovements(openCashRegister)
+    : [];
+
+  function printRegister(register: PosCashRegister) {
+    setRegisterToPrint(register);
+    window.setTimeout(() => window.print(), 100);
+  }
 
   async function submitOpen() {
     const amount = Number(openingAmount || 0);
@@ -872,231 +938,405 @@ function CashRegisterView({
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="space-y-6">
-        <div className="rounded-xl border bg-white p-4 sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-bold">Caixa do PDV</h2>
-              <p className="text-sm text-slate-500">
-                Controle de abertura, suprimento, sangria e fechamento.
-              </p>
+    <>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="space-y-6">
+          <div className="rounded-xl border bg-white p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-bold">Caixa do PDV</h2>
+                <p className="text-sm text-slate-500">
+                  Controle de abertura, suprimento, sangria e fechamento.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {openCashRegister && (
+                  <button
+                    type="button"
+                    onClick={() => printRegister(openCashRegister)}
+                    className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold"
+                  >
+                    <Printer size={16} />
+                    Imprimir caixa
+                  </button>
+                )}
+                <span
+                  className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
+                    openCashRegister
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {openCashRegister ? "Aberto" : "Fechado"}
+                </span>
+              </div>
             </div>
-            <span
-              className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
-                openCashRegister
-                  ? "bg-emerald-100 text-emerald-700"
-                  : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {openCashRegister ? "Aberto" : "Fechado"}
-            </span>
+
+            {openCashRegister ? (
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <Summary
+                  label="Abertura"
+                  value={Number(openCashRegister.opening_amount || 0)}
+                  currency
+                />
+                <Summary
+                  label="Esperado"
+                  value={Number(openCashRegister.expected_amount || 0)}
+                  currency
+                />
+                <Summary label="Movimentos" value={openMovements.length} />
+              </div>
+            ) : (
+              <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto]">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={openingAmount}
+                  onChange={(event) => setOpeningAmount(event.target.value)}
+                  placeholder="Valor inicial"
+                  className="rounded-xl border bg-white p-3"
+                />
+                <input
+                  value={openingNotes}
+                  onChange={(event) => setOpeningNotes(event.target.value)}
+                  placeholder="Observação"
+                  className="rounded-xl border bg-white p-3"
+                />
+                <button
+                  type="button"
+                  onClick={submitOpen}
+                  disabled={processing}
+                  className="rounded-xl bg-[#8A0EEA] px-5 py-3 font-semibold text-white disabled:opacity-50"
+                >
+                  Abrir caixa
+                </button>
+              </div>
+            )}
           </div>
 
-          {openCashRegister ? (
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              <Summary
-                label="Abertura"
-                value={Number(openCashRegister.opening_amount || 0)}
-                currency
-              />
-              <Summary
-                label="Esperado"
-                value={Number(openCashRegister.expected_amount || 0)}
-                currency
-              />
-              <Summary label="Movimentos" value={openMovements.length} />
-            </div>
-          ) : (
-            <div className="mt-5 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto]">
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={openingAmount}
-                onChange={(event) => setOpeningAmount(event.target.value)}
-                placeholder="Valor inicial"
-                className="rounded-xl border bg-white p-3"
-              />
-              <input
-                value={openingNotes}
-                onChange={(event) => setOpeningNotes(event.target.value)}
-                placeholder="Observação"
-                className="rounded-xl border bg-white p-3"
-              />
-              <button
-                type="button"
-                onClick={submitOpen}
-                disabled={processing}
-                className="rounded-xl bg-[#8A0EEA] px-5 py-3 font-semibold text-white disabled:opacity-50"
-              >
-                Abrir caixa
-              </button>
+          {openCashRegister && (
+            <div className="grid gap-6 lg:grid-cols-2">
+              <div className="rounded-xl border bg-white p-4 sm:p-5">
+                <h3 className="font-bold">Suprimento ou sangria</h3>
+                <div className="mt-4 grid gap-3">
+                  <select
+                    value={movementType}
+                    onChange={(event) =>
+                      setMovementType(
+                        event.target.value as ManualCashMovementType,
+                      )
+                    }
+                    className="rounded-xl border p-3"
+                  >
+                    <option value="suprimento">Suprimento</option>
+                    <option value="sangria">Sangria</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={movementAmount}
+                    onChange={(event) => setMovementAmount(event.target.value)}
+                    placeholder="Valor"
+                    className="rounded-xl border p-3"
+                  />
+                  <input
+                    value={movementNotes}
+                    onChange={(event) => setMovementNotes(event.target.value)}
+                    placeholder="Motivo"
+                    className="rounded-xl border p-3"
+                  />
+                  <button
+                    type="button"
+                    onClick={submitMovement}
+                    disabled={processing}
+                    className="rounded-xl border py-3 font-semibold disabled:opacity-50"
+                  >
+                    Registrar movimentação
+                  </button>
+                </div>
+              </div>
+
+              <div className="rounded-xl border bg-white p-4 sm:p-5">
+                <h3 className="font-bold">Fechamento</h3>
+                <div className="mt-4 grid gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={closingAmount}
+                    onChange={(event) => setClosingAmount(event.target.value)}
+                    placeholder="Valor contado no caixa"
+                    className="rounded-xl border p-3"
+                  />
+                  <input
+                    value={closingNotes}
+                    onChange={(event) => setClosingNotes(event.target.value)}
+                    placeholder="Observação de fechamento"
+                    className="rounded-xl border p-3"
+                  />
+                  <button
+                    type="button"
+                    onClick={submitClose}
+                    disabled={processing}
+                    className="rounded-xl bg-slate-900 py-3 font-semibold text-white disabled:opacity-50"
+                  >
+                    Fechar caixa
+                  </button>
+                </div>
+              </div>
             </div>
           )}
-        </div>
 
-        {openCashRegister && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="rounded-xl border bg-white p-4 sm:p-5">
-              <h3 className="font-bold">Suprimento ou sangria</h3>
-              <div className="mt-4 grid gap-3">
-                <select
-                  value={movementType}
-                  onChange={(event) =>
-                    setMovementType(
-                      event.target.value as ManualCashMovementType,
-                    )
-                  }
-                  className="rounded-xl border p-3"
-                >
-                  <option value="suprimento">Suprimento</option>
-                  <option value="sangria">Sangria</option>
-                </select>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={movementAmount}
-                  onChange={(event) => setMovementAmount(event.target.value)}
-                  placeholder="Valor"
-                  className="rounded-xl border p-3"
-                />
-                <input
-                  value={movementNotes}
-                  onChange={(event) => setMovementNotes(event.target.value)}
-                  placeholder="Motivo"
-                  className="rounded-xl border p-3"
-                />
-                <button
-                  type="button"
-                  onClick={submitMovement}
-                  disabled={processing}
-                  className="rounded-xl border py-3 font-semibold disabled:opacity-50"
-                >
-                  Registrar movimentação
-                </button>
+          {openCashRegister && (
+            <div className="overflow-hidden rounded-xl border bg-white">
+              <div className="border-b p-4">
+                <h3 className="font-bold">Movimentações do caixa aberto</h3>
               </div>
-            </div>
-
-            <div className="rounded-xl border bg-white p-4 sm:p-5">
-              <h3 className="font-bold">Fechamento</h3>
-              <div className="mt-4 grid gap-3">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={closingAmount}
-                  onChange={(event) => setClosingAmount(event.target.value)}
-                  placeholder="Valor contado no caixa"
-                  className="rounded-xl border p-3"
-                />
-                <input
-                  value={closingNotes}
-                  onChange={(event) => setClosingNotes(event.target.value)}
-                  placeholder="Observação de fechamento"
-                  className="rounded-xl border p-3"
-                />
-                <button
-                  type="button"
-                  onClick={submitClose}
-                  disabled={processing}
-                  className="rounded-xl bg-slate-900 py-3 font-semibold text-white disabled:opacity-50"
-                >
-                  Fechar caixa
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {openCashRegister && (
-          <div className="overflow-hidden rounded-xl border bg-white">
-            <div className="border-b p-4">
-              <h3 className="font-bold">Movimentações do caixa aberto</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[680px]">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="p-4 text-left">Data</th>
-                    <th className="p-4 text-left">Tipo</th>
-                    <th className="p-4 text-left">Valor</th>
-                    <th className="p-4 text-left">Observação</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {openMovements.map((movement) => (
-                    <tr key={movement.id} className="border-t">
-                      <td className="p-4">{formatDate(movement.created_at)}</td>
-                      <td className="p-4">
-                        {formatCashMovementType(movement.movement_type)}
-                      </td>
-                      <td className="p-4">{formatCurrency(movement.amount)}</td>
-                      <td className="p-4">{movement.notes || "-"}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px]">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="p-4 text-left">Data</th>
+                      <th className="p-4 text-left">Tipo</th>
+                      <th className="p-4 text-left">Valor</th>
+                      <th className="p-4 text-left">Observação</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {openMovements.map((movement) => (
+                      <tr key={movement.id} className="border-t">
+                        <td className="p-4">
+                          {formatDate(movement.created_at)}
+                        </td>
+                        <td className="p-4">
+                          {formatCashMovementType(movement.movement_type)}
+                        </td>
+                        <td className="p-4">
+                          {formatCurrency(movement.amount)}
+                        </td>
+                        <td className="p-4">{movement.notes || "-"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </section>
 
-      <aside className="h-fit rounded-xl border bg-white p-4 sm:p-5">
-        <h3 className="font-bold">Histórico recente</h3>
-        <div className="mt-4 space-y-3">
-          {cashRegisters.length === 0 ? (
-            <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-              Nenhum caixa registrado.
-            </p>
-          ) : (
-            cashRegisters.slice(0, 8).map((register) => (
-              <div key={register.id} className="rounded-xl border p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold">
-                      Caixa #{String(register.id).padStart(6, "0")}
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      {formatDate(register.opened_at)}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-semibold ${
-                      register.status === "Aberto"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {register.status}
-                  </span>
-                </div>
-                <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                  <span className="text-slate-500">Esperado</span>
-                  <strong className="text-right">
-                    {formatCurrency(register.expected_amount)}
-                  </strong>
-                  {register.status === "Fechado" && (
-                    <>
-                      <span className="text-slate-500">Diferença</span>
-                      <strong
-                        className={`text-right ${
-                          Number(register.difference_amount || 0) !== 0
-                            ? "text-red-600"
-                            : "text-emerald-600"
+        <aside className="h-fit rounded-xl border bg-white p-4 sm:p-5">
+          <h3 className="font-bold">Histórico recente</h3>
+          <div className="mt-4 space-y-3">
+            {cashRegisters.length === 0 ? (
+              <p className="rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+                Nenhum caixa registrado.
+              </p>
+            ) : (
+              cashRegisters.slice(0, 8).map((register) => (
+                <div key={register.id} className="rounded-xl border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">
+                        Caixa #{String(register.id).padStart(6, "0")}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatDate(register.opened_at)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-xs font-semibold ${
+                          register.status === "Aberto"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-slate-100 text-slate-600"
                         }`}
                       >
-                        {formatCurrency(register.difference_amount || 0)}
-                      </strong>
-                    </>
-                  )}
+                        {register.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => printRegister(register)}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#8A0EEA]"
+                      >
+                        <Printer size={13} />
+                        Imprimir
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <span className="text-slate-500">Esperado</span>
+                    <strong className="text-right">
+                      {formatCurrency(register.expected_amount)}
+                    </strong>
+                    {register.status === "Fechado" && (
+                      <>
+                        <span className="text-slate-500">Diferença</span>
+                        <strong
+                          className={`text-right ${
+                            Number(register.difference_amount || 0) !== 0
+                              ? "text-red-600"
+                              : "text-emerald-600"
+                          }`}
+                        >
+                          {formatCurrency(register.difference_amount || 0)}
+                        </strong>
+                      </>
+                    )}
+                  </div>
                 </div>
+              ))
+            )}
+          </div>
+        </aside>
+      </div>
+
+      {registerToPrint && (
+        <CashRegisterPrintDocument register={registerToPrint} />
+      )}
+    </>
+  );
+}
+
+function CashRegisterPrintDocument({
+  register,
+}: {
+  register: PosCashRegister;
+}) {
+  const movements = getCashMovements(register);
+  const openingAmount = Number(register.opening_amount || 0);
+  const salesAmount = sumCashMovements(register, "venda");
+  const canceledSalesAmount = sumCashMovements(register, "cancelamento_venda");
+  const supplyAmount = sumCashMovements(register, "suprimento");
+  const withdrawalAmount = sumCashMovements(register, "sangria");
+  const expectedAmount = Number(register.expected_amount || 0);
+  const closingAmount = Number(register.closing_amount || 0);
+  const differenceAmount = Number(register.difference_amount || 0);
+  const paymentSummary = getCashPaymentSummary(register);
+
+  return (
+    <section className="cash-print-area hidden bg-white p-8 text-slate-950 print:block">
+      <header className="flex items-start justify-between border-b-4 border-[#8A0EEA] pb-4">
+        <div>
+          <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+            Clinica Veterinaria Pet Maia
+          </p>
+          <h1 className="mt-1 text-2xl font-bold">
+            Relatorio de fechamento de caixa
+          </h1>
+          <p className="mt-1 text-sm text-slate-600">
+            Caixa #{String(register.id).padStart(6, "0")} - {register.status}
+          </p>
+        </div>
+        <div className="text-right text-sm">
+          <p>Aberto em: {formatDate(register.opened_at)}</p>
+          <p>
+            Fechado em:{" "}
+            {register.closed_at ? formatDate(register.closed_at) : "-"}
+          </p>
+          <p>Emitido em: {formatDate(new Date().toISOString())}</p>
+        </div>
+      </header>
+
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <PrintMetric label="Abertura" value={openingAmount} />
+        <PrintMetric label="Vendas" value={salesAmount} />
+        <PrintMetric label="Cancelamentos" value={canceledSalesAmount} />
+        <PrintMetric label="Suprimentos" value={supplyAmount} />
+        <PrintMetric label="Sangrias" value={withdrawalAmount} />
+        <PrintMetric label="Esperado" value={expectedAmount} />
+        <PrintMetric label="Valor contado" value={closingAmount} />
+        <PrintMetric label="Diferenca" value={differenceAmount} />
+        <PrintMetric label="Movimentos" textValue={String(movements.length)} />
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-300">
+        <div className="border-b border-slate-300 bg-slate-100 p-3 font-semibold">
+          Totais por forma de pagamento
+        </div>
+        <div className="grid grid-cols-2 gap-3 p-3">
+          {paymentSummary.length === 0 ? (
+            <p className="col-span-2 text-sm text-slate-500">
+              Nenhuma venda vinculada ao caixa.
+            </p>
+          ) : (
+            paymentSummary.map((item) => (
+              <div
+                key={item.method}
+                className="flex justify-between rounded-lg border border-slate-200 p-3 text-sm"
+              >
+                <span>{item.method}</span>
+                <strong>{formatCurrency(item.amount)}</strong>
               </div>
             ))
           )}
         </div>
-      </aside>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-slate-300">
+        <div className="border-b border-slate-300 bg-slate-100 p-3 font-semibold">
+          Movimentacoes
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-300">
+              <th className="p-3 text-left">Data</th>
+              <th className="p-3 text-left">Tipo</th>
+              <th className="p-3 text-left">Observacao</th>
+              <th className="p-3 text-right">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {movements.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="p-4 text-center text-slate-500">
+                  Nenhuma movimentacao registrada.
+                </td>
+              </tr>
+            ) : (
+              movements.map((movement) => (
+                <tr key={movement.id} className="border-b border-slate-200">
+                  <td className="p-3">{formatDate(movement.created_at)}</td>
+                  <td className="p-3">
+                    {formatCashMovementType(movement.movement_type)}
+                  </td>
+                  <td className="p-3">{movement.notes || "-"}</td>
+                  <td className="p-3 text-right">
+                    {formatCurrency(movement.amount)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <footer className="mt-10 grid grid-cols-2 gap-8 text-sm">
+        <div className="border-t border-slate-400 pt-2">
+          Responsavel pelo caixa
+        </div>
+        <div className="border-t border-slate-400 pt-2">Conferencia</div>
+      </footer>
+    </section>
+  );
+}
+
+function PrintMetric({
+  label,
+  value,
+  textValue,
+}: {
+  label: string;
+  value?: number;
+  textValue?: string;
+}) {
+  return (
+    <div className="rounded-lg border border-slate-300 p-3">
+      <p className="text-xs uppercase text-slate-500">{label}</p>
+      <p className="mt-1 text-lg font-bold">
+        {textValue ?? formatCurrency(value || 0)}
+      </p>
     </div>
   );
 }

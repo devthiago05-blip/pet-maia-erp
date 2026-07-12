@@ -195,7 +195,14 @@ export async function fetchPosCashRegisters() {
           sale_id,
           notes,
           created_by,
-          created_at
+          created_at,
+          pos_sales (
+            forma_pagamento,
+            pos_sale_payments (
+              payment_method,
+              amount
+            )
+          )
         )
       `,
     )

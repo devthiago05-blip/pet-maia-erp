@@ -136,12 +136,15 @@
 
   .receipt-print-area,
   .receipt-print-area *,
+  .cash-print-area,
+  .cash-print-area *,
   .document-print-area,
   .document-print-area * {
     visibility: visible;
   }
 
   .receipt-print-area,
+  .cash-print-area,
   .document-print-area {
     position: absolute;
     inset: 0;

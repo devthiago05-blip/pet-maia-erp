@@ -527,6 +527,12 @@ export interface PosCashMovement {
   notes?: string;
   created_by?: string;
   created_at: string;
+  pos_sales?: {
+    forma_pagamento: string;
+    pos_sale_payments?: Array<
+      Pick<PosSalePayment, "payment_method" | "amount">
+    >;
+  };
 }
 
 export interface PosCashRegister {

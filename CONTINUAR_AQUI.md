@@ -1353,3 +1353,58 @@ git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/034_pos_sp
 git commit -m "feat(pdv): adicionar pagamentos divididos"
 git push origin main
 ```
+
+## Bloco em andamento - impressao do fechamento de caixa
+
+Ultima tarefa concluida:
+
+- A aba `Caixa` do PDV recebeu botao `Imprimir caixa`.
+- O historico recente tambem recebeu botao `Imprimir` para caixas abertos ou
+  fechados.
+- Criado documento imprimivel do caixa com:
+  - numero e status do caixa;
+  - data de abertura;
+  - data de fechamento quando existir;
+  - data de emissao;
+  - abertura;
+  - vendas;
+  - cancelamentos;
+  - suprimentos;
+  - sangrias;
+  - valor esperado;
+  - valor contado;
+  - diferenca;
+  - totais por forma de pagamento;
+  - quantidade de movimentos;
+  - tabela completa de movimentacoes;
+  - campos de assinatura/conferencia.
+- A impressao usa a area `.cash-print-area` para sair limpa, sem sidebar e sem
+  controles da tela.
+- Nenhum SQL novo foi necessario.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `app/globals.css`
+- `services/pos.ts`
+- `types/domain.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: aplicar pagamento dividido tambem na conversao de orcamento.
+- Bloco futuro: dashboard do caixa por periodo e operador.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx app/globals.css services/pos.ts types/domain.ts CONTINUAR_AQUI.md
+git commit -m "feat(pdv): adicionar impressao de caixa"
+git push origin main
+```

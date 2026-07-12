@@ -167,6 +167,13 @@ export async function fetchPosSales() {
           quantidade,
           valor_unitario,
           subtotal
+        ),
+        pos_sale_payments (
+          id,
+          sale_id,
+          payment_method,
+          amount,
+          created_at
         )
       `,
     )
@@ -292,6 +299,25 @@ export async function createPosSale({
     customer_tutor_id: tutorId,
     customer_name: customerName,
     payment_method: paymentMethod,
+    items,
+  });
+}
+
+export async function createPosSaleWithPayments({
+  tutorId,
+  customerName,
+  payments,
+  items,
+}: {
+  tutorId: number | null;
+  customerName: string;
+  payments: Array<{ payment_method: string; amount: number }>;
+  items: PosCartItem[];
+}) {
+  return supabase.rpc("create_pos_sale_with_payments", {
+    customer_tutor_id: tutorId,
+    customer_name: customerName,
+    payments,
     items,
   });
 }

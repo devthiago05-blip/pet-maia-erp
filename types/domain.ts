@@ -498,6 +498,15 @@ export interface PosSale {
     nome: string;
   };
   pos_sale_items?: PosItem[];
+  pos_sale_payments?: PosSalePayment[];
+}
+
+export interface PosSalePayment {
+  id: number;
+  sale_id: number;
+  payment_method: string;
+  amount: number;
+  created_at: string;
 }
 
 export type PosCashRegisterStatus = "Aberto" | "Fechado";

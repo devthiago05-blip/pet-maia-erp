@@ -30,6 +30,7 @@ import {
   convertPosQuote,
   createPosQuote,
   createPosSale,
+  createPosSaleWithPayments,
   createProductCategory,
   createProductPurchase,
   createProducts,
@@ -63,6 +64,12 @@ import type {
 interface CartItem {
   product: Product;
   quantity: number;
+}
+
+interface PaymentSplit {
+  id: string;
+  method: string;
+  amount: string;
 }
 
 interface ProductGroup {
@@ -107,6 +114,10 @@ export default function PosPage() {
   const [tutorId, setTutorId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("PIX");
+  const [splitPayments, setSplitPayments] = useState(false);
+  const [payments, setPayments] = useState<PaymentSplit[]>([
+    { id: "payment-1", method: "PIX", amount: "" },
+  ]);
   const [expirationDate, setExpirationDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
@@ -154,6 +165,11 @@ export default function PosPage() {
     (total, item) => total + Number(item.product.preco_venda) * item.quantity,
     0,
   );
+  const paymentTotal = payments.reduce(
+    (total, payment) => total + Number(payment.amount || 0),
+    0,
+  );
+  const paymentDifference = Number((cartTotal - paymentTotal).toFixed(2));
   const lowStockCount = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
   ).length;
@@ -295,6 +311,37 @@ export default function PosPage() {
     };
   }
 
+  function updatePaymentSplit(
+    paymentId: string,
+    field: "method" | "amount",
+    value: string,
+  ) {
+    setPayments((current) =>
+      current.map((payment) =>
+        payment.id === paymentId ? { ...payment, [field]: value } : payment,
+      ),
+    );
+  }
+
+  function addPaymentSplit() {
+    setPayments((current) => [
+      ...current,
+      {
+        id: `payment-${Date.now()}`,
+        method: "PIX",
+        amount: "",
+      },
+    ]);
+  }
+
+  function removePaymentSplit(paymentId: string) {
+    setPayments((current) =>
+      current.length === 1
+        ? current
+        : current.filter((payment) => payment.id !== paymentId),
+    );
+  }
+
   async function handleQuote() {
     if (cart.length === 0) {
       toast.error("Adicione produtos ao orçamento");
@@ -336,21 +383,55 @@ export default function PosPage() {
       return;
     }
 
-    setProcessing(true);
     const customer = getCustomer();
-    const { error } = await createPosSale({
-      ...customer,
-      paymentMethod,
-      items: cart.map((item) => ({
-        product_id: item.product.id,
-        quantidade: item.quantity,
-      })),
-    });
-    setProcessing(false);
+    const saleItems = cart.map((item) => ({
+      product_id: item.product.id,
+      quantidade: item.quantity,
+    }));
 
-    if (error) {
-      toast.error(error.message);
-      return;
+    if (splitPayments) {
+      const normalizedPayments = payments
+        .map((payment) => ({
+          payment_method: payment.method,
+          amount: Number(payment.amount || 0),
+        }))
+        .filter((payment) => payment.amount > 0);
+
+      if (normalizedPayments.length === 0) {
+        toast.error("Informe ao menos um pagamento");
+        return;
+      }
+
+      if (Math.abs(paymentDifference) >= 0.01) {
+        toast.error("A soma dos pagamentos precisa fechar o total da venda");
+        return;
+      }
+
+      setProcessing(true);
+      const { error } = await createPosSaleWithPayments({
+        ...customer,
+        payments: normalizedPayments,
+        items: saleItems,
+      });
+      setProcessing(false);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+    } else {
+      setProcessing(true);
+      const { error } = await createPosSale({
+        ...customer,
+        paymentMethod,
+        items: saleItems,
+      });
+      setProcessing(false);
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
     }
 
     toast.success("Venda finalizada e estoque atualizado!");
@@ -364,6 +445,8 @@ export default function PosPage() {
     setCustomerName("");
     setExpirationDate("");
     setPaymentMethod("PIX");
+    setSplitPayments(false);
+    setPayments([{ id: "payment-1", method: "PIX", amount: "" }]);
   }
 
   async function handleProductSave(
@@ -646,6 +729,10 @@ export default function PosPage() {
               tutorId={tutorId}
               customerName={customerName}
               paymentMethod={paymentMethod}
+              splitPayments={splitPayments}
+              payments={payments}
+              paymentTotal={paymentTotal}
+              paymentDifference={paymentDifference}
               expirationDate={expirationDate}
               tutors={tutors}
               total={cartTotal}
@@ -657,6 +744,10 @@ export default function PosPage() {
               onTutor={setTutorId}
               onCustomerName={setCustomerName}
               onPaymentMethod={setPaymentMethod}
+              onSplitPayments={setSplitPayments}
+              onPaymentSplit={updatePaymentSplit}
+              onAddPaymentSplit={addPaymentSplit}
+              onRemovePaymentSplit={removePaymentSplit}
               onExpirationDate={setExpirationDate}
               onQuote={handleQuote}
               onSale={handleSale}
@@ -1086,6 +1177,10 @@ function SaleView({
   tutorId,
   customerName,
   paymentMethod,
+  splitPayments,
+  payments,
+  paymentTotal,
+  paymentDifference,
   expirationDate,
   tutors,
   total,
@@ -1097,6 +1192,10 @@ function SaleView({
   onTutor,
   onCustomerName,
   onPaymentMethod,
+  onSplitPayments,
+  onPaymentSplit,
+  onAddPaymentSplit,
+  onRemovePaymentSplit,
   onExpirationDate,
   onQuote,
   onSale,
@@ -1108,6 +1207,10 @@ function SaleView({
   tutorId: string;
   customerName: string;
   paymentMethod: string;
+  splitPayments: boolean;
+  payments: PaymentSplit[];
+  paymentTotal: number;
+  paymentDifference: number;
   expirationDate: string;
   tutors: Tutor[];
   total: number;
@@ -1119,6 +1222,14 @@ function SaleView({
   onTutor: (value: string) => void;
   onCustomerName: (value: string) => void;
   onPaymentMethod: (value: string) => void;
+  onSplitPayments: (value: boolean) => void;
+  onPaymentSplit: (
+    paymentId: string,
+    field: "method" | "amount",
+    value: string,
+  ) => void;
+  onAddPaymentSplit: () => void;
+  onRemovePaymentSplit: (paymentId: string) => void;
   onExpirationDate: (value: string) => void;
   onQuote: () => void;
   onSale: () => void;
@@ -1255,6 +1366,87 @@ function SaleView({
             <option>Dinheiro</option>
             <option>Cartão</option>
           </select>
+          <div className="rounded-xl border p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-sm font-medium">Pagamento dividido</span>
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={splitPayments}
+                  onChange={(event) => onSplitPayments(event.target.checked)}
+                  className="size-4 accent-[#8A0EEA]"
+                />
+                Ativar
+              </label>
+            </div>
+
+            {splitPayments && (
+              <div className="mt-3 space-y-2">
+                {payments.map((payment) => (
+                  <div
+                    key={payment.id}
+                    className="grid gap-2 sm:grid-cols-[1fr_120px_auto]"
+                  >
+                    <select
+                      value={payment.method}
+                      onChange={(event) =>
+                        onPaymentSplit(payment.id, "method", event.target.value)
+                      }
+                      className="rounded-lg border p-2 text-sm"
+                    >
+                      <option>PIX</option>
+                      <option>Dinheiro</option>
+                      <option>Cartao</option>
+                      <option>Debito</option>
+                      <option>Credito</option>
+                    </select>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={payment.amount}
+                      onChange={(event) =>
+                        onPaymentSplit(payment.id, "amount", event.target.value)
+                      }
+                      placeholder="Valor"
+                      className="rounded-lg border p-2 text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onRemovePaymentSplit(payment.id)}
+                      disabled={payments.length === 1}
+                      className="rounded-lg border px-3 text-sm text-red-600 disabled:opacity-40"
+                    >
+                      Remover
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={onAddPaymentSplit}
+                  className="text-sm font-semibold text-[#8A0EEA]"
+                >
+                  Adicionar forma de pagamento
+                </button>
+                <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-sm">
+                  <span className="text-slate-500">Pago</span>
+                  <strong className="text-right">
+                    {formatCurrency(paymentTotal)}
+                  </strong>
+                  <span className="text-slate-500">Diferenca</span>
+                  <strong
+                    className={`text-right ${
+                      Math.abs(paymentDifference) >= 0.01
+                        ? "text-red-600"
+                        : "text-emerald-600"
+                    }`}
+                  >
+                    {formatCurrency(paymentDifference)}
+                  </strong>
+                </div>
+              </div>
+            )}
+          </div>
           <label className="grid gap-1 text-xs font-medium text-slate-500">
             Validade do orçamento
             <input
@@ -1283,7 +1475,11 @@ function SaleView({
           <button
             type="button"
             onClick={onSale}
-            disabled={processing || cart.length === 0}
+            disabled={
+              processing ||
+              cart.length === 0 ||
+              (splitPayments && Math.abs(paymentDifference) >= 0.01)
+            }
             className="rounded-xl bg-[#8A0EEA] py-3 font-semibold text-white disabled:opacity-50"
           >
             {processing ? "Processando..." : "Finalizar venda"}

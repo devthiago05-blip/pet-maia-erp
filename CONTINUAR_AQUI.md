@@ -1292,3 +1292,64 @@ git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/033_pos_sa
 git commit -m "feat(pdv): vincular vendas ao caixa"
 git push origin main
 ```
+
+## Bloco em andamento - pagamentos divididos no PDV
+
+Ultima tarefa concluida:
+
+- Criado script versionado:
+  `supabase/sql/034_pos_split_payments.sql`.
+- Criada a tabela `pos_sale_payments`.
+- Criada a RPC `create_pos_sale_with_payments(bigint, text, jsonb, jsonb)`.
+- A RPC reutiliza a venda existente, preservando:
+  - baixa de estoque;
+  - lancamento financeiro;
+  - movimento de venda no caixa;
+  - vinculo com caixa aberto.
+- A tela do PDV recebeu controle de `Pagamento dividido`.
+- Quando ativado, o operador pode informar multiplas formas de pagamento com
+  valores individuais.
+- A venda dividida so e liberada quando a soma dos pagamentos fecha o total.
+
+Confirmacoes no Supabase:
+
+- Migracao `pos_split_payments` aplicada no projeto `umlwimsjxbhrrjhrofmd`.
+- Teste transacional executado com rollback:
+  - caixa usado no teste: `#000003`;
+  - produto testado: `#000001`;
+  - total da venda: `R$ 4,80`;
+  - pagamentos registrados: `2`;
+  - soma dos pagamentos: `R$ 4,80`;
+  - movimento de venda no caixa: `1`;
+  - estoque antes da venda: `5`;
+  - estoque apos venda: `4`;
+  - forma de pagamento no financeiro:
+    `PIX: R$ 2,00 + Dinheiro: R$ 2,80`.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `services/pos.ts`
+- `types/domain.ts`
+- `supabase/sql/034_pos_split_payments.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: aplicar pagamento dividido tambem na conversao de orcamento.
+- Bloco futuro: relatorio/impressao de fechamento de caixa.
+- Bloco futuro: dashboard do caixa por periodo e operador.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx services/pos.ts types/domain.ts supabase/sql/034_pos_split_payments.sql CONTINUAR_AQUI.md
+git commit -m "feat(pdv): adicionar pagamentos divididos"
+git push origin main
+```

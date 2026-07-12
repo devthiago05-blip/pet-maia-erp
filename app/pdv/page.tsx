@@ -21,6 +21,7 @@ import {
   type PurchaseInput,
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
+import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
@@ -715,6 +716,10 @@ export default function PosPage() {
             {view === "products" && (
               <div className="flex flex-col gap-2 sm:flex-row">
                 <CategoryModal onSave={handleCategorySave} />
+                <QuickProductModal
+                  categories={categories}
+                  onSave={handleProductSave}
+                />
                 <ProductModal
                   categories={categories}
                   onSave={handleProductSave}

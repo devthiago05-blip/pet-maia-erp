@@ -1408,3 +1408,52 @@ git add app/pdv/page.tsx app/globals.css services/pos.ts types/domain.ts CONTINU
 git commit -m "feat(pdv): adicionar impressao de caixa"
 git push origin main
 ```
+
+## Bloco em andamento - cadastro rapido de produtos no PDV
+
+Ultima tarefa concluida:
+
+- Criado o componente `QuickProductModal`.
+- A aba `Produtos` do PDV recebeu o botao `Produto rapido`.
+- O cadastro rapido permite cadastrar produto simples ou varias variacoes em
+  linhas.
+- Campos principais:
+  - produto;
+  - categoria;
+  - valor de compra;
+  - estoque minimo.
+- Campos por linha/variacao:
+  - tamanho;
+  - cor;
+  - sabor;
+  - codigo;
+  - preco de venda;
+  - estoque.
+- Quando o codigo nao e informado, o sistema gera codigo automatico `PM...`.
+- O cadastro rapido usa o mesmo `createProducts` ja existente, sem SQL novo.
+- O cadastro completo `ProductModal` foi mantido para edicoes detalhadas.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `components/pos/QuickProductModal.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: permitir importar produtos por planilha CSV.
+- Bloco futuro: melhorar entrada de compra para atualizar preco/estoque em lote.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx components/pos/QuickProductModal.tsx CONTINUAR_AQUI.md
+git commit -m "feat(pdv): adicionar cadastro rapido de produtos"
+git push origin main
+```

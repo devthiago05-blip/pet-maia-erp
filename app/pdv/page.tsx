@@ -15,6 +15,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CategoryModal } from "@/components/pos/CategoryModal";
 import { PosDocumentModal } from "@/components/pos/PosDocumentModal";
+import { ProductCsvImportModal } from "@/components/pos/ProductCsvImportModal";
 import { ProductModal } from "@/components/pos/ProductModal";
 import { ProductSelectionModal } from "@/components/pos/ProductSelectionModal";
 import {
@@ -717,6 +718,10 @@ export default function PosPage() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 <CategoryModal onSave={handleCategorySave} />
                 <QuickProductModal
+                  categories={categories}
+                  onSave={handleProductSave}
+                />
+                <ProductCsvImportModal
                   categories={categories}
                   onSave={handleProductSave}
                 />

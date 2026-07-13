@@ -1457,3 +1457,53 @@ git add app/pdv/page.tsx components/pos/QuickProductModal.tsx CONTINUAR_AQUI.md
 git commit -m "feat(pdv): adicionar cadastro rapido de produtos"
 git push origin main
 ```
+
+## Bloco em andamento - importacao CSV de produtos no PDV
+
+Ultima tarefa concluida:
+
+- Criado o componente `ProductCsvImportModal`.
+- A aba `Produtos` recebeu o botao `Importar CSV`.
+- O modal permite baixar um modelo CSV.
+- O CSV usa separador `;` para funcionar melhor com valores brasileiros.
+- Colunas suportadas:
+  - `nome`;
+  - `categoria`;
+  - `codigo`;
+  - `tamanho`;
+  - `cor`;
+  - `sabor`;
+  - `preco_custo`;
+  - `preco_venda`;
+  - `estoque`;
+  - `estoque_minimo`.
+- A importacao valida campos obrigatorios, precos, estoque inteiro e categorias
+  existentes.
+- O usuario consegue revisar uma previa antes de salvar.
+- Quando o codigo vem vazio, o sistema gera codigo automatico `PM...`.
+- A importacao usa o mesmo `createProducts` ja existente, sem SQL novo.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `components/pos/ProductCsvImportModal.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Rodar lint, build e `git diff --check`.
+- Corrigir qualquer erro encontrado.
+- Fazer commit e push.
+- Bloco futuro: importar XLSX caso seja necessario usar Excel direto.
+- Bloco futuro: melhorar entrada de compra para atualizar preco/estoque em lote.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx components/pos/ProductCsvImportModal.tsx CONTINUAR_AQUI.md
+git commit -m "feat(pdv): adicionar importacao csv de produtos"
+git push origin main
+```

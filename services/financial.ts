@@ -119,6 +119,13 @@ async function syncLinkedPaymentStatus(
       .or(filters.join(","));
   }
 
+  if (origin === "grooming_equipment_service") {
+    return supabase
+      .from("grooming_equipment_services")
+      .update({ payment_status: "Pago" })
+      .or(filters.join(","));
+  }
+
   return { error: null };
 }
 

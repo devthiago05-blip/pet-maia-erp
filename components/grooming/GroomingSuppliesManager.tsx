@@ -6,6 +6,7 @@ import {
   PlusCircle,
   Scissors,
   Trash2,
+  Wrench,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -13,22 +14,36 @@ import { toast } from "sonner";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   createGroomerDailyPayment,
+  createGroomingEquipment,
+  createGroomingEquipmentService,
   createGroomingSupply,
   createGroomingSupplyMovement,
   deleteGroomingSupplyMovement,
   fetchGroomerDailyPayments,
+  fetchGroomingEquipment,
+  fetchGroomingEquipmentServices,
   fetchGroomingSupplies,
   fetchGroomingSupplyMovements,
 } from "@/services/grooming";
 import type {
   GroomerDailyPayment,
+  GroomingEquipment,
+  GroomingEquipmentService,
+  GroomingEquipmentServiceType,
+  GroomingEquipmentStatus,
+  GroomingEquipmentType,
   GroomingPaymentStatus,
   GroomingSupply,
   GroomingSupplyMovement,
   GroomingSupplyMovementType,
 } from "@/types/domain";
 
-type ActiveTab = "insumos" | "movimentos" | "diarias" | "alertas";
+type ActiveTab =
+  | "insumos"
+  | "movimentos"
+  | "diarias"
+  | "equipamentos"
+  | "alertas";
 
 const supplyCategories = [
   "Shampoo",
@@ -67,6 +82,29 @@ const movementTypeLabels: Record<GroomingSupplyMovementType, string> = {
   ajuste_negativo: "Ajuste negativo",
 };
 
+const equipmentTypes: GroomingEquipmentType[] = [
+  "Secador",
+  "Lâmina",
+  "Máquina",
+  "Tesoura",
+  "Outro",
+];
+
+const equipmentStatuses: GroomingEquipmentStatus[] = [
+  "Em uso",
+  "Em manutenção",
+  "Enviado para afiação",
+  "Baixado",
+];
+
+const equipmentServiceTypes: GroomingEquipmentServiceType[] = [
+  "Afiação",
+  "Manutenção",
+  "Conserto",
+  "Limpeza",
+  "Outro",
+];
+
 export function GroomingSuppliesManager() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("insumos");
   const [loading, setLoading] = useState(true);
@@ -78,6 +116,10 @@ export function GroomingSuppliesManager() {
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [movements, setMovements] = useState<GroomingSupplyMovement[]>([]);
   const [dailyPayments, setDailyPayments] = useState<GroomerDailyPayment[]>([]);
+  const [equipment, setEquipment] = useState<GroomingEquipment[]>([]);
+  const [equipmentServices, setEquipmentServices] = useState<
+    GroomingEquipmentService[]
+  >([]);
 
   const [supplyForm, setSupplyForm] = useState({
     name: "",
@@ -113,21 +155,57 @@ export function GroomingSuppliesManager() {
     notes: "",
   });
 
+  const [equipmentForm, setEquipmentForm] = useState({
+    name: "",
+    equipmentType: "Secador" as GroomingEquipmentType,
+    sizeOrModel: "",
+    serialNumber: "",
+    supplier: "",
+    purchaseDate: "",
+    purchaseCost: "",
+    status: "Em uso" as GroomingEquipmentStatus,
+    notes: "",
+  });
+
+  const [equipmentServiceForm, setEquipmentServiceForm] = useState({
+    equipmentId: "",
+    serviceType: "Afiação" as GroomingEquipmentServiceType,
+    supplier: "",
+    sentDate: getTodayDate(),
+    expectedReturnDate: "",
+    returnedDate: "",
+    cost: "0",
+    paymentStatus: "Pendente" as GroomingPaymentStatus,
+    paymentMethod: "PIX",
+    dueDate: getTodayDate(),
+    notes: "",
+  });
+
   async function loadData() {
     setLoading(true);
     setSetupMissing(false);
 
-    const [suppliesResponse, movementsResponse, paymentsResponse] =
+    const [
+      suppliesResponse,
+      movementsResponse,
+      paymentsResponse,
+      equipmentResponse,
+      equipmentServicesResponse,
+    ] =
       await Promise.all([
         fetchGroomingSupplies(),
         fetchGroomingSupplyMovements(),
         fetchGroomerDailyPayments(),
+        fetchGroomingEquipment(),
+        fetchGroomingEquipmentServices(),
       ]);
 
     if (
       isMissingGroomingSchemaError(suppliesResponse.error) ||
       isMissingGroomingSchemaError(movementsResponse.error) ||
-      isMissingGroomingSchemaError(paymentsResponse.error)
+      isMissingGroomingSchemaError(paymentsResponse.error) ||
+      isMissingGroomingSchemaError(equipmentResponse.error) ||
+      isMissingGroomingSchemaError(equipmentServicesResponse.error)
     ) {
       setSetupMissing(true);
       setLoading(false);
@@ -155,6 +233,22 @@ export function GroomingSuppliesManager() {
       setDailyPayments((paymentsResponse.data || []) as GroomerDailyPayment[]);
     }
 
+    if (equipmentResponse.error) {
+      console.error(equipmentResponse.error);
+      toast.error("Não foi possível carregar os equipamentos.");
+    } else {
+      setEquipment((equipmentResponse.data || []) as GroomingEquipment[]);
+    }
+
+    if (equipmentServicesResponse.error) {
+      console.error(equipmentServicesResponse.error);
+      toast.error("Não foi possível carregar as manutenções.");
+    } else {
+      setEquipmentServices(
+        (equipmentServicesResponse.data || []) as GroomingEquipmentService[],
+      );
+    }
+
     setLoading(false);
   }
 
@@ -167,6 +261,10 @@ export function GroomingSuppliesManager() {
   const activeSupplies = useMemo(
     () => supplies.filter((supply) => supply.active),
     [supplies],
+  );
+  const activeEquipment = useMemo(
+    () => equipment.filter((item) => item.active),
+    [equipment],
   );
 
   const alerts = useMemo(() => {
@@ -389,6 +487,107 @@ export function GroomingSuppliesManager() {
     await loadData();
   }
 
+  async function handleCreateEquipment() {
+    const purchaseCost = equipmentForm.purchaseCost
+      ? Number(equipmentForm.purchaseCost.replace(",", "."))
+      : undefined;
+
+    if (!equipmentForm.name.trim()) {
+      toast.error("Informe o nome do equipamento.");
+      return;
+    }
+
+    if (
+      equipmentForm.purchaseCost &&
+      (!Number.isFinite(purchaseCost) || Number(purchaseCost) < 0)
+    ) {
+      toast.error("Informe um valor de compra válido.");
+      return;
+    }
+
+    const { error } = await createGroomingEquipment({
+      name: equipmentForm.name,
+      equipmentType: equipmentForm.equipmentType,
+      sizeOrModel: equipmentForm.sizeOrModel,
+      serialNumber: equipmentForm.serialNumber,
+      supplier: equipmentForm.supplier,
+      purchaseDate: equipmentForm.purchaseDate,
+      purchaseCost,
+      status: equipmentForm.status,
+      notes: equipmentForm.notes,
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao cadastrar equipamento.");
+      return;
+    }
+
+    toast.success("Equipamento cadastrado com sucesso.");
+    setEquipmentForm({
+      name: "",
+      equipmentType: "Secador",
+      sizeOrModel: "",
+      serialNumber: "",
+      supplier: "",
+      purchaseDate: "",
+      purchaseCost: "",
+      status: "Em uso",
+      notes: "",
+    });
+    await loadData();
+  }
+
+  async function handleCreateEquipmentService() {
+    const cost = Number(equipmentServiceForm.cost.replace(",", "."));
+
+    if (!equipmentServiceForm.equipmentId) {
+      toast.error("Selecione o equipamento.");
+      return;
+    }
+
+    if (!Number.isFinite(cost) || cost < 0) {
+      toast.error("Informe um custo válido.");
+      return;
+    }
+
+    const { error } = await createGroomingEquipmentService({
+      equipmentId: Number(equipmentServiceForm.equipmentId),
+      serviceType: equipmentServiceForm.serviceType,
+      supplier: equipmentServiceForm.supplier,
+      sentDate: equipmentServiceForm.sentDate,
+      expectedReturnDate: equipmentServiceForm.expectedReturnDate,
+      returnedDate: equipmentServiceForm.returnedDate,
+      cost,
+      paymentStatus: equipmentServiceForm.paymentStatus,
+      paymentMethod: equipmentServiceForm.paymentMethod,
+      dueDate: equipmentServiceForm.dueDate,
+      notes: equipmentServiceForm.notes,
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao registrar manutenção.");
+      return;
+    }
+
+    toast.success("Manutenção registrada com sucesso.");
+    setEquipmentServiceForm({
+      equipmentId: "",
+      serviceType: "Afiação",
+      supplier: "",
+      sentDate: getTodayDate(),
+      expectedReturnDate: "",
+      returnedDate: "",
+      cost: "0",
+      paymentStatus: "Pendente",
+      paymentMethod: "PIX",
+      dueDate: getTodayDate(),
+      notes: "",
+    });
+    await loadData();
+  }
+
   return (
     <section className="space-y-5">
       <div className="rounded-2xl border bg-white p-4 shadow-sm">
@@ -404,18 +603,22 @@ export function GroomingSuppliesManager() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
             <SummaryCard
               label="Insumos"
               value={String(activeSupplies.length)}
             />
             <SummaryCard label="Movimentos" value={String(movements.length)} />
             <SummaryCard label="Diárias" value={String(dailyPayments.length)} />
+            <SummaryCard
+              label="Equipamentos"
+              value={String(activeEquipment.length)}
+            />
             <SummaryCard label="Alertas" value={String(alerts.total)} alert />
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-4">
+        <div className="mt-4 grid gap-2 sm:grid-cols-5">
           <TabButton
             active={activeTab === "insumos"}
             icon={<Package size={17} />}
@@ -433,6 +636,12 @@ export function GroomingSuppliesManager() {
             icon={<Scissors size={17} />}
             label="Diárias"
             onClick={() => setActiveTab("diarias")}
+          />
+          <TabButton
+            active={activeTab === "equipamentos"}
+            icon={<Wrench size={17} />}
+            label="Equipamentos"
+            onClick={() => setActiveTab("equipamentos")}
           />
           <TabButton
             active={activeTab === "alertas"}
@@ -989,6 +1198,379 @@ export function GroomingSuppliesManager() {
                   </table>
                 </div>
               </DataCard>
+            </div>
+          )}
+
+          {activeTab === "equipamentos" && (
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
+              <div className="space-y-5">
+                <FormCard title="Cadastrar equipamento">
+                  <TextInput
+                    label="Nome"
+                    value={equipmentForm.name}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        name: value,
+                      }))
+                    }
+                    placeholder="Ex: Secador grande, Lâmina 10"
+                  />
+
+                  <SelectInput
+                    label="Tipo"
+                    value={equipmentForm.equipmentType}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        equipmentType: value as GroomingEquipmentType,
+                      }))
+                    }
+                    options={equipmentTypes}
+                  />
+
+                  <TextInput
+                    label="Tamanho ou modelo"
+                    value={equipmentForm.sizeOrModel}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        sizeOrModel: value,
+                      }))
+                    }
+                    placeholder="Ex: Grande, pequeno, 10, 7F"
+                  />
+
+                  <TextInput
+                    label="Número de série"
+                    value={equipmentForm.serialNumber}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        serialNumber: value,
+                      }))
+                    }
+                  />
+
+                  <TextInput
+                    label="Fornecedor"
+                    value={equipmentForm.supplier}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        supplier: value,
+                      }))
+                    }
+                    placeholder="Fornecedor principal"
+                  />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <TextInput
+                      label="Data de compra"
+                      value={equipmentForm.purchaseDate}
+                      onChange={(value) =>
+                        setEquipmentForm((current) => ({
+                          ...current,
+                          purchaseDate: value,
+                        }))
+                      }
+                      type="date"
+                    />
+
+                    <TextInput
+                      label="Valor de compra"
+                      value={equipmentForm.purchaseCost}
+                      onChange={(value) =>
+                        setEquipmentForm((current) => ({
+                          ...current,
+                          purchaseCost: value,
+                        }))
+                      }
+                      inputMode="decimal"
+                    />
+                  </div>
+
+                  <SelectInput
+                    label="Status"
+                    value={equipmentForm.status}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        status: value as GroomingEquipmentStatus,
+                      }))
+                    }
+                    options={equipmentStatuses}
+                  />
+
+                  <TextInput
+                    label="Observações"
+                    value={equipmentForm.notes}
+                    onChange={(value) =>
+                      setEquipmentForm((current) => ({
+                        ...current,
+                        notes: value,
+                      }))
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleCreateEquipment}
+                    className="rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
+                  >
+                    Salvar equipamento
+                  </button>
+                </FormCard>
+
+                <FormCard title="Enviar para manutenção ou afiação">
+                  <label className="grid gap-2 text-sm font-medium">
+                    Equipamento
+                    <select
+                      value={equipmentServiceForm.equipmentId}
+                      onChange={(event) =>
+                        setEquipmentServiceForm((current) => ({
+                          ...current,
+                          equipmentId: event.target.value,
+                        }))
+                      }
+                      className="rounded-xl border p-3 font-normal"
+                    >
+                      <option value="">Selecione</option>
+                      {activeEquipment.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                          {item.size_or_model ? ` - ${item.size_or_model}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <SelectInput
+                    label="Serviço"
+                    value={equipmentServiceForm.serviceType}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        serviceType: value as GroomingEquipmentServiceType,
+                      }))
+                    }
+                    options={equipmentServiceTypes}
+                  />
+
+                  <TextInput
+                    label="Fornecedor"
+                    value={equipmentServiceForm.supplier}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        supplier: value,
+                      }))
+                    }
+                    placeholder="Ex: fornecedor que vai amolar"
+                  />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <TextInput
+                      label="Data de envio"
+                      value={equipmentServiceForm.sentDate}
+                      onChange={(value) =>
+                        setEquipmentServiceForm((current) => ({
+                          ...current,
+                          sentDate: value,
+                        }))
+                      }
+                      type="date"
+                    />
+
+                    <TextInput
+                      label="Previsão de retorno"
+                      value={equipmentServiceForm.expectedReturnDate}
+                      onChange={(value) =>
+                        setEquipmentServiceForm((current) => ({
+                          ...current,
+                          expectedReturnDate: value,
+                        }))
+                      }
+                      type="date"
+                    />
+                  </div>
+
+                  <TextInput
+                    label="Data de retorno"
+                    value={equipmentServiceForm.returnedDate}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        returnedDate: value,
+                      }))
+                    }
+                    type="date"
+                  />
+
+                  <TextInput
+                    label="Custo"
+                    value={equipmentServiceForm.cost}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        cost: value,
+                      }))
+                    }
+                    inputMode="decimal"
+                  />
+
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <SelectInput
+                      label="Status pagamento"
+                      value={equipmentServiceForm.paymentStatus}
+                      onChange={(value) =>
+                        setEquipmentServiceForm((current) => ({
+                          ...current,
+                          paymentStatus: value as GroomingPaymentStatus,
+                        }))
+                      }
+                      options={["Pago", "Pendente"]}
+                    />
+
+                    <TextInput
+                      label="Vencimento"
+                      value={equipmentServiceForm.dueDate}
+                      onChange={(value) =>
+                        setEquipmentServiceForm((current) => ({
+                          ...current,
+                          dueDate: value,
+                        }))
+                      }
+                      type="date"
+                    />
+                  </div>
+
+                  <SelectInput
+                    label="Forma de pagamento"
+                    value={equipmentServiceForm.paymentMethod}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        paymentMethod: value,
+                      }))
+                    }
+                    options={["PIX", "Dinheiro", "Cartão", "Não informado"]}
+                  />
+
+                  <TextInput
+                    label="Observações"
+                    value={equipmentServiceForm.notes}
+                    onChange={(value) =>
+                      setEquipmentServiceForm((current) => ({
+                        ...current,
+                        notes: value,
+                      }))
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    onClick={handleCreateEquipmentService}
+                    className="rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
+                  >
+                    Registrar serviço
+                  </button>
+                </FormCard>
+              </div>
+
+              <div className="space-y-5">
+                <DataCard title="Equipamentos cadastrados">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[760px] text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-slate-500">
+                          <th className="p-3">Nome</th>
+                          <th className="p-3">Tipo</th>
+                          <th className="p-3">Modelo</th>
+                          <th className="p-3">Fornecedor</th>
+                          <th className="p-3">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {equipment.map((item) => (
+                          <tr key={item.id} className="border-b">
+                            <td className="p-3 font-semibold">{item.name}</td>
+                            <td className="p-3">{item.equipment_type}</td>
+                            <td className="p-3">{item.size_or_model || "-"}</td>
+                            <td className="p-3">{item.supplier || "-"}</td>
+                            <td className="p-3">{item.status}</td>
+                          </tr>
+                        ))}
+                        {equipment.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="p-6 text-center text-slate-500"
+                            >
+                              Nenhum equipamento cadastrado.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </DataCard>
+
+                <DataCard title="Histórico de manutenção e afiação">
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[860px] text-sm">
+                      <thead>
+                        <tr className="border-b text-left text-slate-500">
+                          <th className="p-3">Data</th>
+                          <th className="p-3">Equipamento</th>
+                          <th className="p-3">Serviço</th>
+                          <th className="p-3">Fornecedor</th>
+                          <th className="p-3">Custo</th>
+                          <th className="p-3">Pagamento</th>
+                          <th className="p-3">Retorno</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {equipmentServices.map((service) => (
+                          <tr key={service.id} className="border-b">
+                            <td className="p-3">
+                              {formatDateLabel(service.sent_date)}
+                            </td>
+                            <td className="p-3 font-semibold">
+                              {service.grooming_equipment?.name || "-"}
+                            </td>
+                            <td className="p-3">{service.service_type}</td>
+                            <td className="p-3">{service.supplier || "-"}</td>
+                            <td className="p-3">
+                              {formatCurrency(Number(service.cost || 0))}
+                            </td>
+                            <td className="p-3">{service.payment_status}</td>
+                            <td className="p-3">
+                              {service.returned_date
+                                ? formatDateLabel(service.returned_date)
+                                : service.expected_return_date
+                                  ? `Prev. ${formatDateLabel(
+                                      service.expected_return_date,
+                                    )}`
+                                  : "-"}
+                            </td>
+                          </tr>
+                        ))}
+                        {equipmentServices.length === 0 && (
+                          <tr>
+                            <td
+                              colSpan={7}
+                              className="p-6 text-center text-slate-500"
+                            >
+                              Nenhum serviço registrado.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </DataCard>
+              </div>
             </div>
           )}
 

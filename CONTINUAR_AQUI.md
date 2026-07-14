@@ -4,6 +4,88 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
 
+## Bloco concluido - equipamentos, laminas e manutencao
+
+Ultima tarefa concluida:
+
+- Criada migration `supabase/sql/036_grooming_equipment.sql`.
+- Criadas no Supabase as tabelas:
+  - `public.grooming_equipment`;
+  - `public.grooming_equipment_services`.
+- A tabela de equipamentos cadastra materiais como:
+  - secador grande/pequeno;
+  - laminas;
+  - maquinas;
+  - tesouras;
+  - outros equipamentos.
+- Campos principais do equipamento:
+  - nome;
+  - tipo;
+  - tamanho/modelo;
+  - numero de serie;
+  - fornecedor;
+  - data e valor de compra;
+  - status;
+  - observacoes.
+- Criada aba `Equipamentos` em `Servicos > Insumos`.
+- A aba permite registrar envio para manutencao/afiacao com:
+  - equipamento;
+  - tipo de servico;
+  - fornecedor;
+  - data de envio;
+  - previsao de retorno;
+  - data de retorno;
+  - custo;
+  - status de pagamento;
+  - vencimento;
+  - observacoes.
+- Quando o servico fica `Pendente` e tem custo, o sistema cria despesa em
+  `financial_entries` com origem `grooming_equipment_service`.
+- Quando a despesa vinculada for paga no Financeiro, o historico do equipamento
+  tambem passa para `Pago`.
+- O status do equipamento e ajustado automaticamente:
+  - `Enviado para afiacao` quando o servico e afiacao pendente;
+  - `Em manutencao` para demais servicos pendentes;
+  - `Em uso` quando houver retorno ou pagamento como pago.
+
+Arquivos modificados:
+
+- `components/grooming/GroomingSuppliesManager.tsx`
+- `services/grooming.ts`
+- `services/financial.ts`
+- `types/domain.ts`
+- `supabase/sql/036_grooming_equipment.sql`
+- `CONTINUAR_AQUI.md`
+
+Validacoes executadas:
+
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado.
+- `git diff --check`: aprovado, apenas aviso normal de CRLF no Windows.
+- Supabase confirmado no projeto `umlwimsjxbhrrjhrofmd`:
+  - `equipment_tables = 2`;
+  - `equipment_policies = 4`;
+  - `financial_link_columns = 1`.
+- Teste transacional com equipamento e afiacao executado com `rollback`, sem
+  deixar dado de teste.
+
+Pendencias:
+
+- Futuro: criar botao de baixa/arquivamento visual para equipamentos quebrados
+  ou fora de uso.
+- Futuro: criar relatorio especifico por fornecedor de manutencao/afiacao.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/grooming/GroomingSuppliesManager.tsx services/grooming.ts services/financial.ts types/domain.ts supabase/sql/036_grooming_equipment.sql CONTINUAR_AQUI.md
+git commit -m "feat(grooming): controlar equipamentos e manutencoes"
+git push origin main
+```
+
 ## Bloco concluido - lembretes de banho recorrentes
 
 Ultima tarefa concluida:

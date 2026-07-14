@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import type {
   GroomerDailyPayment,
   GroomerDailyPaymentInput,
+  GroomingEquipmentInput,
+  GroomingEquipmentServiceInput,
   GroomingSupplyInput,
   GroomingSupplyMovementInput,
 } from "@/types/domain";
@@ -12,6 +14,15 @@ const groomingSupplyMovementSelect = `
     name,
     unit,
     category
+  )
+`;
+
+const groomingEquipmentServiceSelect = `
+  *,
+  grooming_equipment (
+    name,
+    equipment_type,
+    size_or_model
   )
 `;
 
@@ -488,4 +499,122 @@ export async function deleteGroomingSupplyMovement(movementId: number) {
   return supabase.rpc("delete_grooming_supply_movement", {
     selected_movement_id: movementId,
   });
+}
+
+export async function fetchGroomingEquipment() {
+  return supabase
+    .from("grooming_equipment")
+    .select("*")
+    .order("active", { ascending: false })
+    .order("name", { ascending: true });
+}
+
+export async function createGroomingEquipment(input: GroomingEquipmentInput) {
+  return supabase.from("grooming_equipment").insert([
+    {
+      name: input.name.trim(),
+      equipment_type: input.equipmentType,
+      size_or_model: input.sizeOrModel?.trim() || null,
+      serial_number: input.serialNumber?.trim() || null,
+      supplier: input.supplier?.trim() || null,
+      purchase_date: input.purchaseDate || null,
+      purchase_cost: input.purchaseCost ?? null,
+      status: input.status,
+      notes: input.notes?.trim() || null,
+      active: input.active ?? true,
+    },
+  ]);
+}
+
+export async function fetchGroomingEquipmentServices() {
+  return supabase
+    .from("grooming_equipment_services")
+    .select(groomingEquipmentServiceSelect)
+    .order("sent_date", { ascending: false })
+    .order("id", { ascending: false });
+}
+
+export async function createGroomingEquipmentService(
+  input: GroomingEquipmentServiceInput,
+) {
+  const serviceResponse = await supabase
+    .from("grooming_equipment_services")
+    .insert([
+      {
+        equipment_id: input.equipmentId,
+        service_type: input.serviceType,
+        supplier: input.supplier?.trim() || null,
+        sent_date: input.sentDate,
+        expected_return_date: input.expectedReturnDate || null,
+        returned_date: input.returnedDate || null,
+        cost: input.cost,
+        payment_status: input.paymentStatus,
+        payment_method: input.paymentMethod || null,
+        due_date: input.dueDate || null,
+        notes: input.notes?.trim() || null,
+      },
+    ])
+    .select("id")
+    .single();
+
+  if (serviceResponse.error || !serviceResponse.data) {
+    return serviceResponse;
+  }
+
+  const nextEquipmentStatus =
+    input.returnedDate || input.paymentStatus === "Pago"
+      ? "Em uso"
+      : input.serviceType === "Afiação"
+        ? "Enviado para afiação"
+        : "Em manutenção";
+
+  await supabase
+    .from("grooming_equipment")
+    .update({
+      status: nextEquipmentStatus,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", input.equipmentId);
+
+  if (input.paymentStatus === "Pendente" && input.cost > 0) {
+    const equipmentResponse = await supabase
+      .from("grooming_equipment")
+      .select("name")
+      .eq("id", input.equipmentId)
+      .single();
+
+    if (equipmentResponse.error) {
+      return equipmentResponse;
+    }
+
+    const financialResponse = await supabase
+      .from("financial_entries")
+      .insert([
+        {
+          descricao: `${input.serviceType} - ${
+            equipmentResponse.data?.name || "equipamento"
+          }${input.supplier ? ` - ${input.supplier}` : ""}`,
+          valor: input.cost,
+          tipo: "Despesa",
+          forma_pagamento: input.paymentMethod || "Não informado",
+          status_pagamento: "Pendente",
+          data_vencimento: input.dueDate || null,
+          origem: "grooming_equipment_service",
+          referencia_id: serviceResponse.data.id,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (financialResponse.error || !financialResponse.data) {
+      return financialResponse;
+    }
+
+    await supabase
+      .from("grooming_equipment_services")
+      .update({ financial_entry_id: financialResponse.data.id })
+      .eq("id", serviceResponse.data.id);
+  }
+
+  return serviceResponse;
 }

@@ -733,3 +733,88 @@ export interface GroomerDailyPaymentInput {
   dueDate?: string;
   notes?: string;
 }
+
+export type GroomingEquipmentType =
+  | "Secador"
+  | "Lâmina"
+  | "Máquina"
+  | "Tesoura"
+  | "Outro";
+
+export type GroomingEquipmentStatus =
+  | "Em uso"
+  | "Em manutenção"
+  | "Enviado para afiação"
+  | "Baixado";
+
+export type GroomingEquipmentServiceType =
+  | "Afiação"
+  | "Manutenção"
+  | "Conserto"
+  | "Limpeza"
+  | "Outro";
+
+export interface GroomingEquipment {
+  id: number;
+  name: string;
+  equipment_type: GroomingEquipmentType;
+  size_or_model?: string;
+  serial_number?: string;
+  supplier?: string;
+  purchase_date?: string;
+  purchase_cost?: number;
+  status: GroomingEquipmentStatus;
+  notes?: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroomingEquipmentInput {
+  name: string;
+  equipmentType: GroomingEquipmentType;
+  sizeOrModel?: string;
+  serialNumber?: string;
+  supplier?: string;
+  purchaseDate?: string;
+  purchaseCost?: number;
+  status: GroomingEquipmentStatus;
+  notes?: string;
+  active?: boolean;
+}
+
+export interface GroomingEquipmentService {
+  id: number;
+  equipment_id: number;
+  service_type: GroomingEquipmentServiceType;
+  supplier?: string;
+  sent_date: string;
+  expected_return_date?: string;
+  returned_date?: string;
+  cost: number;
+  payment_status: GroomingPaymentStatus;
+  payment_method?: string;
+  due_date?: string;
+  notes?: string;
+  financial_entry_id?: number;
+  created_at: string;
+  grooming_equipment?: {
+    name: string;
+    equipment_type: GroomingEquipmentType;
+    size_or_model?: string;
+  };
+}
+
+export interface GroomingEquipmentServiceInput {
+  equipmentId: number;
+  serviceType: GroomingEquipmentServiceType;
+  supplier?: string;
+  sentDate: string;
+  expectedReturnDate?: string;
+  returnedDate?: string;
+  cost: number;
+  paymentStatus: GroomingPaymentStatus;
+  paymentMethod?: string;
+  dueDate?: string;
+  notes?: string;
+}

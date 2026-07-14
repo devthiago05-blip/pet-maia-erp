@@ -30,6 +30,7 @@ export function NewPetModal({
   const [idade, setIdade] = useState("");
   const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState(defaultTutorId);
+  const [bathReminderIntervalDays, setBathReminderIntervalDays] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const modalOpen = open ?? internalOpen;
@@ -60,6 +61,7 @@ export function NewPetModal({
     setIdade("");
     setPorte("Pequeno");
     setTutorId(defaultTutorId || "");
+    setBathReminderIntervalDays("");
     setSubmitted(false);
   }
 
@@ -94,6 +96,7 @@ export function NewPetModal({
       sexo,
       idade: idade.trim(),
       porte,
+      bathReminderIntervalDays,
     });
 
     if (result === false) {
@@ -204,6 +207,22 @@ export function NewPetModal({
                   </option>
                 ))}
               </select>
+
+              <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+                Recorrência de banho
+                <select
+                  value={bathReminderIntervalDays}
+                  onChange={(event) =>
+                    setBathReminderIntervalDays(event.target.value)
+                  }
+                  className="w-full rounded-lg border p-2 font-normal"
+                >
+                  <option value="">Sem recorrência automática</option>
+                  <option value="7">A cada 7 dias</option>
+                  <option value="15">A cada 15 dias</option>
+                  <option value="30">A cada 30 dias</option>
+                </select>
+              </label>
 
               <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
                 <button

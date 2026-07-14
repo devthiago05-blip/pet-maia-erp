@@ -20,6 +20,11 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
   const [idade, setIdade] = useState(pet.idade || "");
   const [porte, setPorte] = useState(pet.porte || "Pequeno");
   const [tutorId, setTutorId] = useState(String(pet.tutor_id || ""));
+  const [bathReminderIntervalDays, setBathReminderIntervalDays] = useState(
+    pet.bath_reminder_interval_days
+      ? String(pet.bath_reminder_interval_days)
+      : "",
+  );
 
   function handleSave() {
     if (!nome || !especie || !tutorId) {
@@ -36,6 +41,9 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
       idade,
       porte,
       tutorId,
+      bath_reminder_interval_days: bathReminderIntervalDays
+        ? Number(bathReminderIntervalDays)
+        : null,
     });
 
     setOpen(false);
@@ -123,6 +131,22 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
                   </option>
                 ))}
               </select>
+
+              <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+                Recorrência de banho
+                <select
+                  value={bathReminderIntervalDays}
+                  onChange={(event) =>
+                    setBathReminderIntervalDays(event.target.value)
+                  }
+                  className="w-full rounded-lg border p-2 font-normal"
+                >
+                  <option value="">Sem recorrência automática</option>
+                  <option value="7">A cada 7 dias</option>
+                  <option value="15">A cada 15 dias</option>
+                  <option value="30">A cada 30 dias</option>
+                </select>
+              </label>
 
               <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
                 <button

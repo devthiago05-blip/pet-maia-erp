@@ -39,6 +39,9 @@ export async function createPet(pet: NewPetInput) {
       porte: pet.porte,
       sexo: pet.sexo,
       idade: pet.idade,
+      bath_reminder_interval_days: pet.bathReminderIntervalDays
+        ? Number(pet.bathReminderIntervalDays)
+        : null,
       tutor_id: Number(pet.tutorId),
     },
   ]);
@@ -54,6 +57,7 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
       porte: pet.porte,
       sexo: pet.sexo,
       idade: pet.idade,
+      bath_reminder_interval_days: pet.bath_reminder_interval_days ?? null,
       tutor_id: Number(pet.tutorId),
     })
     .eq("id", pet.id);
@@ -61,4 +65,14 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
 
 export async function deletePet(id: number) {
   return supabase.from("pets").delete().eq("id", id);
+}
+
+export async function dismissPetBathReminder(
+  petId: number,
+  dismissedUntil: string,
+) {
+  return supabase
+    .from("pets")
+    .update({ bath_reminder_dismissed_until: dismissedUntil })
+    .eq("id", petId);
 }

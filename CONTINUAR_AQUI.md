@@ -4,6 +4,72 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
 
+## Bloco concluido - lembretes de banho recorrentes
+
+Ultima tarefa concluida:
+
+- Criada migration `supabase/sql/035_pet_bath_reminders.sql`.
+- Aplicadas no Supabase as colunas em `public.pets`:
+  - `bath_reminder_interval_days integer null`;
+  - `bath_reminder_dismissed_until date null`.
+- Adicionado check para permitir recorrencia opcional apenas em:
+  - `7`;
+  - `15`;
+  - `30`;
+  - `null` para sem recorrencia configurada.
+- Cadastro e edicao de pet agora possuem campo opcional `Recorrencia de banho`.
+- Dashboard usa a recorrencia do pet para gerar lembrete.
+- Quando o pet nao tiver recorrencia configurada, o Dashboard usa 30 dias como
+  regra padrao para manter o comportamento anterior.
+- Lembretes podem ser removidos manualmente.
+- Ao clicar em `Enviar WhatsApp` ou `Agendar`, o sistema pergunta se deve tirar
+  o pet dos lembretes ate a proxima quinta-feira.
+- Se confirmar, grava `bath_reminder_dismissed_until` com a proxima quinta e
+  remove o pet da lista atual.
+- Se escolher `Manter e continuar`, abre WhatsApp ou Agenda sem remover o
+  lembrete.
+- Lembretes acima de 45 e 60 dias agora recebem destaque visual e texto de
+  WhatsApp mais direto para o tutor.
+
+Arquivos modificados:
+
+- `app/page.tsx`
+- `components/pets/EditPetModal.tsx`
+- `components/pets/NewPetModal.tsx`
+- `services/dashboard.ts`
+- `services/pets.ts`
+- `types/domain.ts`
+- `supabase/sql/035_pet_bath_reminders.sql`
+- `CONTINUAR_AQUI.md`
+
+Validacoes executadas:
+
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado.
+- `git diff --check`: aprovado, apenas aviso normal de CRLF no Windows.
+- Supabase confirmado no projeto `umlwimsjxbhrrjhrofmd`:
+  - colunas criadas em `public.pets`;
+  - `total_pets = 47`;
+  - `pets_com_recorrencia = 0` no momento;
+  - `lembretes_ocultos = 0` no momento.
+
+Pendencias:
+
+- O WhatsApp ainda depende do clique do operador no link `wa.me`; envio
+  automatico real exigiria API oficial do WhatsApp/Meta ou provedor externo.
+- Configurar recorrencia nos pets que devem usar 7, 15 ou 30 dias.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/page.tsx components/pets/EditPetModal.tsx components/pets/NewPetModal.tsx services/dashboard.ts services/pets.ts types/domain.ts supabase/sql/035_pet_bath_reminders.sql CONTINUAR_AQUI.md
+git commit -m "feat(dashboard): aprimorar lembretes recorrentes de banho"
+git push origin main
+```
+
 ## Bloco concluido - ajustes Financeiro e relatorio operacional
 
 Ultima tarefa concluida:

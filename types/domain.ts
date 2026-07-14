@@ -51,6 +51,8 @@ export interface Pet {
   sexo?: string;
   idade?: string;
   tutor_id?: number;
+  bath_reminder_interval_days?: number | null;
+  bath_reminder_dismissed_until?: string | null;
   created_at?: string;
   tutors?: {
     nome: string;
@@ -598,6 +600,7 @@ export interface NewPetInput {
   sexo: string;
   idade?: string;
   porte: string;
+  bathReminderIntervalDays?: string;
 }
 
 export interface NewAppointmentInput {

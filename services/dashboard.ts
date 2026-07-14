@@ -89,6 +89,9 @@ export async function fetchPetsForBathReminders() {
       `
       id,
       nome,
+      tutor_id,
+      bath_reminder_interval_days,
+      bath_reminder_dismissed_until,
       tutors (
         nome,
         telefone

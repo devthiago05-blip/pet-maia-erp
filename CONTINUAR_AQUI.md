@@ -2,7 +2,48 @@
 
 - Atualizado em: 14/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(grooming): controlar equipamentos e manutencoes`
+  Ultimo commit funcional: `fix(dashboard): mostrar semana de segunda a domingo`
+
+## Bloco concluido - impressao do financeiro
+
+Ultima tarefa concluida:
+
+- Adicionado botao `Imprimir` no topo da tela Financeiro.
+- A impressao usa os lancamentos filtrados na tela.
+- O relatorio impresso inclui:
+  - recebido;
+  - a receber;
+  - despesas;
+  - lucro;
+  - descricao;
+  - tutor;
+  - pet;
+  - tipo;
+  - valor;
+  - data do titulo;
+  - vencimento;
+  - status.
+- A tela normal fica oculta durante a impressao, mantendo um documento limpo.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Futuro: permitir escolher impressao resumida ou detalhada.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx CONTINUAR_AQUI.md
+git commit -m "feat(financeiro): adicionar impressao de lancamentos"
+git push origin main
+```
 
 ## Bloco concluido - dashboard de segunda a domingo
 

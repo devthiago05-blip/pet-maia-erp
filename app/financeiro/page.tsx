@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Printer, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createFinancialEntry,
   deleteFinancialEntry,
@@ -172,6 +172,10 @@ export default function FinanceiroPage() {
     return true;
   }
 
+  function handlePrintFinancialEntries() {
+    window.print();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -179,7 +183,7 @@ export default function FinanceiroPage() {
       <main className="min-w-0 flex-1 bg-slate-50">
         <Header />
 
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
@@ -189,11 +193,22 @@ export default function FinanceiroPage() {
               <p className="text-slate-500">Controle financeiro da clínica</p>
             </div>
 
-            <NewFinancialModal
-              tutors={tutors}
-              pets={pets}
-              onSave={handleCreateEntry}
-            />
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={handlePrintFinancialEntries}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
+              >
+                <Printer size={18} />
+                Imprimir
+              </button>
+
+              <NewFinancialModal
+                tutors={tutors}
+                pets={pets}
+                onSave={handleCreateEntry}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
@@ -283,6 +298,14 @@ export default function FinanceiroPage() {
           onClose={() => setEntryToEdit(null)}
           onSave={handleUpdateEntry}
         />
+
+        <FinancialPrintView
+          entries={filteredEntries}
+          lucro={lucro}
+          totalDespesas={totalDespesas}
+          totalReceber={totalReceber}
+          totalRecebido={totalRecebido}
+        />
       </main>
     </div>
   );
@@ -293,6 +316,96 @@ function SummaryCard({ title, value }: { title: string; value: string }) {
     <div className="rounded-2xl border bg-white p-4 sm:p-6">
       <p className="text-slate-500">{title}</p>
       <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{value}</h2>
+    </div>
+  );
+}
+
+function FinancialPrintView({
+  entries,
+  lucro,
+  totalDespesas,
+  totalReceber,
+  totalRecebido,
+}: {
+  entries: FinancialEntry[];
+  lucro: number;
+  totalDespesas: number;
+  totalReceber: number;
+  totalRecebido: number;
+}) {
+  const printedAt = new Date().toLocaleString("pt-BR");
+
+  return (
+    <section className="document-print-area hidden bg-white p-8 print:block">
+      <div className="mb-6 border-b-2 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          PET MAIA ERP
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">
+          Relatorio financeiro
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
+      </div>
+
+      <div className="mb-6 grid grid-cols-4 gap-3 text-sm">
+        <PrintSummary label="Recebido" value={formatCurrency(totalRecebido)} />
+        <PrintSummary label="A receber" value={formatCurrency(totalReceber)} />
+        <PrintSummary label="Despesas" value={formatCurrency(totalDespesas)} />
+        <PrintSummary label="Lucro" value={formatCurrency(lucro)} />
+      </div>
+
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Descricao</th>
+            <th className="border p-2">Tutor</th>
+            <th className="border p-2">Pet</th>
+            <th className="border p-2">Tipo</th>
+            <th className="border p-2">Valor</th>
+            <th className="border p-2">Data do titulo</th>
+            <th className="border p-2">Vencimento</th>
+            <th className="border p-2">Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {entries.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={8}>
+                Nenhum lancamento financeiro encontrado.
+              </td>
+            </tr>
+          ) : (
+            entries.map((entry) => (
+              <tr key={entry.id}>
+                <td className="border p-2">{entry.descricao}</td>
+                <td className="border p-2">{entry.tutors?.nome || "-"}</td>
+                <td className="border p-2">{entry.pets?.nome || "-"}</td>
+                <td className="border p-2">{entry.tipo || "Receita"}</td>
+                <td className="border p-2">{formatCurrency(entry.valor)}</td>
+                <td className="border p-2">{formatDate(entry.created_at)}</td>
+                <td className="border p-2">
+                  {entry.tipo === "Despesa"
+                    ? formatDate(entry.data_vencimento)
+                    : "-"}
+                </td>
+                <td className="border p-2">{entry.status_pagamento}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function PrintSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border p-3">
+      <p className="text-[10px] font-semibold uppercase text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-bold text-slate-900">{value}</p>
     </div>
   );
 }

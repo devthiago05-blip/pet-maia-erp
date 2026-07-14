@@ -1,6 +1,6 @@
 # Continuar Aqui
 
-- Atualizado em: 10/07/2026
+- Atualizado em: 14/07/2026
 - Branch: `main`
   Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
 
@@ -8,6 +8,17 @@
 
 Ultima tarefa concluida:
 
+- Corrigido no Supabase o registro existente da diaria do tosador `Leandro`
+  em `2026-07-11`: a diaria estava `Pendente`, mas o financeiro vinculado
+  `49` ja estava `Pago`.
+- Confirmado no banco que nao ha mais diarias pendentes divergentes com
+  financeiro pago: `pendentes_divergentes = 0`.
+- `fetchGroomerDailyPayments()` agora reconcilia o status com lancamentos
+  financeiros vinculados por `financial_entry_id` ou por
+  `origem = 'groomer_daily_payment'` + `referencia_id`.
+- Com isso, mesmo se algum dado legado ficar divergente, a tela de diarias e
+  alertas passa a tratar como `Pago` quando o financeiro vinculado estiver
+  pago.
 - Financeiro agora mostra `Data do titulo` na tabela usando `created_at`.
 - `Vencimento` fica visivel e gravado apenas para lancamentos do tipo
   `Despesa`.
@@ -32,6 +43,7 @@ Arquivos modificados:
 - `components/financeiro/EditFinancialModal.tsx`
 - `components/financeiro/FinancialTable.tsx`
 - `components/financeiro/NewFinancialModal.tsx`
+- `services/grooming.ts`
 - `services/financial.ts`
 - `CONTINUAR_AQUI.md`
 
@@ -48,13 +60,14 @@ Validacoes executadas:
   - `groomer_daily_payments.financial_entry_id`;
   - `grooming_supply_movements.payment_status`;
   - `grooming_supply_movements.financial_entry_id`.
+- Correcao de dado executada no Supabase para diaria ja paga.
 
 Pendencias:
 
 - Se quiser granularidade maior, criar no futuro uma tabela/categoria formal
   para tipos de despesa operacional. Nesta etapa foi mantido sem alterar banco.
-- Testar no navegador um pagamento real de diaria pelo Financeiro para validar
-  o desaparecimento do alerta na tela de insumos/diarias.
+- Se o navegador ainda mostrar pendente, atualizar a pagina ou limpar cache do
+  app apos o deploy concluir.
 
 Comandos necessarios para continuar:
 
@@ -62,8 +75,8 @@ Comandos necessarios para continuar:
 npm.cmd run lint
 npm.cmd run build
 git diff --check
-git add app/relatorios/page.tsx components/financeiro/EditFinancialModal.tsx components/financeiro/FinancialTable.tsx components/financeiro/NewFinancialModal.tsx services/financial.ts CONTINUAR_AQUI.md
-git commit -m "fix(financeiro): ajustar vencimento e sincronizar diarias pagas"
+git add app/relatorios/page.tsx components/financeiro/EditFinancialModal.tsx components/financeiro/FinancialTable.tsx components/financeiro/NewFinancialModal.tsx services/financial.ts services/grooming.ts CONTINUAR_AQUI.md
+git commit -m "fix(grooming): reconciliar diarias pagas no financeiro"
 git push origin main
 ```
 

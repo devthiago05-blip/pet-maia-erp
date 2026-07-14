@@ -1,5 +1,6 @@
-﻿import { supabase } from "@/lib/supabase";
+import { supabase } from "@/lib/supabase";
 import type {
+  GroomerDailyPayment,
   GroomerDailyPaymentInput,
   GroomingSupplyInput,
   GroomingSupplyMovementInput,
@@ -228,11 +229,68 @@ export async function createGroomingSupplyMovement(
 }
 
 export async function fetchGroomerDailyPayments() {
-  return supabase
+  const paymentsResponse = await supabase
     .from("groomer_daily_payments")
     .select("*")
     .order("work_date", { ascending: false })
     .order("id", { ascending: false });
+
+  if (paymentsResponse.error || !paymentsResponse.data?.length) {
+    return paymentsResponse;
+  }
+
+  const payments = paymentsResponse.data as GroomerDailyPayment[];
+  const paymentIds = payments.map((payment) => payment.id);
+  const financialEntryIds = payments
+    .map((payment) => payment.financial_entry_id)
+    .filter((id): id is number => Boolean(id));
+
+  const [financialByIdResponse, financialByReferenceResponse] =
+    await Promise.all([
+      financialEntryIds.length > 0
+        ? supabase
+            .from("financial_entries")
+            .select("id, status_pagamento")
+            .in("id", financialEntryIds)
+        : Promise.resolve({ data: [], error: null }),
+      supabase
+        .from("financial_entries")
+        .select("referencia_id, status_pagamento")
+        .eq("origem", "groomer_daily_payment")
+        .in("referencia_id", paymentIds),
+    ]);
+
+  if (financialByIdResponse.error) {
+    return financialByIdResponse;
+  }
+
+  if (financialByReferenceResponse.error) {
+    return financialByReferenceResponse;
+  }
+
+  const paidFinancialEntryIds = new Set(
+    (financialByIdResponse.data || [])
+      .filter((entry) => entry.status_pagamento === "Pago")
+      .map((entry) => entry.id),
+  );
+  const paidPaymentIds = new Set(
+    (financialByReferenceResponse.data || [])
+      .filter((entry) => entry.status_pagamento === "Pago")
+      .map((entry) => entry.referencia_id),
+  );
+
+  return {
+    ...paymentsResponse,
+    data: payments.map((payment) => ({
+      ...payment,
+      payment_status:
+        paidPaymentIds.has(payment.id) ||
+        (payment.financial_entry_id &&
+          paidFinancialEntryIds.has(payment.financial_entry_id))
+          ? "Pago"
+          : payment.payment_status,
+    })),
+  };
 }
 
 export async function createGroomerDailyPayment(

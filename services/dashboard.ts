@@ -1,5 +1,27 @@
 import { supabase } from "@/lib/supabase";
 
+function formatDateOnly(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function getCurrentMondayToSundayRange() {
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+
+  return {
+    endDate: formatDateOnly(end),
+    startDate: formatDateOnly(start),
+  };
+}
+
 export async function fetchDashboardCounts() {
   const [pets, tutors, appointments] = await Promise.all([
     supabase.from("pets").select("*", { count: "exact", head: true }),
@@ -29,12 +51,8 @@ export async function fetchRecentAppointments() {
     .limit(5);
 }
 
-
 export async function fetchWeeklyAppointments() {
-  const inicioSemana = new Date();
-
-  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
-  inicioSemana.setHours(0, 0, 0, 0);
+  const { endDate, startDate } = getCurrentMondayToSundayRange();
 
   return supabase
     .from("appointments")
@@ -51,16 +69,14 @@ export async function fetchWeeklyAppointments() {
       )
     `,
     )
-    .gte("data", inicioSemana.toISOString().split("T")[0])
+    .gte("data", startDate)
+    .lte("data", endDate)
     .order("data", { ascending: true })
     .order("hora", { ascending: true });
 }
 
 export async function fetchWeeklyAppointmentsByStatus(status: string) {
-  const inicioSemana = new Date();
-
-  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
-  inicioSemana.setHours(0, 0, 0, 0);
+  const { endDate, startDate } = getCurrentMondayToSundayRange();
 
   return supabase
     .from("appointments")
@@ -78,7 +94,8 @@ export async function fetchWeeklyAppointmentsByStatus(status: string) {
     `,
     )
     .eq("status", status)
-    .gte("data", inicioSemana.toISOString().split("T")[0])
+    .gte("data", startDate)
+    .lte("data", endDate)
     .order("data", { ascending: true })
     .order("hora", { ascending: true });
 }

@@ -2,7 +2,37 @@
 
 - Atualizado em: 14/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
+  Ultimo commit funcional: `feat(grooming): controlar equipamentos e manutencoes`
+
+## Bloco concluido - dashboard de segunda a domingo
+
+Ultima tarefa concluida:
+
+- Ajustado o calculo dos agendamentos da semana no Dashboard.
+- A semana agora considera sempre segunda-feira ate domingo.
+- O filtro deixou de iniciar no domingo.
+- O filtro agora tambem limita o fim da semana no domingo, evitando puxar
+  agendamentos de semanas futuras.
+
+Arquivos modificados:
+
+- `services/dashboard.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Nenhuma pendencia tecnica deste bloco.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add services/dashboard.ts CONTINUAR_AQUI.md
+git commit -m "fix(dashboard): mostrar semana de segunda a domingo"
+git push origin main
+```
 
 ## Bloco concluido - equipamentos, laminas e manutencao
 

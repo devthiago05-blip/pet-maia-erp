@@ -4,6 +4,69 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(grooming): conectar exclusao de movimentacao`
 
+## Bloco concluido - ajustes Financeiro e relatorio operacional
+
+Ultima tarefa concluida:
+
+- Financeiro agora mostra `Data do titulo` na tabela usando `created_at`.
+- `Vencimento` fica visivel e gravado apenas para lancamentos do tipo
+  `Despesa`.
+- Ao marcar um lancamento vinculado como `Pago`, o sistema sincroniza:
+  - `groomer_daily_payments.payment_status`;
+  - `grooming_supply_movements.payment_status`.
+- Isso corrige o alerta de diaria que continuava aparecendo como pendente
+  depois do pagamento financeiro.
+- Foram adicionados atalhos de despesa operacional nos modais do financeiro:
+  - `Manutencao de maquinas`;
+  - `Afiacao de lamina`;
+  - `Manutencao predial`;
+  - `Compra de pecas`.
+- Relatorios agora exibem:
+  - total de despesas pendentes;
+  - card de `Manutencao e afiacao`;
+  - ranking de despesas de manutencao, maquinas, pecas e afiacao.
+
+Arquivos modificados:
+
+- `app/relatorios/page.tsx`
+- `components/financeiro/EditFinancialModal.tsx`
+- `components/financeiro/FinancialTable.tsx`
+- `components/financeiro/NewFinancialModal.tsx`
+- `services/financial.ts`
+- `CONTINUAR_AQUI.md`
+
+Validacoes executadas:
+
+- `npm.cmd run lint`: aprovado.
+- `npm.cmd run build`: aprovado.
+- `git diff --check`: aprovado, apenas aviso normal de CRLF no Windows.
+- Supabase confirmado no projeto `umlwimsjxbhrrjhrofmd`:
+  - `financial_entries.origem`;
+  - `financial_entries.referencia_id`;
+  - `financial_entries.data_vencimento`;
+  - `groomer_daily_payments.payment_status`;
+  - `groomer_daily_payments.financial_entry_id`;
+  - `grooming_supply_movements.payment_status`;
+  - `grooming_supply_movements.financial_entry_id`.
+
+Pendencias:
+
+- Se quiser granularidade maior, criar no futuro uma tabela/categoria formal
+  para tipos de despesa operacional. Nesta etapa foi mantido sem alterar banco.
+- Testar no navegador um pagamento real de diaria pelo Financeiro para validar
+  o desaparecimento do alerta na tela de insumos/diarias.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/relatorios/page.tsx components/financeiro/EditFinancialModal.tsx components/financeiro/FinancialTable.tsx components/financeiro/NewFinancialModal.tsx services/financial.ts CONTINUAR_AQUI.md
+git commit -m "fix(financeiro): ajustar vencimento e sincronizar diarias pagas"
+git push origin main
+```
+
 ## Bloco em andamento - observacao e impressao da Agenda
 
 Ultima tarefa concluida:

@@ -20,6 +20,13 @@ interface EditFinancialModalProps {
   onSave: (id: number, entry: UpdateFinancialEntryInput) => Promise<boolean>;
 }
 
+const operationalExpenseSuggestions = [
+  "Manutenção de máquinas",
+  "Afiação de lâmina",
+  "Manutenção predial",
+  "Compra de peças",
+];
+
 export function EditFinancialModal({
   entry,
   tutors,
@@ -93,6 +100,14 @@ export function EditFinancialModal({
     }
   }
 
+  function handleTypeChange(value: FinancialEntryType) {
+    setTipo(value);
+
+    if (value !== "Despesa") {
+      setDataVencimento("");
+    }
+  }
+
   async function handleSave() {
     const numericValue = Number(valor);
 
@@ -118,7 +133,7 @@ export function EditFinancialModal({
       formaPagamento,
       tipo,
       statusPagamento,
-      dataVencimento,
+      dataVencimento: tipo === "Despesa" ? dataVencimento : "",
       tutorId,
       petId,
     });
@@ -193,6 +208,21 @@ export function EditFinancialModal({
             />
           </label>
 
+          {tipo === "Despesa" && (
+            <div className="flex flex-wrap gap-2">
+              {operationalExpenseSuggestions.map((suggestion) => (
+                <button
+                  key={suggestion}
+                  type="button"
+                  onClick={() => setDescricao(suggestion)}
+                  className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-[#8A0EEA] transition hover:bg-purple-100"
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Valor
             <input
@@ -211,7 +241,7 @@ export function EditFinancialModal({
               <select
                 value={tipo}
                 onChange={(event) =>
-                  setTipo(event.target.value as FinancialEntryType)
+                  handleTypeChange(event.target.value as FinancialEntryType)
                 }
                 className="w-full rounded-xl border p-3 font-normal"
               >
@@ -235,7 +265,11 @@ export function EditFinancialModal({
             </label>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div
+            className={`grid gap-4 ${
+              tipo === "Despesa" ? "sm:grid-cols-2" : ""
+            }`}
+          >
             <label className="grid gap-1 text-sm font-medium text-slate-700">
               Forma de pagamento
               <select
@@ -249,15 +283,17 @@ export function EditFinancialModal({
               </select>
             </label>
 
-            <label className="grid gap-1 text-sm font-medium text-slate-700">
-              Data de vencimento
-              <input
-                type="date"
-                value={dataVencimento}
-                onChange={(event) => setDataVencimento(event.target.value)}
-                className="w-full rounded-xl border p-3 font-normal"
-              />
-            </label>
+            {tipo === "Despesa" && (
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Data de vencimento
+                <input
+                  type="date"
+                  value={dataVencimento}
+                  onChange={(event) => setDataVencimento(event.target.value)}
+                  className="w-full rounded-xl border p-3 font-normal"
+                />
+              </label>
+            )}
           </div>
 
           <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">

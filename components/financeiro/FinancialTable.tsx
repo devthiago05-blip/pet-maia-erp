@@ -36,7 +36,7 @@ export function FinancialTable({
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[980px]">
+          <table className="w-full min-w-[1080px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Descrição</th>
@@ -44,6 +44,7 @@ export function FinancialTable({
                 <th className="p-3 text-left sm:p-4">Pet</th>
                 <th className="p-3 text-left sm:p-4">Tipo</th>
                 <th className="p-3 text-left sm:p-4">Valor</th>
+                <th className="p-3 text-left sm:p-4">Data do título</th>
                 <th className="p-3 text-left sm:p-4">Vencimento</th>
                 <th className="p-3 text-left sm:p-4">Status</th>
                 <th className="p-3 text-left sm:p-4">Ações</th>
@@ -54,7 +55,7 @@ export function FinancialTable({
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="p-6 text-center text-sm text-slate-500"
                   >
                     Nenhum lançamento financeiro encontrado.
@@ -90,7 +91,13 @@ export function FinancialTable({
                     </td>
 
                     <td className="p-3 sm:p-4">
-                      {formatDate(entry.data_vencimento)}
+                      {formatDate(entry.created_at)}
+                    </td>
+
+                    <td className="p-3 sm:p-4">
+                      {entry.tipo === "Despesa"
+                        ? formatDate(entry.data_vencimento)
+                        : "-"}
                     </td>
 
                     <td className="p-3 sm:p-4">

@@ -5,6 +5,7 @@ import {
   CircleDollarSign,
   ReceiptText,
   TrendingUp,
+  Wrench,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -23,6 +24,34 @@ function isWithinPeriod(value: string | undefined, start: string, end: string) {
 
   const date = value.slice(0, 10);
   return (!start || date >= start) && (!end || date <= end);
+}
+
+const operationalExpenseKeywords = [
+  "manutencao",
+  "maquina",
+  "maquinas",
+  "afiacao",
+  "lamina",
+  "laminas",
+  "pecas",
+];
+
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function isOperationalExpense(entry: FinancialEntry) {
+  if (entry.tipo !== "Despesa") {
+    return false;
+  }
+
+  const description = normalizeText(entry.descricao || "");
+  return operationalExpenseKeywords.some((keyword) =>
+    description.includes(keyword),
+  );
 }
 
 export default function ReportsPage() {
@@ -120,6 +149,16 @@ export default function ReportsPage() {
   const expenses = filteredEntries
     .filter((entry) => entry.tipo === "Despesa")
     .reduce((total, entry) => total + Number(entry.valor), 0);
+  const pendingExpenses = filteredEntries
+    .filter(
+      (entry) => entry.tipo === "Despesa" && entry.status_pagamento !== "Pago",
+    )
+    .reduce((total, entry) => total + Number(entry.valor), 0);
+  const operationalExpenses = filteredEntries.filter(isOperationalExpense);
+  const operationalExpensesTotal = operationalExpenses.reduce(
+    (total, entry) => total + Number(entry.valor),
+    0,
+  );
   const profit = paidRevenue - expenses;
 
   const serviceRanking = Object.entries(
@@ -145,6 +184,14 @@ export default function ReportsPage() {
         ranking[payment] = (ranking[payment] || 0) + Number(entry.valor);
         return ranking;
       }, {}),
+  ).sort(([, first], [, second]) => second - first);
+
+  const operationalExpenseRanking = Object.entries(
+    operationalExpenses.reduce<Record<string, number>>((ranking, entry) => {
+      const description = entry.descricao || "Despesa operacional";
+      ranking[description] = (ranking[description] || 0) + Number(entry.valor);
+      return ranking;
+    }, {}),
   ).sort(([, first], [, second]) => second - first);
 
   const appointmentStatus = ["Agendado", "Finalizado", "Cancelado"].map(
@@ -245,7 +292,7 @@ export default function ReportsPage() {
             </div>
           ) : (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
                 <ReportCard
                   icon={<CircleDollarSign size={22} />}
                   label="Recebido"
@@ -265,6 +312,11 @@ export default function ReportsPage() {
                   icon={<CalendarCheck size={22} />}
                   label="Atendimentos"
                   value={String(filteredAppointments.length)}
+                />
+                <ReportCard
+                  icon={<Wrench size={22} />}
+                  label="Manutenção e afiação"
+                  value={formatCurrency(operationalExpensesTotal)}
                 />
               </div>
 
@@ -302,8 +354,19 @@ export default function ReportsPage() {
                       value: formatCurrency(pendingRevenue),
                     },
                     { label: "Despesas", value: formatCurrency(expenses) },
+                    {
+                      label: "Despesas pendentes",
+                      value: formatCurrency(pendingExpenses),
+                    },
                     { label: "Resultado", value: formatCurrency(profit) },
                   ]}
+                />
+                <ReportList
+                  title="Manutenção, máquinas e afiação"
+                  items={operationalExpenseRanking.map(([label, value]) => ({
+                    label,
+                    value: formatCurrency(value),
+                  }))}
                 />
               </div>
 

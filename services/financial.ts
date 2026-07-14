@@ -61,7 +61,8 @@ export async function createFinancialEntry(entry: NewFinancialEntryInput) {
       tipo: entry.tipo,
       forma_pagamento: entry.formaPagamento,
       status_pagamento: entry.statusPagamento || "Pendente",
-      data_vencimento: entry.dataVencimento || null,
+      data_vencimento:
+        entry.tipo === "Despesa" ? entry.dataVencimento || null : null,
       origem: "manual",
       tutor_id: entry.tutorId ? Number(entry.tutorId) : null,
       pet_id: entry.petId ? Number(entry.petId) : null,
@@ -93,11 +94,65 @@ export async function createAppointmentFinancialEntry(
   ]);
 }
 
+async function syncLinkedPaymentStatus(
+  origin: string | null | undefined,
+  referenceId: number | null | undefined,
+  financialEntryId: number,
+) {
+  const filters = [`financial_entry_id.eq.${financialEntryId}`];
+
+  if (referenceId) {
+    filters.push(`id.eq.${referenceId}`);
+  }
+
+  if (origin === "groomer_daily_payment") {
+    return supabase
+      .from("groomer_daily_payments")
+      .update({ payment_status: "Pago" })
+      .or(filters.join(","));
+  }
+
+  if (origin === "grooming_supply") {
+    return supabase
+      .from("grooming_supply_movements")
+      .update({ payment_status: "Pago" })
+      .or(filters.join(","));
+  }
+
+  return { error: null };
+}
+
 export async function markFinancialEntryAsPaid(id: number) {
-  return supabase
+  const entryResponse = await supabase
+    .from("financial_entries")
+    .select("origem, referencia_id")
+    .eq("id", id)
+    .single();
+
+  if (entryResponse.error) {
+    return entryResponse;
+  }
+
+  const paymentResponse = await supabase
     .from("financial_entries")
     .update({ status_pagamento: "Pago" })
     .eq("id", id);
+
+  if (paymentResponse.error) {
+    return paymentResponse;
+  }
+
+  const syncResponse = await syncLinkedPaymentStatus(
+    entryResponse.data?.origem,
+    entryResponse.data?.referencia_id,
+    id,
+  );
+
+  if (syncResponse.error) {
+    return syncResponse;
+  }
+
+  return paymentResponse;
 }
 
 export async function deleteFinancialEntry(id: number) {
@@ -157,7 +212,17 @@ export async function updateFinancialEntry(
   id: number,
   entry: UpdateFinancialEntryInput,
 ) {
-  return supabase
+  const currentEntryResponse = await supabase
+    .from("financial_entries")
+    .select("origem, referencia_id")
+    .eq("id", id)
+    .single();
+
+  if (currentEntryResponse.error) {
+    return currentEntryResponse;
+  }
+
+  const updateResponse = await supabase
     .from("financial_entries")
     .update({
       descricao: entry.descricao.trim(),
@@ -165,9 +230,26 @@ export async function updateFinancialEntry(
       tipo: entry.tipo,
       forma_pagamento: entry.formaPagamento,
       status_pagamento: entry.statusPagamento,
-      data_vencimento: entry.dataVencimento || null,
+      data_vencimento:
+        entry.tipo === "Despesa" ? entry.dataVencimento || null : null,
       tutor_id: entry.tutorId ? Number(entry.tutorId) : null,
       pet_id: entry.petId ? Number(entry.petId) : null,
     })
     .eq("id", id);
+
+  if (updateResponse.error || entry.statusPagamento !== "Pago") {
+    return updateResponse;
+  }
+
+  const syncResponse = await syncLinkedPaymentStatus(
+    currentEntryResponse.data?.origem,
+    currentEntryResponse.data?.referencia_id,
+    id,
+  );
+
+  if (syncResponse.error) {
+    return syncResponse;
+  }
+
+  return updateResponse;
 }

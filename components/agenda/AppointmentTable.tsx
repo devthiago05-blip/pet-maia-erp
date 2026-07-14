@@ -10,6 +10,7 @@ interface AppointmentTableProps {
   onDelete: (id: number) => void;
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
+  onConfirm: (id: number) => void;
   onEdit: (appointment: Appointment) => void;
 }
 
@@ -18,6 +19,7 @@ export function AppointmentTable({
   onDelete,
   onFinish,
   onViewReceipt,
+  onConfirm,
   onEdit,
 }: AppointmentTableProps) {
   const [appointmentToDelete, setAppointmentToDelete] =
@@ -70,7 +72,9 @@ export function AppointmentTable({
                           ? "bg-green-100 text-green-700"
                           : appointment.status === "Cancelado"
                             ? "bg-red-100 text-red-700"
-                            : "bg-yellow-100 text-yellow-700"
+                            : appointment.status === "Pendente"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
                       {appointment.status}
@@ -79,6 +83,26 @@ export function AppointmentTable({
 
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">
+                      {appointment.status === "Pendente" && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onConfirm(appointment.id)}
+                            className="text-green-600"
+                          >
+                            Confirmar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onEdit(appointment)}
+                            className="text-blue-600"
+                          >
+                            Editar
+                          </button>
+                        </>
+                      )}
+
                       {appointment.status === "Agendado" && (
                         <>
                           <button

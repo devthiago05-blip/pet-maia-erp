@@ -7,6 +7,7 @@ interface AppointmentCardProps {
   appointment: Appointment;
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
+  onConfirm: (id: number) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (appointment: Appointment) => void;
@@ -16,6 +17,7 @@ export function AppointmentCard({
   appointment,
   onFinish,
   onViewReceipt,
+  onConfirm,
   onCancel,
   onDelete,
   onEdit,
@@ -54,6 +56,34 @@ export function AppointmentCard({
         </div>
 
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          {appointment.status === "Pendente" && (
+            <>
+              <button
+                type="button"
+                onClick={() => onConfirm(appointment.id)}
+                className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Confirmar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onEdit(appointment)}
+                className="rounded-xl bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"
+              >
+                Editar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => onCancel(appointment.id)}
+                className="rounded-xl bg-yellow-50 px-3 py-2 text-sm font-semibold text-yellow-700 transition hover:bg-yellow-100"
+              >
+                Cancelar
+              </button>
+            </>
+          )}
+
           {appointment.status === "Agendado" && (
             <>
               <button

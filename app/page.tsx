@@ -274,7 +274,7 @@ export default function HomePage() {
           fetchWeeklyPendingRevenue(),
           fetchWeeklyAppointments(),
           fetchWeeklyAppointmentsByStatus("Finalizado"),
-          fetchWeeklyAppointmentsByStatus("Agendado"),
+          fetchWeeklyAppointmentsByStatus("Pendente"),
           fetchPetsForBathReminders(),
           fetchFinalizedBathAppointmentsForReminders(),
           fetchGroomingSupplyAlerts(),
@@ -524,7 +524,9 @@ Equipe Pet Maia Banho e Tosa.`;
                     ? "bg-green-100 text-green-700"
                     : appointment.status === "Cancelado"
                       ? "bg-red-100 text-red-700"
-                      : "bg-yellow-100 text-yellow-700"
+                      : appointment.status === "Pendente"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-yellow-100 text-yellow-700"
                 }`}
               >
                 {appointment.status}

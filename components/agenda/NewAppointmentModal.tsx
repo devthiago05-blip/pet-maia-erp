@@ -253,6 +253,7 @@ export function NewAppointmentModal({
                 }
                 className="w-full rounded-xl border p-3"
               >
+                <option>Pendente</option>
                 <option>Agendado</option>
                 <option>Finalizado</option>
                 <option>Cancelado</option>

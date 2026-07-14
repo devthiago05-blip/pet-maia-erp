@@ -194,14 +194,17 @@ export default function ReportsPage() {
     }, {}),
   ).sort(([, first], [, second]) => second - first);
 
-  const appointmentStatus = ["Agendado", "Finalizado", "Cancelado"].map(
-    (status) => ({
+  const appointmentStatus = [
+    "Pendente",
+    "Agendado",
+    "Finalizado",
+    "Cancelado",
+  ].map((status) => ({
       status,
       total: filteredAppointments.filter(
         (appointment) => appointment.status === status,
       ).length,
-    }),
-  );
+    }));
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">

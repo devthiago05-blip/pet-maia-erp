@@ -311,6 +311,19 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
+  async function handleConfirmAppointment(id: number) {
+    const { error } = await updateAppointmentStatus(id, "Agendado");
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao confirmar agendamento");
+      return;
+    }
+
+    toast.success("Agendamento confirmado!");
+    await loadAppointments();
+  }
+
   async function handleFinishAppointment({
     valor,
     formaPagamento,
@@ -556,6 +569,7 @@ export default function AgendaPage() {
               className="rounded-xl border p-3"
             >
               <option>Todos</option>
+              <option>Pendente</option>
               <option>Agendado</option>
               <option>Finalizado</option>
               <option>Cancelado</option>
@@ -573,6 +587,7 @@ export default function AgendaPage() {
                 appointments={filteredKanbanAppointments}
                 onFinish={setAppointmentToFinish}
                 onViewReceipt={handleViewReceipt}
+                onConfirm={handleConfirmAppointment}
                 onCancel={handleCancelAppointment}
                 onDelete={handleDeleteAppointment}
                 onEdit={handleEditAppointment}
@@ -583,6 +598,7 @@ export default function AgendaPage() {
               appointments={filteredAppointments}
               onFinish={setAppointmentToFinish}
               onViewReceipt={handleViewReceipt}
+              onConfirm={handleConfirmAppointment}
               onDelete={handleDeleteAppointment}
               onEdit={handleEditAppointment}
             />

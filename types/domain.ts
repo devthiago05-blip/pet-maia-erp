@@ -368,7 +368,11 @@ export interface ClinicalDocumentInput {
   professionalName: string;
 }
 
-export type AppointmentStatus = "Agendado" | "Finalizado" | "Cancelado";
+export type AppointmentStatus =
+  | "Pendente"
+  | "Agendado"
+  | "Finalizado"
+  | "Cancelado";
 
 export interface Appointment {
   id: number;

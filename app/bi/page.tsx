@@ -116,14 +116,17 @@ export default function BiPage() {
       .sort((first, second) => second[1] - first[1])
       .slice(0, 6);
   })();
-  const appointmentStatus = ["Agendado", "Finalizado", "Cancelado"].map(
-    (status) => ({
+  const appointmentStatus = [
+    "Pendente",
+    "Agendado",
+    "Finalizado",
+    "Cancelado",
+  ].map((status) => ({
       label: status,
       value: periodAppointments.filter(
         (appointment) => appointment.status === status,
       ).length,
-    }),
-  );
+    }));
   const paymentMethods = Array.from(
     periodEntries
       .filter((entry) => entry.tipo === "Receita")
@@ -261,7 +264,12 @@ export default function BiPage() {
                 <BarChart
                   title="Status dos atendimentos"
                   items={appointmentStatus}
-                  colors={["bg-amber-500", "bg-emerald-500", "bg-red-500"]}
+                  colors={[
+                    "bg-blue-500",
+                    "bg-amber-500",
+                    "bg-emerald-500",
+                    "bg-red-500",
+                  ]}
                 />
                 <BarChart
                   title="Produtos mais vendidos"

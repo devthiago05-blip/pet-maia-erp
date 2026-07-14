@@ -2,7 +2,62 @@
 
 - Atualizado em: 14/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `fix(dashboard): mostrar semana de segunda a domingo`
+  Ultimo commit funcional: `feat(financeiro): adicionar impressao de lancamentos`
+
+## Bloco concluido - agendamentos do site como pendentes
+
+Ultima tarefa concluida:
+
+- Adicionado o status `Pendente` aos agendamentos.
+- A tela Agenda agora mostra `Pendente` no filtro de status.
+- O Kanban ganhou a coluna `Pendentes` antes de `Agendados`.
+- Cards e tabela da Agenda ganharam botao `Confirmar` para mudar de
+  `Pendente` para `Agendado`.
+- O modal de agendamento permite editar status como:
+  - `Pendente`;
+  - `Agendado`;
+  - `Finalizado`;
+  - `Cancelado`.
+- Dashboard, BI e Relatorios passaram a considerar o status `Pendente` nos
+  resumos de agenda.
+- Criada migration `supabase/sql/037_public_site_pending_appointments.sql`.
+- A funcao publica `public.create_public_site_appointment(jsonb)` existia no
+  Supabase e foi atualizada para gravar novos pedidos do site como
+  `Pendente`.
+- A validacao da funcao tambem passou a contar `Pendente` e `Agendado` no limite
+  de solicitacoes por tutor/data.
+- Teste transacional com rollback confirmou que a funcao cria status
+  `Pendente` e nao deixou dados de teste.
+
+Arquivos modificados:
+
+- `types/domain.ts`
+- `app/agenda/page.tsx`
+- `components/agenda/AppointmentCard.tsx`
+- `components/agenda/AppointmentTable.tsx`
+- `components/agenda/KanbanBoard.tsx`
+- `components/agenda/KanbanColumn.tsx`
+- `components/agenda/NewAppointmentModal.tsx`
+- `app/page.tsx`
+- `app/bi/page.tsx`
+- `app/relatorios/page.tsx`
+- `supabase/sql/037_public_site_pending_appointments.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Nenhuma pendencia tecnica deste bloco.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add types/domain.ts app/agenda/page.tsx components/agenda/AppointmentCard.tsx components/agenda/AppointmentTable.tsx components/agenda/KanbanBoard.tsx components/agenda/KanbanColumn.tsx components/agenda/NewAppointmentModal.tsx app/page.tsx app/bi/page.tsx app/relatorios/page.tsx supabase/sql/037_public_site_pending_appointments.sql CONTINUAR_AQUI.md
+git commit -m "feat(agenda): receber pedidos do site como pendentes"
+git push origin main
+```
 
 ## Bloco concluido - impressao do financeiro
 

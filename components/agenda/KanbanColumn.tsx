@@ -7,6 +7,7 @@ interface KanbanColumnProps {
   appointments: Appointment[];
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
+  onConfirm: (id: number) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (appointment: Appointment) => void;
@@ -18,6 +19,7 @@ export function KanbanColumn({
   appointments,
   onFinish,
   onViewReceipt,
+  onConfirm,
   onCancel,
   onDelete,
   onEdit,
@@ -44,6 +46,7 @@ export function KanbanColumn({
               appointment={appointment}
               onFinish={onFinish}
               onViewReceipt={onViewReceipt}
+              onConfirm={onConfirm}
               onCancel={onCancel}
               onDelete={onDelete}
               onEdit={onEdit}

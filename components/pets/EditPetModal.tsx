@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import { toast } from "sonner";
 
+import { uploadPetPhoto } from "@/services/pets";
 import type { Pet, Tutor } from "@/types/domain";
 
 interface EditPetModalProps {
@@ -20,16 +21,55 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
   const [idade, setIdade] = useState(pet.idade || "");
   const [porte, setPorte] = useState(pet.porte || "Pequeno");
   const [tutorId, setTutorId] = useState(String(pet.tutor_id || ""));
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState(pet.photo_url || "");
+  const [saving, setSaving] = useState(false);
   const [bathReminderIntervalDays, setBathReminderIntervalDays] = useState(
     pet.bath_reminder_interval_days
       ? String(pet.bath_reminder_interval_days)
       : "",
   );
 
-  function handleSave() {
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview(pet.photo_url || "");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      event.target.value = "";
+      return;
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSave() {
     if (!nome || !especie || !tutorId) {
       toast.error("Preencha os campos obrigatórios");
       return;
+    }
+
+    setSaving(true);
+
+    let photoUrl = pet.photo_url || null;
+
+    if (photoFile) {
+      const uploadResponse = await uploadPetPhoto(photoFile);
+
+      if (uploadResponse.error) {
+        console.error(uploadResponse.error);
+        toast.error(uploadResponse.error.message || "Erro ao enviar foto");
+        setSaving(false);
+        return;
+      }
+
+      photoUrl = uploadResponse.data || null;
     }
 
     onSave({
@@ -40,12 +80,14 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
       sexo,
       idade,
       porte,
+      photo_url: photoUrl,
       tutorId,
       bath_reminder_interval_days: bathReminderIntervalDays
         ? Number(bathReminderIntervalDays)
         : null,
     });
 
+    setSaving(false);
     setOpen(false);
   }
 
@@ -148,6 +190,27 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
                 </select>
               </label>
 
+              <label className="grid gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
+                Foto do pet
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handlePhotoChange}
+                  className="w-full rounded-lg border bg-white p-2 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
+                />
+              </label>
+
+              {photoPreview && (
+                <div className="overflow-hidden rounded-xl border bg-slate-50 sm:col-span-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreview}
+                    alt="Previa do pet"
+                    className="h-44 w-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
                 <button
                   type="button"
@@ -160,9 +223,10 @@ export function EditPetModal({ pet, tutors, onSave }: EditPetModalProps) {
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
+                  disabled={saving}
+                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
                 >
-                  Salvar
+                  {saving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

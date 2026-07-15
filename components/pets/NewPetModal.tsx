@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ChangeEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { uploadPetPhoto } from "@/services/pets";
 import type { NewPetInput, Tutor } from "@/types/domain";
 
 interface NewPetModalProps {
@@ -31,6 +32,9 @@ export function NewPetModal({
   const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState(defaultTutorId);
   const [bathReminderIntervalDays, setBathReminderIntervalDays] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [saving, setSaving] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const modalOpen = open ?? internalOpen;
@@ -62,12 +66,34 @@ export function NewPetModal({
     setPorte("Pequeno");
     setTutorId(defaultTutorId || "");
     setBathReminderIntervalDays("");
+    setPhotoFile(null);
+    setPhotoPreview("");
+    setSaving(false);
     setSubmitted(false);
   }
 
   function handleClose() {
     resetForm();
     setModalOpen(false);
+  }
+
+  function handlePhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      setPhotoFile(null);
+      setPhotoPreview("");
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      event.target.value = "";
+      return;
+    }
+
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   }
 
   async function handleSave() {
@@ -88,6 +114,23 @@ export function NewPetModal({
       return;
     }
 
+    setSaving(true);
+
+    let photoUrl: string | null = null;
+
+    if (photoFile) {
+      const uploadResponse = await uploadPetPhoto(photoFile);
+
+      if (uploadResponse.error) {
+        console.error(uploadResponse.error);
+        toast.error(uploadResponse.error.message || "Erro ao enviar foto");
+        setSaving(false);
+        return;
+      }
+
+      photoUrl = uploadResponse.data || null;
+    }
+
     const result = await onSave({
       nome: nome.trim(),
       especie,
@@ -96,8 +139,11 @@ export function NewPetModal({
       sexo,
       idade: idade.trim(),
       porte,
+      photoUrl,
       bathReminderIntervalDays,
     });
+
+    setSaving(false);
 
     if (result === false) {
       return;
@@ -224,6 +270,27 @@ export function NewPetModal({
                 </select>
               </label>
 
+              <label className="grid gap-2 text-sm font-medium text-slate-700 sm:col-span-2">
+                Foto do pet
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  onChange={handlePhotoChange}
+                  className="w-full rounded-lg border bg-white p-2 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
+                />
+              </label>
+
+              {photoPreview && (
+                <div className="overflow-hidden rounded-xl border bg-slate-50 sm:col-span-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photoPreview}
+                    alt="Previa do pet"
+                    className="h-44 w-full object-cover"
+                  />
+                </div>
+              )}
+
               <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row">
                 <button
                   type="button"
@@ -236,9 +303,10 @@ export function NewPetModal({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white sm:flex-1"
+                  disabled={saving}
+                  className="w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
                 >
-                  Salvar
+                  {saving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
             </div>

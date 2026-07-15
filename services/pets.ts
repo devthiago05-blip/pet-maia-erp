@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import type { NewPetInput, Pet } from "@/types/domain";
 
+const petPhotosBucket = "pet-photos";
+
 export async function fetchPets() {
   return supabase
     .from("pets")
@@ -45,6 +47,7 @@ export async function createPet(pet: NewPetInput) {
       bath_reminder_interval_days: pet.bathReminderIntervalDays
         ? Number(pet.bathReminderIntervalDays)
         : null,
+      photo_url: pet.photoUrl || null,
       tutor_id: Number(pet.tutorId),
     },
   ]);
@@ -61,9 +64,41 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
       sexo: pet.sexo,
       idade: pet.idade,
       bath_reminder_interval_days: pet.bath_reminder_interval_days ?? null,
+      photo_url: pet.photo_url || null,
       tutor_id: Number(pet.tutorId),
     })
     .eq("id", pet.id);
+}
+
+export async function uploadPetPhoto(file: File) {
+  if (!file.type.startsWith("image/")) {
+    return {
+      data: null,
+      error: new Error("Selecione uma imagem valida."),
+    };
+  }
+
+  const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const storagePath = `pets/${crypto.randomUUID()}.${extension}`;
+  const uploadResponse = await supabase.storage
+    .from(petPhotosBucket)
+    .upload(storagePath, file, {
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadResponse.error) {
+    return { data: null, error: uploadResponse.error };
+  }
+
+  const publicUrlResponse = supabase.storage
+    .from(petPhotosBucket)
+    .getPublicUrl(storagePath);
+
+  return {
+    data: publicUrlResponse.data.publicUrl,
+    error: null,
+  };
 }
 
 export async function deletePet(id: number) {

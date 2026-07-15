@@ -674,6 +674,7 @@ function AppointmentPrintView({
           <tr className="bg-slate-100 text-left">
             <th className="border p-2">Data</th>
             <th className="border p-2">Hora</th>
+            <th className="border p-2">Foto</th>
             <th className="border p-2">Pet</th>
             <th className="border p-2">Tutor</th>
             <th className="border p-2">Serviço</th>
@@ -684,7 +685,7 @@ function AppointmentPrintView({
         <tbody>
           {appointments.length === 0 ? (
             <tr>
-              <td className="border p-4 text-center" colSpan={7}>
+              <td className="border p-4 text-center" colSpan={8}>
                 Nenhum agendamento encontrado.
               </td>
             </tr>
@@ -695,6 +696,18 @@ function AppointmentPrintView({
                   {appointment.data.split("-").reverse().join("/")}
                 </td>
                 <td className="border p-2">{appointment.hora}</td>
+                <td className="border p-2">
+                  {appointment.pets?.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={appointment.pets.photo_url}
+                      alt={appointment.pets?.nome || "Pet"}
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td className="border p-2">{appointment.pets?.nome || "-"}</td>
                 <td className="border p-2">
                   {appointment.pets?.tutors?.nome || "-"}

@@ -13,6 +13,7 @@ export async function fetchAppointments() {
       pets (
         nome,
         porte,
+        photo_url,
         tutor_id,
         tutors!pets_tutor_id_fkey (
           id,

@@ -44,12 +44,27 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
               {pets.map((pet) => (
                 <tr key={pet.id} className="border-t border-slate-100">
                   <td className="p-3 sm:p-4">
-                    <Link
-                      href={`/pets/${pet.id}`}
-                      className="font-medium text-[#8A0EEA] hover:underline"
-                    >
-                      {pet.nome}
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      {pet.photo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={pet.photo_url}
+                          alt={pet.nome}
+                          className="h-10 w-10 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-xs font-bold text-[#8A0EEA]">
+                          {pet.nome.charAt(0)}
+                        </div>
+                      )}
+
+                      <Link
+                        href={`/pets/${pet.id}`}
+                        className="font-medium text-[#8A0EEA] hover:underline"
+                      >
+                        {pet.nome}
+                      </Link>
+                    </div>
                   </td>
                   <td className="p-3 sm:p-4">{pet.especie}</td>
                   <td className="p-3 sm:p-4">{pet.raca}</td>

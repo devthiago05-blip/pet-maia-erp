@@ -2,7 +2,51 @@
 
 - Atualizado em: 15/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `fix(cadastros): ordenar pets e tutores por nome`
+  Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
+
+## Bloco concluido - foto do pet no cadastro e impressao da agenda
+
+Ultima tarefa concluida:
+
+- Criada migration `supabase/sql/039_pet_photos.sql`.
+- Adicionada coluna `public.pets.photo_url`.
+- Criado bucket publico `pet-photos` no Supabase Storage.
+- Bucket publico mantido para acesso por URL publica; removida policy ampla de
+  leitura para evitar listagem publica de objetos.
+- Criadas policies para upload/update/delete autenticado.
+- Cadastro de pet agora permite enviar foto.
+- Edicao de pet agora permite trocar foto.
+- A lista de pets mostra a foto quando existir.
+- A impressao da Agenda agora inclui a foto do pet.
+- Agendamentos passaram a buscar `pets.photo_url`.
+
+Arquivos modificados:
+
+- `types/domain.ts`
+- `services/pets.ts`
+- `services/appointments.ts`
+- `components/pets/NewPetModal.tsx`
+- `components/pets/EditPetModal.tsx`
+- `components/pets/PetTable.tsx`
+- `app/agenda/page.tsx`
+- `supabase/sql/039_pet_photos.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente upload de foto real em `Pets`.
+- Depois disso, iniciar o bloco da Agenda por linhas de horario.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add types/domain.ts services/pets.ts services/appointments.ts components/pets/NewPetModal.tsx components/pets/EditPetModal.tsx components/pets/PetTable.tsx app/agenda/page.tsx supabase/sql/039_pet_photos.sql CONTINUAR_AQUI.md
+git commit -m "feat(pets): adicionar foto e imprimir na agenda"
+git push origin main
+```
 
 ## Bloco concluido - organizar area Site no ERP
 

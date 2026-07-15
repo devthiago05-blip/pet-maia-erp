@@ -59,6 +59,14 @@ function getTodayDateString() {
 
   return `${year}-${month}-${day}`;
 }
+
+function getInitialStatusFilter(status: string | null) {
+  return ["Pendente", "Agendado", "Finalizado", "Cancelado"].includes(
+    status || "",
+  )
+    ? status || "Todos"
+    : "Todos";
+}
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -81,6 +89,7 @@ export default function AgendaPage() {
   const searchParams = useSearchParams();
   const preselectedPetId = searchParams.get("petId") || "";
   const preselectedTutorId = searchParams.get("tutorId") || "";
+  const preselectedStatus = getInitialStatusFilter(searchParams.get("status"));
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -103,7 +112,7 @@ export default function AgendaPage() {
   const [search, setSearch] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Todos");
+  const [filterStatus, setFilterStatus] = useState(preselectedStatus);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(
     Boolean(preselectedPetId),
   );

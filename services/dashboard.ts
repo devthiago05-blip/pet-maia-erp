@@ -99,6 +99,27 @@ export async function fetchWeeklyAppointmentsByStatus(status: string) {
     .order("data", { ascending: true })
     .order("hora", { ascending: true });
 }
+
+export async function fetchPendingAppointmentRequests() {
+  return supabase
+    .from("appointments")
+    .select(
+      `
+      *,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
+    .eq("status", "Pendente")
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
+}
 export async function fetchPetsForBathReminders() {
   return supabase
     .from("pets")

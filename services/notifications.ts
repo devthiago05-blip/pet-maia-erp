@@ -18,6 +18,29 @@ export async function fetchTodayPendingAppointments(date: string) {
     .order("hora");
 }
 
+export async function fetchPendingSiteAppointmentNotifications() {
+  return supabase
+    .from("appointments")
+    .select(
+      `
+        id,
+        data,
+        hora,
+        servico,
+        pets (
+          nome,
+          tutors!pets_tutor_id_fkey (
+            nome
+          )
+        )
+      `,
+    )
+    .eq("status", "Pendente")
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true })
+    .limit(10);
+}
+
 export async function fetchPendingFinancialNotifications() {
   return supabase
     .from("financial_entries")

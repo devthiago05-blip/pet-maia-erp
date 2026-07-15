@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/lib/supabase";
 import {
   fetchPendingFinancialNotifications,
+  fetchPendingSiteAppointmentNotifications,
   fetchTodayPendingAppointments,
   fetchVaccinationNotifications,
 } from "@/services/notifications";
@@ -24,10 +25,12 @@ interface NotificationItem {
 
 interface AppointmentNotificationRow {
   id: number;
+  data?: string;
   hora: string;
   servico: string;
   pets?: {
     nome?: string;
+    tutors?: { nome?: string } | null;
   } | null;
 }
 
@@ -70,6 +73,7 @@ const pageTitles: Record<string, string> = {
   "/relatorios": "Relatórios",
   "/services": "Serviços",
   "/settings": "Configurações",
+  "/site": "Site",
   "/tutors": "Tutores",
   "/usuarios": "Usuários",
 };
@@ -94,21 +98,28 @@ export function Header() {
     let active = true;
 
     async function loadNotifications() {
-      const [appointmentsResponse, financialResponse, vaccinationResponse] =
-        await Promise.all([
-          canAccess("agenda")
-            ? fetchTodayPendingAppointments(todayIso)
-            : Promise.resolve({ data: [], error: null }),
-          canAccess("financeiro")
-            ? fetchPendingFinancialNotifications()
-            : Promise.resolve({ data: [], error: null }),
-          canAccess("clinica") || canAccess("pets")
-            ? fetchVaccinationNotifications(
-                getRelativeDateIso(-90),
-                getRelativeDateIso(30),
-              )
-            : Promise.resolve({ data: [], error: null }),
-        ]);
+      const [
+        appointmentsResponse,
+        pendingSiteAppointmentsResponse,
+        financialResponse,
+        vaccinationResponse,
+      ] = await Promise.all([
+        canAccess("agenda")
+          ? fetchTodayPendingAppointments(todayIso)
+          : Promise.resolve({ data: [], error: null }),
+        canAccess("agenda")
+          ? fetchPendingSiteAppointmentNotifications()
+          : Promise.resolve({ data: [], error: null }),
+        canAccess("financeiro")
+          ? fetchPendingFinancialNotifications()
+          : Promise.resolve({ data: [], error: null }),
+        canAccess("clinica") || canAccess("pets")
+          ? fetchVaccinationNotifications(
+              getRelativeDateIso(-90),
+              getRelativeDateIso(30),
+            )
+          : Promise.resolve({ data: [], error: null }),
+      ]);
 
       if (!active) {
         return;
@@ -120,6 +131,10 @@ export function Header() {
 
       if (financialResponse.error) {
         console.error(financialResponse.error);
+      }
+
+      if (pendingSiteAppointmentsResponse.error) {
+        console.error(pendingSiteAppointmentsResponse.error);
       }
 
       if (vaccinationResponse.error) {
@@ -134,6 +149,15 @@ export function Header() {
         title: `${appointment.hora} · ${appointment.pets?.nome || "Pet"}`,
         description: appointment.servico,
         href: "/agenda",
+      }));
+      const pendingSiteAppointmentItems: NotificationItem[] = (
+        (pendingSiteAppointmentsResponse.data ||
+          []) as unknown as AppointmentNotificationRow[]
+      ).map((appointment) => ({
+        id: `site-appointment-${appointment.id}`,
+        title: `Solicitacao do site - ${appointment.pets?.nome || "Pet"}`,
+        description: `${appointment.data || "Sem data"} ${appointment.hora || ""} - Tutor: ${appointment.pets?.tutors?.nome || "nao informado"} - ${appointment.servico}`,
+        href: "/agenda?status=Pendente",
       }));
       const financialItems: NotificationItem[] = (
         financialResponse.data || []
@@ -167,6 +191,7 @@ export function Header() {
       });
 
       setNotifications([
+        ...pendingSiteAppointmentItems,
         ...vaccinationItems,
         ...appointmentItems,
         ...financialItems,
@@ -224,7 +249,7 @@ export function Header() {
                 <div className="border-b p-4">
                   <p className="font-bold">Notificações</p>
                   <p className="text-xs text-slate-500">
-                    Vacinas, agenda de hoje e pagamentos pendentes
+                    Solicitacoes do site, vacinas, agenda e pagamentos
                   </p>
                 </div>
                 <div className="max-h-80 overflow-y-auto">

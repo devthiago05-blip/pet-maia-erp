@@ -1,8 +1,46 @@
 # Continuar Aqui
 
-- Atualizado em: 14/07/2026
+- Atualizado em: 15/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(financeiro): adicionar impressao de lancamentos`
+  Ultimo commit funcional: `feat(agenda): receber pedidos do site como pendentes`
+
+## Bloco concluido - alertas de solicitacoes pendentes
+
+Ultima tarefa concluida:
+
+- O sino do Header agora busca solicitacoes do site com status `Pendente`.
+- As notificacoes pendentes aparecem antes das demais notificacoes.
+- Cada solicitacao do site no sino abre `/agenda?status=Pendente`.
+- A Agenda agora respeita o parametro `status=Pendente` ao abrir.
+- O Dashboard passou a usar uma lista geral de solicitacoes pendentes, nao
+  apenas os pendentes da semana.
+- O card do Dashboard foi renomeado para `Solicitacoes Pendentes`.
+- O detalhe do card ganhou atalho `Abrir solicitacoes`.
+
+Arquivos modificados:
+
+- `components/layout/Header.tsx`
+- `services/notifications.ts`
+- `services/dashboard.ts`
+- `app/agenda/page.tsx`
+- `app/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Futuro: adicionar contador separado apenas para solicitacoes do site, se o
+  volume de outros pendentes crescer.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/layout/Header.tsx services/notifications.ts services/dashboard.ts app/agenda/page.tsx app/page.tsx CONTINUAR_AQUI.md
+git commit -m "feat(agenda): destacar solicitacoes pendentes"
+git push origin main
+```
 
 ## Bloco concluido - agendamentos do site como pendentes
 

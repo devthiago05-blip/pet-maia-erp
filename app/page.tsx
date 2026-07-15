@@ -19,6 +19,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import {
   fetchDashboardCounts,
   fetchFinalizedBathAppointmentsForReminders,
+  fetchPendingAppointmentRequests,
   fetchPetsForBathReminders,
   fetchRecentAppointments,
   fetchWeeklyAppointments,
@@ -274,7 +275,7 @@ export default function HomePage() {
           fetchWeeklyPendingRevenue(),
           fetchWeeklyAppointments(),
           fetchWeeklyAppointmentsByStatus("Finalizado"),
-          fetchWeeklyAppointmentsByStatus("Pendente"),
+          fetchPendingAppointmentRequests(),
           fetchPetsForBathReminders(),
           fetchFinalizedBathAppointmentsForReminders(),
           fetchGroomingSupplyAlerts(),
@@ -482,6 +483,7 @@ Equipe Pet Maia Banho e Tosa.`;
   function renderAppointmentsList(
     appointmentsList: Appointment[],
     emptyMessage: string,
+    actionHref?: string,
   ) {
     if (appointmentsList.length === 0) {
       return (
@@ -534,6 +536,15 @@ Equipe Pet Maia Banho e Tosa.`;
             </div>
           </div>
         ))}
+
+        {actionHref && (
+          <a
+            href={actionHref}
+            className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Abrir solicitaÃ§Ãµes
+          </a>
+        )}
       </div>
     );
   }
@@ -820,7 +831,7 @@ Equipe Pet Maia Banho e Tosa.`;
             </StatCard>
 
             <StatCard
-              title="Pendentes"
+              title="SolicitaÃ§Ãµes Pendentes"
               value={String(pendingAppointments)}
               icon={<CalendarDays size={24} />}
               active={activeDetail === "pendingAppointments"}
@@ -828,7 +839,8 @@ Equipe Pet Maia Banho e Tosa.`;
             >
               {renderAppointmentsList(
                 pendingAppointmentsList,
-                "Nenhum agendamento pendente nesta semana.",
+                "Nenhuma solicitaÃ§Ã£o pendente no momento.",
+                "/agenda?status=Pendente",
               )}
             </StatCard>
 

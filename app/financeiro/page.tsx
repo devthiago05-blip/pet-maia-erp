@@ -10,6 +10,7 @@ import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { financialPaymentMethods } from "@/lib/financial-options";
 import { getFinancialOriginLabel } from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
@@ -42,6 +43,7 @@ export default function FinanceiroPage() {
   const [tutorFilter, setTutorFilter] = useState("Todos");
   const [petFilter, setPetFilter] = useState("Todos");
   const [originFilter, setOriginFilter] = useState("Todos");
+  const [paymentFilter, setPaymentFilter] = useState("Todos");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -68,6 +70,7 @@ export default function FinanceiroPage() {
     setTutorFilter("Todos");
     setPetFilter("Todos");
     setOriginFilter("Todos");
+    setPaymentFilter("Todos");
     setStartDate("");
     setEndDate("");
   }
@@ -83,6 +86,16 @@ export default function FinanceiroPage() {
         "pt-BR",
       ),
     );
+  }, [entries]);
+
+  const paymentOptions = useMemo(() => {
+    const paymentMethods = entries
+      .map((entry) => entry.forma_pagamento || "")
+      .filter(Boolean);
+
+    return Array.from(
+      new Set([...financialPaymentMethods, ...paymentMethods]),
+    ).sort((first, second) => first.localeCompare(second, "pt-BR"));
   }, [entries]);
 
   const filteredEntries = useMemo(() => {
@@ -103,6 +116,8 @@ export default function FinanceiroPage() {
           String(entry.tutor_id || "") === tutorFilter) &&
         (petFilter === "Todos" || String(entry.pet_id || "") === petFilter) &&
         (originFilter === "Todos" || origin === originFilter) &&
+        (paymentFilter === "Todos" ||
+          (entry.forma_pagamento || "") === paymentFilter) &&
         (!startDate || date >= startDate) &&
         (!endDate || date <= endDate)
       );
@@ -111,6 +126,7 @@ export default function FinanceiroPage() {
     endDate,
     entries,
     originFilter,
+    paymentFilter,
     petFilter,
     search,
     startDate,
@@ -460,6 +476,18 @@ export default function FinanceiroPage() {
                   </option>
                 ))}
               </select>
+              <select
+                value={paymentFilter}
+                onChange={(event) => setPaymentFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option value="Todos">Todas as formas</option>
+                {paymentOptions.map((method) => (
+                  <option key={method} value={method}>
+                    {method}
+                  </option>
+                ))}
+              </select>
               <label className="grid gap-1 text-xs font-medium text-slate-500">
                 Data inicial
                 <input
@@ -665,6 +693,7 @@ function FinancialPrintView({
             <th className="border p-2">Origem</th>
             <th className="border p-2">Tipo</th>
             <th className="border p-2">Valor</th>
+            <th className="border p-2">Pagamento</th>
             <th className="border p-2">Data do titulo</th>
             <th className="border p-2">Vencimento</th>
             <th className="border p-2">Status</th>
@@ -674,7 +703,7 @@ function FinancialPrintView({
         <tbody>
           {entries.length === 0 ? (
             <tr>
-              <td className="border p-4 text-center" colSpan={9}>
+              <td className="border p-4 text-center" colSpan={10}>
                 Nenhum lancamento financeiro encontrado.
               </td>
             </tr>
@@ -689,6 +718,7 @@ function FinancialPrintView({
                 </td>
                 <td className="border p-2">{entry.tipo || "Receita"}</td>
                 <td className="border p-2">{formatCurrency(entry.valor)}</td>
+                <td className="border p-2">{entry.forma_pagamento || "-"}</td>
                 <td className="border p-2">{formatDate(entry.created_at)}</td>
                 <td className="border p-2">
                   {entry.tipo === "Despesa"

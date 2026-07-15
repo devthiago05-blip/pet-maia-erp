@@ -4,6 +4,44 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - padronizar pagamento no financeiro
+
+Ultima tarefa concluida:
+
+- Modais de novo e edicao financeira foram limpos e padronizados.
+- Formas de pagamento agora usam lista unica em `lib/financial-options.ts`.
+- Sugestoes de descricao foram padronizadas para receita e despesa.
+- Financeiro recebeu filtro por forma de pagamento.
+- A tabela financeira passou a exibir a forma de pagamento.
+- A impressao financeira passou a exibir a forma de pagamento.
+- O filtro tambem inclui formas antigas ja gravadas no banco.
+- Financeiro fica em bom ponto para pausar; proximo foco solicitado e PDV.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `components/financeiro/NewFinancialModal.tsx`
+- `components/financeiro/EditFinancialModal.tsx`
+- `components/financeiro/FinancialTable.tsx`
+- `lib/financial-options.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente criar/editar lancamento financeiro com forma de pagamento.
+- Proximo bloco: continuar PDV.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx components/financeiro/NewFinancialModal.tsx components/financeiro/EditFinancialModal.tsx components/financeiro/FinancialTable.tsx lib/financial-options.ts CONTINUAR_AQUI.md
+git commit -m "feat(financeiro): padronizar formas de pagamento"
+git push origin main
+```
+
 ## Bloco concluido - filtros e origem no financeiro
 
 Ultima tarefa concluida:

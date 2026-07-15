@@ -37,19 +37,20 @@ export function FinancialTable({
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[1180px]">
+          <table className="w-full min-w-[1260px]">
             <thead className="bg-slate-50">
               <tr>
-                <th className="p-3 text-left sm:p-4">Descrição</th>
+                <th className="p-3 text-left sm:p-4">Descricao</th>
                 <th className="p-3 text-left sm:p-4">Tutor</th>
                 <th className="p-3 text-left sm:p-4">Pet</th>
                 <th className="p-3 text-left sm:p-4">Origem</th>
                 <th className="p-3 text-left sm:p-4">Tipo</th>
                 <th className="p-3 text-left sm:p-4">Valor</th>
-                <th className="p-3 text-left sm:p-4">Data do título</th>
+                <th className="p-3 text-left sm:p-4">Pagamento</th>
+                <th className="p-3 text-left sm:p-4">Data do titulo</th>
                 <th className="p-3 text-left sm:p-4">Vencimento</th>
                 <th className="p-3 text-left sm:p-4">Status</th>
-                <th className="p-3 text-left sm:p-4">Ações</th>
+                <th className="p-3 text-left sm:p-4">Acoes</th>
               </tr>
             </thead>
 
@@ -57,10 +58,10 @@ export function FinancialTable({
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={10}
+                    colSpan={11}
                     className="p-6 text-center text-sm text-slate-500"
                   >
-                    Nenhum lançamento financeiro encontrado.
+                    Nenhum lancamento financeiro encontrado.
                   </td>
                 </tr>
               ) : (
@@ -94,6 +95,10 @@ export function FinancialTable({
 
                     <td className="p-3 sm:p-4">
                       {formatCurrency(entry.valor)}
+                    </td>
+
+                    <td className="p-3 text-sm text-slate-600 sm:p-4">
+                      {entry.forma_pagamento || "-"}
                     </td>
 
                     <td className="p-3 sm:p-4">
@@ -157,7 +162,7 @@ export function FinancialTable({
 
       <ConfirmationDialog
         isOpen={Boolean(entryToDelete)}
-        title="Excluir lançamento"
+        title="Excluir lancamento"
         description={`Deseja excluir ${entryToDelete?.descricao}?`}
         confirmText="Excluir"
         onConfirm={handleConfirmDelete}

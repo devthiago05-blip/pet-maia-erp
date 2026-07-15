@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import {
+  financialDescriptionSuggestions,
+  financialPaymentMethods,
+} from "@/lib/financial-options";
 import type {
   FinancialEntryType,
   NewFinancialEntryInput,
@@ -16,13 +20,6 @@ interface NewFinancialModalProps {
   pets: Pet[];
   onSave: (entry: NewFinancialEntryInput) => Promise<boolean>;
 }
-
-const operationalExpenseSuggestions = [
-  "Manutenção de máquinas",
-  "Afiação de lâmina",
-  "Manutenção predial",
-  "Compra de peças",
-];
 
 export function NewFinancialModal({
   tutors,
@@ -101,12 +98,12 @@ export function NewFinancialModal({
     const numericValue = Number(valor);
 
     if (!descricao.trim() || !valor.trim()) {
-      toast.error("Preencha descrição e valor");
+      toast.error("Preencha descricao e valor");
       return;
     }
 
     if (!Number.isFinite(numericValue) || numericValue <= 0) {
-      toast.error("Informe um valor válido");
+      toast.error("Informe um valor valido");
       return;
     }
 
@@ -137,7 +134,7 @@ export function NewFinancialModal({
         onClick={() => setOpen(true)}
         className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 text-white transition hover:bg-[#7600d1] sm:w-auto"
       >
-        Novo Lançamento
+        Novo lancamento
       </button>
 
       {open && (
@@ -153,12 +150,12 @@ export function NewFinancialModal({
                 id="new-financial-title"
                 className="text-xl font-bold text-slate-900"
               >
-                Novo lançamento
+                Novo lancamento
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 Registre uma receita ou despesa e vincule a um tutor ou pet
-                quando necessário.
+                quando necessario.
               </p>
             </div>
 
@@ -196,29 +193,27 @@ export function NewFinancialModal({
               </label>
 
               <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Descrição
+                Descricao
                 <input
-                  placeholder="Ex: Venda de produto, taxa, ajuste financeiro..."
+                  placeholder="Ex: venda de produto, taxa, ajuste financeiro..."
                   value={descricao}
                   onChange={(event) => setDescricao(event.target.value)}
                   className="w-full rounded-xl border p-3 font-normal"
                 />
               </label>
 
-              {tipo === "Despesa" && (
-                <div className="flex flex-wrap gap-2">
-                  {operationalExpenseSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => setDescricao(suggestion)}
-                      className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-[#8A0EEA] transition hover:bg-purple-100"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {financialDescriptionSuggestions[tipo].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setDescricao(suggestion)}
+                    className="rounded-full border border-purple-100 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-[#8A0EEA] transition hover:bg-purple-100"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
 
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Valor
@@ -275,9 +270,9 @@ export function NewFinancialModal({
                     onChange={(event) => setFormaPagamento(event.target.value)}
                     className="w-full rounded-xl border p-3 font-normal"
                   >
-                    <option>PIX</option>
-                    <option>Dinheiro</option>
-                    <option>Cartão</option>
+                    {financialPaymentMethods.map((method) => (
+                      <option key={method}>{method}</option>
+                    ))}
                   </select>
                 </label>
 
@@ -312,7 +307,7 @@ export function NewFinancialModal({
                   disabled={saving}
                   className="w-full rounded-xl bg-[#8A0EEA] px-4 py-2 font-medium text-white transition hover:bg-[#7600d1] disabled:opacity-60 sm:w-auto"
                 >
-                  {saving ? "Salvando..." : "Salvar lançamento"}
+                  {saving ? "Salvando..." : "Salvar lancamento"}
                 </button>
               </div>
             </div>

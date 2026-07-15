@@ -4,6 +4,47 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - agenda por linhas de horario
+
+Ultima tarefa concluida:
+
+- O antigo modo Kanban da Agenda passou a exibir uma grade diaria por linhas de
+  horario.
+- A aba foi renomeada para `Horarios`.
+- Cada linha mostra os agendamentos daquele horario.
+- Cards com status `Pendente` ou `Agendado` podem ser arrastados para outra
+  linha de horario.
+- Ao soltar o card em outro horario, o ERP atualiza apenas o campo `hora` do
+  agendamento.
+- Cards `Finalizado` e `Cancelado` continuam visiveis, mas nao ficam
+  arrastaveis para evitar mexer em atendimentos encerrados.
+- A grade mostra totais por status no topo.
+
+Arquivos modificados:
+
+- `app/agenda/page.tsx`
+- `components/agenda/KanbanBoard.tsx`
+- `services/appointments.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente na Vercel: abrir `/agenda`, arrastar um agendamento
+  pendente/agendado para outro horario e conferir se o horario salva.
+- Se a equipe quiser alterar tambem a duracao visual do card, criar um bloco
+  futuro com horario inicial/final ou duracao estimada por servico.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/agenda/page.tsx components/agenda/KanbanBoard.tsx services/appointments.ts CONTINUAR_AQUI.md
+git commit -m "feat(agenda): exibir grade por horarios"
+git push origin main
+```
+
 ## Bloco concluido - foto do pet no cadastro e impressao da agenda
 
 Ultima tarefa concluida:

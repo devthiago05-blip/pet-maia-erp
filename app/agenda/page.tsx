@@ -22,6 +22,7 @@ import {
   replaceAppointmentServices,
   updateAppointment,
   updateAppointmentStatus,
+  updateAppointmentTime,
 } from "@/services/appointments";
 import {
   createAppointmentFinancialEntry,
@@ -333,6 +334,19 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
+  async function handleRescheduleAppointment(id: number, hora: string) {
+    const { error } = await updateAppointmentTime(id, hora);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao alterar horario");
+      return;
+    }
+
+    toast.success(`Horario alterado para ${hora}`);
+    await loadAppointments();
+  }
+
   async function handleFinishAppointment({
     valor,
     formaPagamento,
@@ -528,7 +542,7 @@ export default function AgendaPage() {
                   : "text-slate-500 hover:bg-slate-100"
               }`}
             >
-              Kanban
+              Horarios
             </button>
 
             <button
@@ -588,8 +602,9 @@ export default function AgendaPage() {
           {viewMode === "kanban" ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-                Kanban exibindo apenas os agendamentos de{" "}
-                {kanbanDate.split("-").reverse().join("/")}.
+                Grade exibindo apenas os agendamentos de{" "}
+                {kanbanDate.split("-").reverse().join("/")}. Arraste um card
+                para outra linha para alterar o horario.
               </div>
 
               <KanbanBoard
@@ -600,6 +615,7 @@ export default function AgendaPage() {
                 onCancel={handleCancelAppointment}
                 onDelete={handleDeleteAppointment}
                 onEdit={handleEditAppointment}
+                onReschedule={handleRescheduleAppointment}
               />
             </div>
           ) : (

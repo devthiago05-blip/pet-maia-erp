@@ -75,6 +75,10 @@ export async function updateAppointmentStatus(
   return supabase.from("appointments").update({ status }).eq("id", id);
 }
 
+export async function updateAppointmentTime(id: number, hora: string) {
+  return supabase.from("appointments").update({ hora }).eq("id", id);
+}
+
 export async function deleteAppointment(id: number) {
   return supabase.from("appointments").delete().eq("id", id);
 }

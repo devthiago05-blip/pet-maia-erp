@@ -10,6 +10,7 @@ import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { getFinancialOriginLabel } from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createFinancialEntry,
@@ -38,6 +39,9 @@ export default function FinanceiroPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("Todos");
   const [statusFilter, setStatusFilter] = useState("Todos");
+  const [tutorFilter, setTutorFilter] = useState("Todos");
+  const [petFilter, setPetFilter] = useState("Todos");
+  const [originFilter, setOriginFilter] = useState("Todos");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -61,15 +65,33 @@ export default function FinanceiroPage() {
     setSearch("");
     setTypeFilter("Todos");
     setStatusFilter("Todos");
+    setTutorFilter("Todos");
+    setPetFilter("Todos");
+    setOriginFilter("Todos");
     setStartDate("");
     setEndDate("");
   }
+
+  const originOptions = useMemo(() => {
+    const origins = entries
+      .map((entry) => entry.origem || "manual")
+      .filter(Boolean);
+
+    return Array.from(new Set(origins)).sort((first, second) =>
+      getFinancialOriginLabel(first).localeCompare(
+        getFinancialOriginLabel(second),
+        "pt-BR",
+      ),
+    );
+  }, [entries]);
 
   const filteredEntries = useMemo(() => {
     const term = search.trim().toLowerCase();
 
     return entries.filter((entry) => {
       const date = entry.created_at?.slice(0, 10) || "";
+      const origin = entry.origem || "manual";
+
       return (
         (!term ||
           entry.descricao.toLowerCase().includes(term) ||
@@ -77,11 +99,25 @@ export default function FinanceiroPage() {
           entry.pets?.nome?.toLowerCase().includes(term)) &&
         (typeFilter === "Todos" || entry.tipo === typeFilter) &&
         (statusFilter === "Todos" || entry.status_pagamento === statusFilter) &&
+        (tutorFilter === "Todos" ||
+          String(entry.tutor_id || "") === tutorFilter) &&
+        (petFilter === "Todos" || String(entry.pet_id || "") === petFilter) &&
+        (originFilter === "Todos" || origin === originFilter) &&
         (!startDate || date >= startDate) &&
         (!endDate || date <= endDate)
       );
     });
-  }, [endDate, entries, search, startDate, statusFilter, typeFilter]);
+  }, [
+    endDate,
+    entries,
+    originFilter,
+    petFilter,
+    search,
+    startDate,
+    statusFilter,
+    tutorFilter,
+    typeFilter,
+  ]);
 
   const totalRecebido = filteredEntries
     .filter(
@@ -121,6 +157,33 @@ export default function FinanceiroPage() {
       String(entry.data_vencimento).slice(0, 10) < todayIso
     );
   });
+  const originSummary = useMemo(() => {
+    const summary = filteredEntries.reduce<
+      Record<string, { receitas: number; despesas: number; total: number }>
+    >((totals, entry) => {
+      const origin = entry.origem || "manual";
+
+      if (!totals[origin]) {
+        totals[origin] = { receitas: 0, despesas: 0, total: 0 };
+      }
+
+      const value = Number(entry.valor || 0);
+
+      if (entry.tipo === "Despesa") {
+        totals[origin].despesas += value;
+        totals[origin].total -= value;
+      } else {
+        totals[origin].receitas += value;
+        totals[origin].total += value;
+      }
+
+      return totals;
+    }, {});
+
+    return Object.entries(summary).sort(
+      (first, second) => Math.abs(second[1].total) - Math.abs(first[1].total),
+    );
+  }, [filteredEntries]);
 
   async function loadFinancial() {
     setLoading(true);
@@ -333,7 +396,7 @@ export default function FinanceiroPage() {
               </button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <label className="flex items-center gap-3 rounded-xl border px-3">
                 <Search size={18} className="text-slate-400" />
                 <input
@@ -361,6 +424,42 @@ export default function FinanceiroPage() {
                 <option>Pago</option>
                 <option>Pendente</option>
               </select>
+              <select
+                value={tutorFilter}
+                onChange={(event) => setTutorFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option value="Todos">Todos os tutores</option>
+                {tutors.map((tutor) => (
+                  <option key={tutor.id} value={tutor.id}>
+                    {tutor.nome}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={petFilter}
+                onChange={(event) => setPetFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option value="Todos">Todos os pets</option>
+                {pets.map((pet) => (
+                  <option key={pet.id} value={pet.id}>
+                    {pet.nome}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={originFilter}
+                onChange={(event) => setOriginFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option value="Todos">Todas as origens</option>
+                {originOptions.map((origin) => (
+                  <option key={origin} value={origin}>
+                    {getFinancialOriginLabel(origin)}
+                  </option>
+                ))}
+              </select>
               <label className="grid gap-1 text-xs font-medium text-slate-500">
                 Data inicial
                 <input
@@ -380,6 +479,62 @@ export default function FinanceiroPage() {
                 />
               </label>
             </div>
+          </div>
+
+          <div className="rounded-2xl border bg-white p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-slate-800">Resumo por origem</h2>
+                <p className="text-sm text-slate-500">
+                  Valores calculados com os filtros atuais
+                </p>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+                {originSummary.length}
+              </span>
+            </div>
+
+            {originSummary.length === 0 ? (
+              <p className="rounded-xl border border-dashed p-4 text-center text-sm text-slate-500">
+                Nenhuma origem encontrada no filtro atual.
+              </p>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {originSummary.map(([origin, totals]) => (
+                  <div key={origin} className="rounded-xl border p-4">
+                    <p className="font-semibold text-slate-800">
+                      {getFinancialOriginLabel(origin)}
+                    </p>
+                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-slate-500">Receitas</p>
+                        <p className="font-semibold text-green-700">
+                          {formatCurrency(totals.receitas)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Despesas</p>
+                        <p className="font-semibold text-red-700">
+                          {formatCurrency(totals.despesas)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Saldo</p>
+                        <p
+                          className={`font-semibold ${
+                            totals.total >= 0
+                              ? "text-green-700"
+                              : "text-red-700"
+                          }`}
+                        >
+                          {formatCurrency(totals.total)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -507,6 +662,7 @@ function FinancialPrintView({
             <th className="border p-2">Descricao</th>
             <th className="border p-2">Tutor</th>
             <th className="border p-2">Pet</th>
+            <th className="border p-2">Origem</th>
             <th className="border p-2">Tipo</th>
             <th className="border p-2">Valor</th>
             <th className="border p-2">Data do titulo</th>
@@ -518,7 +674,7 @@ function FinancialPrintView({
         <tbody>
           {entries.length === 0 ? (
             <tr>
-              <td className="border p-4 text-center" colSpan={8}>
+              <td className="border p-4 text-center" colSpan={9}>
                 Nenhum lancamento financeiro encontrado.
               </td>
             </tr>
@@ -528,6 +684,9 @@ function FinancialPrintView({
                 <td className="border p-2">{entry.descricao}</td>
                 <td className="border p-2">{entry.tutors?.nome || "-"}</td>
                 <td className="border p-2">{entry.pets?.nome || "-"}</td>
+                <td className="border p-2">
+                  {getFinancialOriginLabel(entry.origem)}
+                </td>
                 <td className="border p-2">{entry.tipo || "Receita"}</td>
                 <td className="border p-2">{formatCurrency(entry.valor)}</td>
                 <td className="border p-2">{formatDate(entry.created_at)}</td>

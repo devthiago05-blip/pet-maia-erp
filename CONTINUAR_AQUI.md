@@ -4,6 +4,50 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - filtros e origem no financeiro
+
+Ultima tarefa concluida:
+
+- Financeiro recebeu filtros por tutor, pet e origem.
+- A origem passou a aparecer na tabela financeira.
+- A impressao financeira passou a mostrar a origem de cada lancamento.
+- Criado resumo por origem com receitas, despesas e saldo.
+- Criado utilitario `lib/financial-origin.ts` para padronizar nomes amigaveis:
+  - Agenda;
+  - Manual;
+  - PDV;
+  - Diaria tosador;
+  - Insumos;
+  - Manutencao/Afiacao.
+- Clinica segue em standby; proximo foco depois de finalizar financeiro sera
+  PDV.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `components/financeiro/FinancialTable.tsx`
+- `lib/financial-origin.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar filtros por tutor, pet e origem na tela `/financeiro`.
+- Proximo bloco sugerido no Financeiro: melhorar cadastro/edicao com categoria
+  de despesa e forma de pagamento mais padronizada, se o banco ja tiver campo
+  ou apos criarmos migration.
+- Depois de finalizar o Financeiro, continuar melhorias do PDV.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx components/financeiro/FinancialTable.tsx lib/financial-origin.ts CONTINUAR_AQUI.md
+git commit -m "feat(financeiro): adicionar filtros por origem"
+git push origin main
+```
+
 ## Bloco concluido - painel financeiro mais completo
 
 Ultima tarefa concluida:

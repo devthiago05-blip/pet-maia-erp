@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { getFinancialOriginLabel } from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FinancialEntry } from "@/types/domain";
 
@@ -36,12 +37,13 @@ export function FinancialTable({
     <>
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[1080px]">
+          <table className="w-full min-w-[1180px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Descrição</th>
                 <th className="p-3 text-left sm:p-4">Tutor</th>
                 <th className="p-3 text-left sm:p-4">Pet</th>
+                <th className="p-3 text-left sm:p-4">Origem</th>
                 <th className="p-3 text-left sm:p-4">Tipo</th>
                 <th className="p-3 text-left sm:p-4">Valor</th>
                 <th className="p-3 text-left sm:p-4">Data do título</th>
@@ -55,7 +57,7 @@ export function FinancialTable({
               {entries.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={9}
+                    colSpan={10}
                     className="p-6 text-center text-sm text-slate-500"
                   >
                     Nenhum lançamento financeiro encontrado.
@@ -72,6 +74,10 @@ export function FinancialTable({
 
                     <td className="p-3 text-sm text-slate-600 sm:p-4">
                       {entry.pets?.nome || "-"}
+                    </td>
+
+                    <td className="p-3 text-sm text-slate-600 sm:p-4">
+                      {getFinancialOriginLabel(entry.origem)}
                     </td>
 
                     <td className="p-3 sm:p-4">

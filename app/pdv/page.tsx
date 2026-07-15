@@ -26,6 +26,7 @@ import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { financialPaymentMethods } from "@/lib/financial-options";
 import {
   formatCurrency,
   formatDate,
@@ -1485,6 +1486,35 @@ function SaleView({
   onSale: () => void;
   onClear: () => void;
 }) {
+  const [categoryFilter, setCategoryFilter] = useState("Todas");
+  const [stockFilter, setStockFilter] = useState("disponiveis");
+  const categoryOptions = useMemo(() => {
+    const categories = groups.map((group) => group.category || "Sem categoria");
+
+    return Array.from(new Set(categories)).sort((first, second) =>
+      first.localeCompare(second, "pt-BR"),
+    );
+  }, [groups]);
+  const displayedGroups = useMemo(() => {
+    return groups.filter((group) => {
+      const category = group.category || "Sem categoria";
+      const totalStock = group.products.reduce(
+        (totalStockInGroup, product) => totalStockInGroup + product.estoque,
+        0,
+      );
+      const hasLowStock = group.products.some(
+        (product) => product.estoque <= product.estoque_minimo,
+      );
+
+      return (
+        (categoryFilter === "Todas" || category === categoryFilter) &&
+        (stockFilter === "todos" ||
+          (stockFilter === "disponiveis" && totalStock > 0) ||
+          (stockFilter === "baixo" && hasLowStock))
+      );
+    });
+  }, [categoryFilter, groups, stockFilter]);
+
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       <section className="space-y-4">
@@ -1504,16 +1534,60 @@ function SaleView({
             className="min-w-0 flex-1 py-3 outline-none"
           />
         </label>
+
+        <div className="grid gap-3 rounded-xl border bg-white p-3 sm:grid-cols-3">
+          <select
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+            className="rounded-xl border p-3"
+          >
+            <option value="Todas">Todas as categorias</option>
+            {categoryOptions.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={stockFilter}
+            onChange={(event) => setStockFilter(event.target.value)}
+            className="rounded-xl border p-3"
+          >
+            <option value="disponiveis">Somente com estoque</option>
+            <option value="baixo">Estoque baixo</option>
+            <option value="todos">Todos os produtos</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={() => {
+              setCategoryFilter("Todas");
+              setStockFilter("disponiveis");
+              onSearch("");
+            }}
+            className="rounded-xl border border-[#8A0EEA]/20 px-4 py-3 font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
+          >
+            Limpar busca
+          </button>
+        </div>
+
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {groups.map((group) => (
-            <ProductSelectionModal
-              key={group.key}
-              name={group.name}
-              category={group.category}
-              products={group.products}
-              onAdd={onAdd}
-            />
-          ))}
+          {displayedGroups.length === 0 ? (
+            <div className="rounded-xl border border-dashed bg-white p-6 text-center text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
+              Nenhum produto encontrado com os filtros atuais.
+            </div>
+          ) : (
+            displayedGroups.map((group) => (
+              <ProductSelectionModal
+                key={group.key}
+                name={group.name}
+                category={group.category}
+                products={group.products}
+                onAdd={onAdd}
+              />
+            ))
+          )}
         </div>
       </section>
 
@@ -1612,9 +1686,9 @@ function SaleView({
             onChange={(event) => onPaymentMethod(event.target.value)}
             className="rounded-xl border p-3"
           >
-            <option>PIX</option>
-            <option>Dinheiro</option>
-            <option>Cartão</option>
+            {financialPaymentMethods.map((method) => (
+              <option key={method}>{method}</option>
+            ))}
           </select>
           <div className="rounded-xl border p-3">
             <div className="flex items-center justify-between gap-3">
@@ -1644,11 +1718,9 @@ function SaleView({
                       }
                       className="rounded-lg border p-2 text-sm"
                     >
-                      <option>PIX</option>
-                      <option>Dinheiro</option>
-                      <option>Cartao</option>
-                      <option>Debito</option>
-                      <option>Credito</option>
+                      {financialPaymentMethods.map((method) => (
+                        <option key={method}>{method}</option>
+                      ))}
                     </select>
                     <input
                       type="number"

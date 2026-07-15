@@ -4,6 +4,43 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - PDV filtros de venda e pagamentos
+
+Ultima tarefa concluida:
+
+- PDV passou a usar a lista padronizada de formas de pagamento do Financeiro.
+- Venda simples e pagamento dividido usam as mesmas opcoes.
+- Tela de venda recebeu filtro por categoria.
+- Tela de venda recebeu filtro por estoque:
+  - somente com estoque;
+  - estoque baixo;
+  - todos os produtos.
+- Adicionado botao `Limpar busca` para restaurar filtros e campo de busca.
+- Quando nenhum produto combina com os filtros, a tela mostra mensagem vazia.
+
+Arquivos modificados:
+
+- `app/pdv/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente `/pdv`: filtro por categoria, estoque baixo, adicionar
+  produto ao carrinho e finalizar venda com pagamento simples/dividido.
+- Proximo bloco sugerido no PDV: melhorar cadastro rapido de produtos e compras
+  com fornecedor.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/pdv/page.tsx CONTINUAR_AQUI.md
+git commit -m "feat(pdv): melhorar filtros de venda"
+git push origin main
+```
+
 ## Bloco concluido - padronizar pagamento no financeiro
 
 Ultima tarefa concluida:

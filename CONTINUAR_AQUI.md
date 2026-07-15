@@ -2,7 +2,38 @@
 
 - Atualizado em: 15/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(agenda): receber pedidos do site como pendentes`
+  Ultimo commit funcional: `feat(agenda): destacar solicitacoes pendentes`
+
+## Bloco concluido - ordenar pets e tutores por nome
+
+Ultima tarefa concluida:
+
+- Tutores agora sao carregados em ordem alfabetica pelo nome.
+- Pets agora sao carregados em ordem alfabetica pelo nome.
+- A ordenacao foi feita nos services para refletir em tabelas, selects,
+  buscas e modais que reutilizam essas listas.
+
+Arquivos modificados:
+
+- `services/pets.ts`
+- `services/tutors.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Futuro: adicionar ordenacao clicavel nas tabelas, caso queira alternar por
+  telefone, tutor, especie ou data de cadastro.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add services/pets.ts services/tutors.ts CONTINUAR_AQUI.md
+git commit -m "fix(cadastros): ordenar pets e tutores por nome"
+git push origin main
+```
 
 ## Bloco concluido - alertas de solicitacoes pendentes
 

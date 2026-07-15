@@ -2,14 +2,17 @@ import { supabase } from "@/lib/supabase";
 import type { NewPetInput, Pet } from "@/types/domain";
 
 export async function fetchPets() {
-  return supabase.from("pets").select(
-    `
+  return supabase
+    .from("pets")
+    .select(
+      `
       *,
       tutors (
         nome
       )
     `,
-  );
+    )
+    .order("nome", { ascending: true });
 }
 
 export async function fetchPetById(id: number) {

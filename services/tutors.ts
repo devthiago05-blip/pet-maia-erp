@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type { NewTutorInput, Tutor } from "@/types/domain";
 
 export async function fetchTutors() {
-  return supabase.from("tutors").select("*");
+  return supabase.from("tutors").select("*").order("nome", { ascending: true });
 }
 
 export async function createTutor(tutor: NewTutorInput) {

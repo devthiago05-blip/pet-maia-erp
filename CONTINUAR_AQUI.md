@@ -4,6 +4,41 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - Financeiro filtro visual e tosador sem receita
+
+Ultima tarefa concluida:
+
+- Filtro de origem `Diaria tosador` agora força o tipo `Despesa`.
+- Quando `Diaria tosador` está selecionado, a opção `Receita` fica
+  desabilitada no filtro de tipo.
+- Filtros ativos ganharam destaque visual com borda e fundo roxo.
+- Botoes `Hoje` e `Este mes` mostram estado selecionado.
+- Resumo por origem da diaria de tosador mostra `Somente despesa` e `Nao gera
+receita`.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente `/financeiro`: selecionar origem `Diaria tosador` e
+  confirmar que o tipo fica como `Despesa`, com visual de filtro ativo.
+- Se existirem registros antigos de tosador gravados como receita no banco,
+  ainda é recomendado corrigir via SQL.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx CONTINUAR_AQUI.md
+git commit -m "fix(financeiro): destacar filtros e bloquear receita do tosador"
+git push origin main
+```
+
 ## Bloco concluido - Financeiro mes atual e diaria do tosador
 
 Ultima tarefa concluida:

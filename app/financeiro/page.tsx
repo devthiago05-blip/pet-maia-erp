@@ -14,6 +14,7 @@ import { financialPaymentMethods } from "@/lib/financial-options";
 import {
   getEffectiveFinancialEntryType,
   getFinancialOriginLabel,
+  isGroomerDailyPaymentOrigin,
 } from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
@@ -62,6 +63,22 @@ export default function FinanceiroPage() {
     () => getCurrentMonthPeriod().start,
   );
   const [endDate, setEndDate] = useState(() => getCurrentMonthPeriod().end);
+  const currentMonthPeriod = getCurrentMonthPeriod();
+  const isTodaySelected =
+    startDate === new Date().toLocaleDateString("en-CA") &&
+    endDate === new Date().toLocaleDateString("en-CA");
+  const isCurrentMonthSelected =
+    startDate === currentMonthPeriod.start &&
+    endDate === currentMonthPeriod.end;
+  const isGroomerOriginSelected = isGroomerDailyPaymentOrigin(originFilter);
+
+  function getFilterControlClass(isActive: boolean) {
+    return `rounded-xl border p-3 transition ${
+      isActive
+        ? "border-[#8A0EEA] bg-purple-50 text-[#5f0ca8] shadow-sm"
+        : "border-slate-200 bg-white text-slate-900"
+    }`;
+  }
 
   function setTodayFilter() {
     const today = new Date().toLocaleDateString("en-CA");
@@ -86,6 +103,23 @@ export default function FinanceiroPage() {
     setOriginFilter("Todos");
     setPaymentFilter("Todos");
     setCurrentMonthFilter();
+  }
+
+  function handleOriginFilterChange(value: string) {
+    setOriginFilter(value);
+
+    if (isGroomerDailyPaymentOrigin(value)) {
+      setTypeFilter("Despesa");
+    }
+  }
+
+  function handleTypeFilterChange(value: string) {
+    if (isGroomerOriginSelected && value === "Receita") {
+      setTypeFilter("Despesa");
+      return;
+    }
+
+    setTypeFilter(value);
   }
 
   const originOptions = useMemo(() => {
@@ -412,14 +446,22 @@ export default function FinanceiroPage() {
               <button
                 type="button"
                 onClick={setTodayFilter}
-                className="rounded-full border px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  isTodaySelected
+                    ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
               >
                 Hoje
               </button>
               <button
                 type="button"
                 onClick={setCurrentMonthFilter}
-                className="rounded-full border px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition ${
+                  isCurrentMonthSelected
+                    ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]"
+                    : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                }`}
               >
                 Este mes
               </button>
@@ -444,17 +486,17 @@ export default function FinanceiroPage() {
               </label>
               <select
                 value={typeFilter}
-                onChange={(event) => setTypeFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                onChange={(event) => handleTypeFilterChange(event.target.value)}
+                className={getFilterControlClass(typeFilter !== "Todos")}
               >
                 <option>Todos</option>
-                <option>Receita</option>
+                <option disabled={isGroomerOriginSelected}>Receita</option>
                 <option>Despesa</option>
               </select>
               <select
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                className={getFilterControlClass(statusFilter !== "Todos")}
               >
                 <option>Todos</option>
                 <option>Pago</option>
@@ -463,7 +505,7 @@ export default function FinanceiroPage() {
               <select
                 value={tutorFilter}
                 onChange={(event) => setTutorFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                className={getFilterControlClass(tutorFilter !== "Todos")}
               >
                 <option value="Todos">Todos os tutores</option>
                 {tutors.map((tutor) => (
@@ -475,7 +517,7 @@ export default function FinanceiroPage() {
               <select
                 value={petFilter}
                 onChange={(event) => setPetFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                className={getFilterControlClass(petFilter !== "Todos")}
               >
                 <option value="Todos">Todos os pets</option>
                 {pets.map((pet) => (
@@ -486,8 +528,10 @@ export default function FinanceiroPage() {
               </select>
               <select
                 value={originFilter}
-                onChange={(event) => setOriginFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                onChange={(event) =>
+                  handleOriginFilterChange(event.target.value)
+                }
+                className={getFilterControlClass(originFilter !== "Todos")}
               >
                 <option value="Todos">Todas as origens</option>
                 {originOptions.map((origin) => (
@@ -499,7 +543,7 @@ export default function FinanceiroPage() {
               <select
                 value={paymentFilter}
                 onChange={(event) => setPaymentFilter(event.target.value)}
-                className="rounded-xl border p-3"
+                className={getFilterControlClass(paymentFilter !== "Todos")}
               >
                 <option value="Todos">Todas as formas</option>
                 {paymentOptions.map((method) => (
@@ -548,39 +592,70 @@ export default function FinanceiroPage() {
               </p>
             ) : (
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {originSummary.map(([origin, totals]) => (
-                  <div key={origin} className="rounded-xl border p-4">
-                    <p className="font-semibold text-slate-800">
-                      {getFinancialOriginLabel(origin)}
-                    </p>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                      <div>
-                        <p className="text-xs text-slate-500">Receitas</p>
-                        <p className="font-semibold text-green-700">
-                          {formatCurrency(totals.receitas)}
+                {originSummary.map(([origin, totals]) => {
+                  const isGroomerDailyPayment =
+                    isGroomerDailyPaymentOrigin(origin);
+
+                  return (
+                    <div
+                      key={origin}
+                      className={`rounded-xl border p-4 ${
+                        isGroomerDailyPayment
+                          ? "border-red-100 bg-red-50/40"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold text-slate-800">
+                          {getFinancialOriginLabel(origin)}
                         </p>
+                        {isGroomerDailyPayment && (
+                          <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700">
+                            Somente despesa
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Despesas</p>
-                        <p className="font-semibold text-red-700">
-                          {formatCurrency(totals.despesas)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-slate-500">Saldo</p>
-                        <p
-                          className={`font-semibold ${
-                            totals.total >= 0
-                              ? "text-green-700"
-                              : "text-red-700"
-                          }`}
-                        >
-                          {formatCurrency(totals.total)}
-                        </p>
+                      <div className="mt-3 grid grid-cols-3 gap-2 text-sm">
+                        <div>
+                          <p className="text-xs text-slate-500">
+                            {isGroomerDailyPayment
+                              ? "Nao gera receita"
+                              : "Receitas"}
+                          </p>
+                          <p
+                            className={`font-semibold ${
+                              isGroomerDailyPayment
+                                ? "text-slate-500"
+                                : "text-green-700"
+                            }`}
+                          >
+                            {isGroomerDailyPayment
+                              ? "-"
+                              : formatCurrency(totals.receitas)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Despesas</p>
+                          <p className="font-semibold text-red-700">
+                            {formatCurrency(totals.despesas)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Saldo</p>
+                          <p
+                            className={`font-semibold ${
+                              totals.total >= 0
+                                ? "text-green-700"
+                                : "text-red-700"
+                            }`}
+                          >
+                            {formatCurrency(totals.total)}
+                          </p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -41,6 +41,30 @@ export default function FinanceiroPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  function setTodayFilter() {
+    const today = new Date().toLocaleDateString("en-CA");
+
+    setStartDate(today);
+    setEndDate(today);
+  }
+
+  function setCurrentMonthFilter() {
+    const today = new Date();
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+    setStartDate(firstDay.toLocaleDateString("en-CA"));
+    setEndDate(lastDay.toLocaleDateString("en-CA"));
+  }
+
+  function clearFilters() {
+    setSearch("");
+    setTypeFilter("Todos");
+    setStatusFilter("Todos");
+    setStartDate("");
+    setEndDate("");
+  }
+
   const filteredEntries = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -72,11 +96,31 @@ export default function FinanceiroPage() {
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
-  const totalDespesas = filteredEntries
-    .filter((entry) => entry.tipo === "Despesa")
+  const totalDespesasPagas = filteredEntries
+    .filter(
+      (entry) => entry.tipo === "Despesa" && entry.status_pagamento === "Pago",
+    )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
-  const lucro = totalRecebido - totalDespesas;
+  const totalDespesasPendentes = filteredEntries
+    .filter(
+      (entry) =>
+        entry.tipo === "Despesa" && entry.status_pagamento === "Pendente",
+    )
+    .reduce((total, entry) => total + Number(entry.valor), 0);
+
+  const totalDespesas = totalDespesasPagas + totalDespesasPendentes;
+  const saldoRealizado = totalRecebido - totalDespesasPagas;
+  const saldoPrevisto = totalRecebido + totalReceber - totalDespesas;
+  const todayIso = new Date().toLocaleDateString("en-CA");
+  const overdueExpenses = filteredEntries.filter((entry) => {
+    return (
+      entry.tipo === "Despesa" &&
+      entry.status_pagamento === "Pendente" &&
+      Boolean(entry.data_vencimento) &&
+      String(entry.data_vencimento).slice(0, 10) < todayIso
+    );
+  });
 
   async function loadFinancial() {
     setLoading(true);
@@ -211,17 +255,52 @@ export default function FinanceiroPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:gap-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
             <SummaryCard
               title="Recebido"
               value={formatCurrency(totalRecebido)}
+              tone="success"
             />
             <SummaryCard
               title="A Receber"
               value={formatCurrency(totalReceber)}
+              tone="warning"
             />
-            <SummaryCard title="Lucro" value={formatCurrency(lucro)} />
+            <SummaryCard
+              title="Despesas pagas"
+              value={formatCurrency(totalDespesasPagas)}
+              tone="danger"
+            />
+            <SummaryCard
+              title="Despesas pendentes"
+              value={formatCurrency(totalDespesasPendentes)}
+              tone="warning"
+            />
+            <SummaryCard
+              title="Saldo realizado"
+              value={formatCurrency(saldoRealizado)}
+              tone={saldoRealizado >= 0 ? "success" : "danger"}
+            />
+            <SummaryCard
+              title="Saldo previsto"
+              value={formatCurrency(saldoPrevisto)}
+              tone={saldoPrevisto >= 0 ? "success" : "danger"}
+            />
           </div>
+
+          {overdueExpenses.length > 0 && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Existem {overdueExpenses.length} despesa(s) vencida(s) pendente(s)
+              no filtro atual, somando{" "}
+              {formatCurrency(
+                overdueExpenses.reduce(
+                  (total, entry) => total + Number(entry.valor),
+                  0,
+                ),
+              )}
+              .
+            </div>
+          )}
 
           {loadError && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -229,52 +308,78 @@ export default function FinanceiroPage() {
             </div>
           )}
 
-          <div className="grid gap-3 rounded-xl border bg-white p-4 md:grid-cols-2 xl:grid-cols-5">
-            <label className="flex items-center gap-3 rounded-xl border px-3">
-              <Search size={18} className="text-slate-400" />
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Buscar descrição"
-                className="min-w-0 flex-1 py-3 outline-none"
-              />
-            </label>
-            <select
-              value={typeFilter}
-              onChange={(event) => setTypeFilter(event.target.value)}
-              className="rounded-xl border p-3"
-            >
-              <option>Todos</option>
-              <option>Receita</option>
-              <option>Despesa</option>
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="rounded-xl border p-3"
-            >
-              <option>Todos</option>
-              <option>Pago</option>
-              <option>Pendente</option>
-            </select>
-            <label className="grid gap-1 text-xs font-medium text-slate-500">
-              Data inicial
-              <input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
-              />
-            </label>
-            <label className="grid gap-1 text-xs font-medium text-slate-500">
-              Data final
-              <input
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-                className="rounded-xl border p-3 text-sm font-normal text-slate-900"
-              />
-            </label>
+          <div className="space-y-3 rounded-xl border bg-white p-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={setTodayFilter}
+                className="rounded-full border px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Hoje
+              </button>
+              <button
+                type="button"
+                onClick={setCurrentMonthFilter}
+                className="rounded-full border px-3 py-1.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Este mes
+              </button>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-full border border-[#8A0EEA]/20 px-3 py-1.5 text-sm font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
+              >
+                Limpar filtros
+              </button>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <label className="flex items-center gap-3 rounded-xl border px-3">
+                <Search size={18} className="text-slate-400" />
+                <input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Buscar descrição"
+                  className="min-w-0 flex-1 py-3 outline-none"
+                />
+              </label>
+              <select
+                value={typeFilter}
+                onChange={(event) => setTypeFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option>Todos</option>
+                <option>Receita</option>
+                <option>Despesa</option>
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                <option>Todos</option>
+                <option>Pago</option>
+                <option>Pendente</option>
+              </select>
+              <label className="grid gap-1 text-xs font-medium text-slate-500">
+                Data inicial
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                  className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-medium text-slate-500">
+                Data final
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                  className="rounded-xl border p-3 text-sm font-normal text-slate-900"
+                />
+              </label>
+            </div>
           </div>
 
           {loading ? (
@@ -301,8 +406,11 @@ export default function FinanceiroPage() {
 
         <FinancialPrintView
           entries={filteredEntries}
-          lucro={lucro}
+          saldoPrevisto={saldoPrevisto}
+          saldoRealizado={saldoRealizado}
           totalDespesas={totalDespesas}
+          totalDespesasPagas={totalDespesasPagas}
+          totalDespesasPendentes={totalDespesasPendentes}
           totalReceber={totalReceber}
           totalRecebido={totalRecebido}
         />
@@ -311,25 +419,46 @@ export default function FinanceiroPage() {
   );
 }
 
-function SummaryCard({ title, value }: { title: string; value: string }) {
+function SummaryCard({
+  title,
+  value,
+  tone = "neutral",
+}: {
+  title: string;
+  value: string;
+  tone?: "neutral" | "success" | "warning" | "danger";
+}) {
+  const toneClasses = {
+    neutral: "border-slate-200 bg-white text-slate-900",
+    success: "border-green-100 bg-green-50 text-green-800",
+    warning: "border-yellow-100 bg-yellow-50 text-yellow-800",
+    danger: "border-red-100 bg-red-50 text-red-800",
+  };
+
   return (
-    <div className="rounded-2xl border bg-white p-4 sm:p-6">
-      <p className="text-slate-500">{title}</p>
-      <h2 className="mt-2 text-2xl font-bold sm:text-3xl">{value}</h2>
+    <div className={`rounded-2xl border p-4 sm:p-5 ${toneClasses[tone]}`}>
+      <p className="text-sm font-medium opacity-75">{title}</p>
+      <h2 className="mt-2 text-xl font-bold sm:text-2xl">{value}</h2>
     </div>
   );
 }
 
 function FinancialPrintView({
   entries,
-  lucro,
+  saldoPrevisto,
+  saldoRealizado,
   totalDespesas,
+  totalDespesasPagas,
+  totalDespesasPendentes,
   totalReceber,
   totalRecebido,
 }: {
   entries: FinancialEntry[];
-  lucro: number;
+  saldoPrevisto: number;
+  saldoRealizado: number;
   totalDespesas: number;
+  totalDespesasPagas: number;
+  totalDespesasPendentes: number;
   totalReceber: number;
   totalRecebido: number;
 }) {
@@ -347,11 +476,29 @@ function FinancialPrintView({
         <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-4 gap-3 text-sm">
+      <div className="mb-6 grid grid-cols-3 gap-3 text-sm">
         <PrintSummary label="Recebido" value={formatCurrency(totalRecebido)} />
         <PrintSummary label="A receber" value={formatCurrency(totalReceber)} />
-        <PrintSummary label="Despesas" value={formatCurrency(totalDespesas)} />
-        <PrintSummary label="Lucro" value={formatCurrency(lucro)} />
+        <PrintSummary
+          label="Despesas pagas"
+          value={formatCurrency(totalDespesasPagas)}
+        />
+        <PrintSummary
+          label="Despesas pendentes"
+          value={formatCurrency(totalDespesasPendentes)}
+        />
+        <PrintSummary
+          label="Total despesas"
+          value={formatCurrency(totalDespesas)}
+        />
+        <PrintSummary
+          label="Saldo realizado"
+          value={formatCurrency(saldoRealizado)}
+        />
+        <PrintSummary
+          label="Saldo previsto"
+          value={formatCurrency(saldoPrevisto)}
+        />
       </div>
 
       <table className="w-full border-collapse text-xs">

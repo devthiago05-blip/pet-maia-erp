@@ -4,6 +4,44 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - painel financeiro mais completo
+
+Ultima tarefa concluida:
+
+- Financeiro recebeu cards separados para:
+  - recebido;
+  - a receber;
+  - despesas pagas;
+  - despesas pendentes;
+  - saldo realizado;
+  - saldo previsto.
+- Adicionado alerta quando houver despesa vencida e pendente no filtro atual.
+- Adicionados atalhos de filtro: `Hoje`, `Este mes` e `Limpar filtros`.
+- Impressao financeira passou a incluir os novos totais.
+- Clinica ficou em standby conforme solicitado.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente `/financeiro` com filtros de hoje e mes atual.
+- Proximo bloco sugerido: criar filtros por tutor/pet/origem e relatorio de
+  despesas por categoria/origem.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx CONTINUAR_AQUI.md
+git commit -m "feat(financeiro): melhorar painel e filtros"
+git push origin main
+```
+
 ## Bloco concluido - contato do tutor em agendamentos antigos
 
 Ultima tarefa concluida:

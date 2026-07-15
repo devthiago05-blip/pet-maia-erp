@@ -4,6 +4,41 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - endereco do tutor na observacao do agendamento
+
+Ultima tarefa concluida:
+
+- O modal de novo/editar agendamento agora adiciona automaticamente o endereco
+  do tutor na observacao.
+- A observacao passa a receber uma linha `Endereco: ...`.
+- Ao trocar o tutor ou selecionar um pet, o endereco da observacao e atualizado.
+- Ao salvar, o endereco e garantido novamente para evitar agendamento sem essa
+  informacao.
+- A busca de agendamentos passou a carregar `pets.tutors.endereco`.
+
+Arquivos modificados:
+
+- `components/agenda/NewAppointmentModal.tsx`
+- `services/appointments.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente criando um agendamento para tutor com endereco cadastrado.
+- Conferir se o endereco aparece no card, lista e impressao da Agenda dentro da
+  observacao.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/agenda/NewAppointmentModal.tsx services/appointments.ts CONTINUAR_AQUI.md
+git commit -m "feat(agenda): incluir endereco na observacao"
+git push origin main
+```
+
 ## Bloco concluido - agenda por linhas de horario
 
 Ultima tarefa concluida:

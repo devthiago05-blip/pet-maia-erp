@@ -29,6 +29,24 @@ interface NewAppointmentModalProps {
   appointment?: Appointment | null;
 }
 
+const addressLinePattern = /^(Endere[cç]o|Endereco):\s?.*$/i;
+
+function syncObservationAddress(observation: string, address?: string) {
+  const cleanObservation = observation
+    .split("\n")
+    .filter((line) => !addressLinePattern.test(line.trim()))
+    .join("\n")
+    .trim();
+
+  if (!address?.trim()) {
+    return cleanObservation;
+  }
+
+  return [`Endereco: ${address.trim()}`, cleanObservation]
+    .filter(Boolean)
+    .join("\n");
+}
+
 export function NewAppointmentModal({
   tutors,
   pets,
@@ -56,6 +74,7 @@ export function NewAppointmentModal({
   const petsFiltrados = tutorId
     ? pets.filter((petItem) => String(petItem.tutor_id) === tutorId)
     : pets;
+  const selectedTutor = tutors.find((tutor) => String(tutor.id) === tutorId);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -63,10 +82,14 @@ export function NewAppointmentModal({
         const selectedPet = appointment
           ? pets.find((pet) => pet.id === appointment.pet_id)
           : null;
-
-        setTutorId(
-          selectedPet?.tutor_id ? String(selectedPet.tutor_id) : defaultTutorId,
+        const initialTutorId = selectedPet?.tutor_id
+          ? String(selectedPet.tutor_id)
+          : defaultTutorId;
+        const initialTutor = tutors.find(
+          (tutor) => String(tutor.id) === initialTutorId,
         );
+
+        setTutorId(initialTutorId);
         setPetId(
           appointment?.pet_id ? String(appointment.pet_id) : defaultPetId,
         );
@@ -78,12 +101,17 @@ export function NewAppointmentModal({
         setData(appointment?.data || "");
         setHora(appointment?.hora || "");
         setStatus(appointment?.status || "Agendado");
-        setObservacao(appointment?.observacao || "");
+        setObservacao(
+          syncObservationAddress(
+            appointment?.observacao || "",
+            initialTutor?.endereco,
+          ),
+        );
       }
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [appointment, defaultPetId, defaultTutorId, modalOpen, pets]);
+  }, [appointment, defaultPetId, defaultTutorId, modalOpen, pets, tutors]);
 
   function setModalOpen(value: boolean) {
     if (open === undefined) {
@@ -104,8 +132,31 @@ export function NewAppointmentModal({
   }
 
   function handleTutorChange(nextTutorId: string) {
+    const nextTutor = tutors.find((tutor) => String(tutor.id) === nextTutorId);
+
     setTutorId(nextTutorId);
     setPetId("");
+    setObservacao((currentObservation) =>
+      syncObservationAddress(currentObservation, nextTutor?.endereco),
+    );
+  }
+
+  function handlePetChange(nextPetId: string) {
+    setPetId(nextPetId);
+
+    const selectedPet = pets.find((pet) => String(pet.id) === nextPetId);
+
+    if (selectedPet?.tutor_id) {
+      const nextTutorId = String(selectedPet.tutor_id);
+      const nextTutor = tutors.find(
+        (tutor) => String(tutor.id) === nextTutorId,
+      );
+
+      setTutorId(nextTutorId);
+      setObservacao((currentObservation) =>
+        syncObservationAddress(currentObservation, nextTutor?.endereco),
+      );
+    }
   }
 
   function handleClose() {
@@ -127,7 +178,7 @@ export function NewAppointmentModal({
       data,
       hora,
       status,
-      observacao,
+      observacao: syncObservationAddress(observacao, selectedTutor?.endereco),
     });
 
     setSaving(false);
@@ -175,7 +226,7 @@ export function NewAppointmentModal({
 
               <select
                 value={petId}
-                onChange={(event) => setPetId(event.target.value)}
+                onChange={(event) => handlePetChange(event.target.value)}
                 className="w-full rounded-xl border p-3"
               >
                 <option value="">Selecione um Pet</option>

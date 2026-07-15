@@ -18,7 +18,8 @@ export async function fetchAppointments() {
         tutors!pets_tutor_id_fkey (
           id,
           nome,
-          telefone
+          telefone,
+          endereco
         )
       )
     `,

@@ -7,6 +7,10 @@ import {
   financialDescriptionSuggestions,
   financialPaymentMethods,
 } from "@/lib/financial-options";
+import {
+  getEffectiveFinancialEntryType,
+  isGroomerDailyPaymentOrigin,
+} from "@/lib/financial-origin";
 import type {
   FinancialEntry,
   FinancialEntryType,
@@ -41,6 +45,7 @@ export function EditFinancialModal({
   const [tutorId, setTutorId] = useState("");
   const [petId, setPetId] = useState("");
   const [saving, setSaving] = useState(false);
+  const isGroomerDailyPayment = isGroomerDailyPaymentOrigin(entry?.origem);
 
   const filteredPets = useMemo(() => {
     if (!tutorId) {
@@ -56,9 +61,11 @@ export function EditFinancialModal({
     }
 
     const timer = window.setTimeout(() => {
+      const effectiveType = getEffectiveFinancialEntryType(entry);
+
       setDescricao(entry.descricao || "");
       setValor(String(entry.valor || ""));
-      setTipo(entry.tipo || "Receita");
+      setTipo(effectiveType);
       setFormaPagamento(entry.forma_pagamento || "PIX");
       setStatusPagamento(entry.status_pagamento || "Pendente");
       setDataVencimento(entry.data_vencimento?.slice(0, 10) || "");
@@ -98,6 +105,11 @@ export function EditFinancialModal({
   }
 
   function handleTypeChange(value: FinancialEntryType) {
+    if (isGroomerDailyPayment) {
+      setTipo("Despesa");
+      return;
+    }
+
     setTipo(value);
 
     if (value !== "Despesa") {
@@ -235,10 +247,11 @@ export function EditFinancialModal({
               Tipo
               <select
                 value={tipo}
+                disabled={isGroomerDailyPayment}
                 onChange={(event) =>
                   handleTypeChange(event.target.value as FinancialEntryType)
                 }
-                className="w-full rounded-xl border p-3 font-normal"
+                className="w-full rounded-xl border p-3 font-normal disabled:bg-slate-100 disabled:text-slate-500"
               >
                 <option value="Receita">Receita</option>
                 <option value="Despesa">Despesa</option>

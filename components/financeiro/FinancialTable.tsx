@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
-import { getFinancialOriginLabel } from "@/lib/financial-origin";
+import {
+  getEffectiveFinancialEntryType,
+  getFinancialOriginLabel,
+} from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { FinancialEntry } from "@/types/domain";
 
@@ -65,95 +68,101 @@ export function FinancialTable({
                   </td>
                 </tr>
               ) : (
-                entries.map((entry) => (
-                  <tr key={entry.id} className="border-t">
-                    <td className="p-3 sm:p-4">{entry.descricao}</td>
+                entries.map((entry) => {
+                  const effectiveType = getEffectiveFinancialEntryType(entry);
 
-                    <td className="p-3 text-sm text-slate-600 sm:p-4">
-                      {entry.tutors?.nome || "-"}
-                    </td>
+                  return (
+                    <tr key={entry.id} className="border-t">
+                      <td className="p-3 sm:p-4">{entry.descricao}</td>
 
-                    <td className="p-3 text-sm text-slate-600 sm:p-4">
-                      {entry.pets?.nome || "-"}
-                    </td>
+                      <td className="p-3 text-sm text-slate-600 sm:p-4">
+                        {entry.tutors?.nome || "-"}
+                      </td>
 
-                    <td className="p-3 text-sm text-slate-600 sm:p-4">
-                      {getFinancialOriginLabel(entry.origem)}
-                    </td>
+                      <td className="p-3 text-sm text-slate-600 sm:p-4">
+                        {entry.pets?.nome || "-"}
+                      </td>
 
-                    <td className="p-3 sm:p-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-sm font-medium ${
-                          entry.tipo === "Despesa"
-                            ? "bg-red-100 text-red-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {entry.tipo || "Receita"}
-                      </span>
-                    </td>
+                      <td className="p-3 text-sm text-slate-600 sm:p-4">
+                        {getFinancialOriginLabel(entry.origem)}
+                      </td>
 
-                    <td className="p-3 sm:p-4">
-                      {formatCurrency(entry.valor)}
-                    </td>
-
-                    <td className="p-3 text-sm text-slate-600 sm:p-4">
-                      {entry.forma_pagamento || "-"}
-                    </td>
-
-                    <td className="p-3 sm:p-4">
-                      {formatDate(entry.created_at)}
-                    </td>
-
-                    <td className="p-3 sm:p-4">
-                      {entry.tipo === "Despesa"
-                        ? formatDate(entry.data_vencimento)
-                        : "-"}
-                    </td>
-
-                    <td className="p-3 sm:p-4">
-                      {entry.status_pagamento === "Pago" ? (
-                        <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
-                          Pago
+                      <td className="p-3 sm:p-4">
+                        <span
+                          className={`rounded-full px-3 py-1 text-sm font-medium ${
+                            effectiveType === "Despesa"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {effectiveType}
                         </span>
-                      ) : (
-                        <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-700">
-                          Pendente
-                        </span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="p-3 sm:p-4">
-                      <div className="flex flex-wrap gap-3">
-                        {entry.status_pagamento !== "Pago" && (
+                      <td className="p-3 sm:p-4">
+                        {formatCurrency(entry.valor)}
+                      </td>
+
+                      <td className="p-3 text-sm text-slate-600 sm:p-4">
+                        {entry.forma_pagamento || "-"}
+                      </td>
+
+                      <td className="p-3 sm:p-4">
+                        {formatDate(entry.created_at)}
+                      </td>
+
+                      <td className="p-3 sm:p-4">
+                        {effectiveType === "Despesa"
+                          ? formatDate(entry.data_vencimento)
+                          : "-"}
+                      </td>
+
+                      <td className="p-3 sm:p-4">
+                        {entry.status_pagamento === "Pago" ? (
+                          <span className="rounded-full bg-green-100 px-3 py-1 text-sm text-green-700">
+                            Pago
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-yellow-100 px-3 py-1 text-sm text-yellow-700">
+                            Pendente
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="p-3 sm:p-4">
+                        <div className="flex flex-wrap gap-3">
+                          {entry.status_pagamento !== "Pago" && (
+                            <button
+                              type="button"
+                              onClick={() => onReceive(entry.id)}
+                              className="text-green-600"
+                            >
+                              {effectiveType === "Despesa"
+                                ? "Pagar"
+                                : "Receber"}
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => onReceive(entry.id)}
-                            className="text-green-600"
+                            onClick={() => onEdit(entry)}
+                            className="text-[#8A0EEA]"
                           >
-                            {entry.tipo === "Despesa" ? "Pagar" : "Receber"}
+                            Editar
                           </button>
-                        )}
 
-                        <button
-                          type="button"
-                          onClick={() => onEdit(entry)}
-                          className="text-[#8A0EEA]"
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setEntryToDelete(entry)}
-                          className="text-red-600"
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <button
+                            type="button"
+                            onClick={() => setEntryToDelete(entry)}
+                            className="text-red-600"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

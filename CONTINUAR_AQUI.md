@@ -4,6 +4,45 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - Financeiro mes atual e diaria do tosador
+
+Ultima tarefa concluida:
+
+- Financeiro agora abre com o filtro padrao do mes atual.
+- O botao `Limpar filtros` tambem volta para o mes atual, mantendo o padrao
+  mensal.
+- Diarias de tosador passam a ser tratadas como `Despesa` na tela, resumo,
+  impressao e edicao do Financeiro.
+- O service financeiro impede que uma diaria de tosador vinculada seja salva
+  como receita ao editar.
+
+Arquivos modificados:
+
+- `app/financeiro/page.tsx`
+- `components/financeiro/EditFinancialModal.tsx`
+- `components/financeiro/FinancialTable.tsx`
+- `lib/financial-origin.ts`
+- `services/financial.ts`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente `/financeiro`: abrir a tela e confirmar periodo do mes
+  atual; filtrar origem `Diaria tosador`; validar que aparece como despesa.
+- Se existirem registros antigos de diaria salvos como receita no banco, rodar
+  um SQL de correcao depois de revisar os dados.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add app/financeiro/page.tsx components/financeiro/EditFinancialModal.tsx components/financeiro/FinancialTable.tsx lib/financial-origin.ts services/financial.ts CONTINUAR_AQUI.md
+git commit -m "fix(financeiro): padronizar mes atual e diaria do tosador"
+git push origin main
+```
+
 ## Bloco concluido - PDV limpa cadastro de produto
 
 Ultima tarefa concluida:

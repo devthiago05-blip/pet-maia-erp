@@ -11,7 +11,10 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { financialPaymentMethods } from "@/lib/financial-options";
-import { getFinancialOriginLabel } from "@/lib/financial-origin";
+import {
+  getEffectiveFinancialEntryType,
+  getFinancialOriginLabel,
+} from "@/lib/financial-origin";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createFinancialEntry,
@@ -30,6 +33,17 @@ import type {
   UpdateFinancialEntryInput,
 } from "@/types/domain";
 
+function getCurrentMonthPeriod() {
+  const today = new Date();
+  const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  return {
+    start: firstDay.toLocaleDateString("en-CA"),
+    end: lastDay.toLocaleDateString("en-CA"),
+  };
+}
+
 export default function FinanceiroPage() {
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -44,8 +58,10 @@ export default function FinanceiroPage() {
   const [petFilter, setPetFilter] = useState("Todos");
   const [originFilter, setOriginFilter] = useState("Todos");
   const [paymentFilter, setPaymentFilter] = useState("Todos");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(
+    () => getCurrentMonthPeriod().start,
+  );
+  const [endDate, setEndDate] = useState(() => getCurrentMonthPeriod().end);
 
   function setTodayFilter() {
     const today = new Date().toLocaleDateString("en-CA");
@@ -55,12 +71,10 @@ export default function FinanceiroPage() {
   }
 
   function setCurrentMonthFilter() {
-    const today = new Date();
-    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    const period = getCurrentMonthPeriod();
 
-    setStartDate(firstDay.toLocaleDateString("en-CA"));
-    setEndDate(lastDay.toLocaleDateString("en-CA"));
+    setStartDate(period.start);
+    setEndDate(period.end);
   }
 
   function clearFilters() {
@@ -71,8 +85,7 @@ export default function FinanceiroPage() {
     setPetFilter("Todos");
     setOriginFilter("Todos");
     setPaymentFilter("Todos");
-    setStartDate("");
-    setEndDate("");
+    setCurrentMonthFilter();
   }
 
   const originOptions = useMemo(() => {
@@ -110,7 +123,8 @@ export default function FinanceiroPage() {
           entry.descricao.toLowerCase().includes(term) ||
           entry.tutors?.nome?.toLowerCase().includes(term) ||
           entry.pets?.nome?.toLowerCase().includes(term)) &&
-        (typeFilter === "Todos" || entry.tipo === typeFilter) &&
+        (typeFilter === "Todos" ||
+          getEffectiveFinancialEntryType(entry) === typeFilter) &&
         (statusFilter === "Todos" || entry.status_pagamento === statusFilter) &&
         (tutorFilter === "Todos" ||
           String(entry.tutor_id || "") === tutorFilter) &&
@@ -137,27 +151,33 @@ export default function FinanceiroPage() {
 
   const totalRecebido = filteredEntries
     .filter(
-      (entry) => entry.tipo === "Receita" && entry.status_pagamento === "Pago",
+      (entry) =>
+        getEffectiveFinancialEntryType(entry) === "Receita" &&
+        entry.status_pagamento === "Pago",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
   const totalReceber = filteredEntries
     .filter(
       (entry) =>
-        entry.tipo === "Receita" && entry.status_pagamento === "Pendente",
+        getEffectiveFinancialEntryType(entry) === "Receita" &&
+        entry.status_pagamento === "Pendente",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
   const totalDespesasPagas = filteredEntries
     .filter(
-      (entry) => entry.tipo === "Despesa" && entry.status_pagamento === "Pago",
+      (entry) =>
+        getEffectiveFinancialEntryType(entry) === "Despesa" &&
+        entry.status_pagamento === "Pago",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
   const totalDespesasPendentes = filteredEntries
     .filter(
       (entry) =>
-        entry.tipo === "Despesa" && entry.status_pagamento === "Pendente",
+        getEffectiveFinancialEntryType(entry) === "Despesa" &&
+        entry.status_pagamento === "Pendente",
     )
     .reduce((total, entry) => total + Number(entry.valor), 0);
 
@@ -167,7 +187,7 @@ export default function FinanceiroPage() {
   const todayIso = new Date().toLocaleDateString("en-CA");
   const overdueExpenses = filteredEntries.filter((entry) => {
     return (
-      entry.tipo === "Despesa" &&
+      getEffectiveFinancialEntryType(entry) === "Despesa" &&
       entry.status_pagamento === "Pendente" &&
       Boolean(entry.data_vencimento) &&
       String(entry.data_vencimento).slice(0, 10) < todayIso
@@ -185,7 +205,7 @@ export default function FinanceiroPage() {
 
       const value = Number(entry.valor || 0);
 
-      if (entry.tipo === "Despesa") {
+      if (getEffectiveFinancialEntryType(entry) === "Despesa") {
         totals[origin].despesas += value;
         totals[origin].total -= value;
       } else {
@@ -708,26 +728,30 @@ function FinancialPrintView({
               </td>
             </tr>
           ) : (
-            entries.map((entry) => (
-              <tr key={entry.id}>
-                <td className="border p-2">{entry.descricao}</td>
-                <td className="border p-2">{entry.tutors?.nome || "-"}</td>
-                <td className="border p-2">{entry.pets?.nome || "-"}</td>
-                <td className="border p-2">
-                  {getFinancialOriginLabel(entry.origem)}
-                </td>
-                <td className="border p-2">{entry.tipo || "Receita"}</td>
-                <td className="border p-2">{formatCurrency(entry.valor)}</td>
-                <td className="border p-2">{entry.forma_pagamento || "-"}</td>
-                <td className="border p-2">{formatDate(entry.created_at)}</td>
-                <td className="border p-2">
-                  {entry.tipo === "Despesa"
-                    ? formatDate(entry.data_vencimento)
-                    : "-"}
-                </td>
-                <td className="border p-2">{entry.status_pagamento}</td>
-              </tr>
-            ))
+            entries.map((entry) => {
+              const effectiveType = getEffectiveFinancialEntryType(entry);
+
+              return (
+                <tr key={entry.id}>
+                  <td className="border p-2">{entry.descricao}</td>
+                  <td className="border p-2">{entry.tutors?.nome || "-"}</td>
+                  <td className="border p-2">{entry.pets?.nome || "-"}</td>
+                  <td className="border p-2">
+                    {getFinancialOriginLabel(entry.origem)}
+                  </td>
+                  <td className="border p-2">{effectiveType}</td>
+                  <td className="border p-2">{formatCurrency(entry.valor)}</td>
+                  <td className="border p-2">{entry.forma_pagamento || "-"}</td>
+                  <td className="border p-2">{formatDate(entry.created_at)}</td>
+                  <td className="border p-2">
+                    {effectiveType === "Despesa"
+                      ? formatDate(entry.data_vencimento)
+                      : "-"}
+                  </td>
+                  <td className="border p-2">{entry.status_pagamento}</td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>

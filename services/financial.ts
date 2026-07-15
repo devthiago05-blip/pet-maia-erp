@@ -1,3 +1,4 @@
+import { isGroomerDailyPaymentOrigin } from "@/lib/financial-origin";
 import { supabase } from "@/lib/supabase";
 import type {
   NewFinancialEntryInput,
@@ -229,16 +230,22 @@ export async function updateFinancialEntry(
     return currentEntryResponse;
   }
 
+  const effectiveType = isGroomerDailyPaymentOrigin(
+    currentEntryResponse.data?.origem,
+  )
+    ? "Despesa"
+    : entry.tipo;
+
   const updateResponse = await supabase
     .from("financial_entries")
     .update({
       descricao: entry.descricao.trim(),
       valor: entry.valor,
-      tipo: entry.tipo,
+      tipo: effectiveType,
       forma_pagamento: entry.formaPagamento,
       status_pagamento: entry.statusPagamento,
       data_vencimento:
-        entry.tipo === "Despesa" ? entry.dataVencimento || null : null,
+        effectiveType === "Despesa" ? entry.dataVencimento || null : null,
       tutor_id: entry.tutorId ? Number(entry.tutorId) : null,
       pet_id: entry.petId ? Number(entry.petId) : null,
     })

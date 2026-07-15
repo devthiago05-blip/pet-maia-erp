@@ -1,3 +1,10 @@
+import type { FinancialEntry, FinancialEntryType } from "@/types/domain";
+
+const groomerDailyPaymentOrigins = new Set([
+  "grooming_daily_payment",
+  "groomer_daily_payment",
+]);
+
 export function getFinancialOriginLabel(origin?: string) {
   const labels: Record<string, string> = {
     appointment: "Agenda",
@@ -11,4 +18,18 @@ export function getFinancialOriginLabel(origin?: string) {
   };
 
   return labels[origin || "manual"] || origin || "Manual";
+}
+
+export function isGroomerDailyPaymentOrigin(origin?: string | null) {
+  return groomerDailyPaymentOrigins.has(origin || "");
+}
+
+export function getEffectiveFinancialEntryType(
+  entry: Pick<FinancialEntry, "origem" | "tipo">,
+): FinancialEntryType {
+  if (isGroomerDailyPaymentOrigin(entry.origem)) {
+    return "Despesa";
+  }
+
+  return entry.tipo || "Receita";
 }

@@ -4,6 +4,37 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - corrigir notificacoes no mobile
+
+Ultima tarefa concluida:
+
+- Corrigido o painel do sino de notificacoes no celular.
+- No mobile, o painel agora abre fixo com margem lateral, evitando ficar
+  cortado para fora da tela.
+- Em telas maiores, o painel continua abrindo alinhado ao sino.
+- A altura do painel no mobile passou a respeitar a altura da tela com scroll
+  interno.
+
+Arquivos modificados:
+
+- `components/layout/Header.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente em celular abrindo o sino na Agenda e em outras telas.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/layout/Header.tsx CONTINUAR_AQUI.md
+git commit -m "fix(layout): ajustar notificacoes no mobile"
+git push origin main
+```
+
 ## Bloco concluido - endereco do tutor na observacao do agendamento
 
 Ultima tarefa concluida:

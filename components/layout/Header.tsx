@@ -245,14 +245,14 @@ export function Header() {
             </button>
 
             {notificationsOpen && (
-              <div className="absolute top-12 right-0 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-xl border bg-white shadow-xl">
+              <div className="fixed top-20 right-4 left-4 z-50 max-h-[calc(100dvh-6rem)] overflow-hidden rounded-xl border bg-white shadow-xl sm:absolute sm:top-12 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))]">
                 <div className="border-b p-4">
                   <p className="font-bold">Notificações</p>
                   <p className="text-xs text-slate-500">
                     Solicitacoes do site, vacinas, agenda e pagamentos
                   </p>
                 </div>
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-[calc(100dvh-13rem)] overflow-y-auto sm:max-h-80">
                   {notifications.length === 0 ? (
                     <p className="p-5 text-center text-sm text-slate-500">
                       Nenhuma notificação no momento.

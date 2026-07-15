@@ -455,6 +455,7 @@ export interface Product {
   preco_venda: number;
   estoque: number;
   estoque_minimo: number;
+  image_url?: string | null;
   ativo: boolean;
   created_at?: string;
 }

@@ -5,6 +5,7 @@ import {
   CalendarDays,
   ChartNoAxesCombined,
   Handshake,
+  ImageIcon,
   LayoutDashboard,
   Menu,
   PawPrint,
@@ -52,6 +53,7 @@ const menuItems: Array<{
     icon: BarChart3,
   },
   { href: "/pdv", label: "PDV", module: "pdv", icon: ShoppingCart },
+  { href: "/site", label: "Site", module: "site", icon: ImageIcon },
   {
     href: "/clinica",
     label: "Clínica",

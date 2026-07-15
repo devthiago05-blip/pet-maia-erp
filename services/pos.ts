@@ -57,6 +57,7 @@ export async function updateProduct(product: Product) {
       preco_venda: product.preco_venda,
       estoque: product.estoque,
       estoque_minimo: product.estoque_minimo,
+      image_url: product.image_url || null,
       ativo: product.ativo,
       updated_at: new Date().toISOString(),
     })

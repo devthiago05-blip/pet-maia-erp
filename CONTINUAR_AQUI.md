@@ -2,7 +2,63 @@
 
 - Atualizado em: 15/07/2026
 - Branch: `main`
-  Ultimo commit funcional: `feat(agenda): destacar solicitacoes pendentes`
+  Ultimo commit funcional: `fix(cadastros): ordenar pets e tutores por nome`
+
+## Bloco concluido - organizar area Site no ERP
+
+Ultima tarefa concluida:
+
+- Organizadas as alteracoes pendentes relacionadas a area `Site` do ERP.
+- Adicionada rota `/site` para gerenciar bandanas e lacinhos exibidos no site.
+- Adicionado item `Site` no menu lateral.
+- Adicionado modulo `site` nas permissoes de acesso.
+- Criado service `services/site-accessories.ts` para:
+  - listar bandanas e lacinhos;
+  - enviar foto para Storage;
+  - criar item do site;
+  - atualizar item do site;
+  - ocultar item do site.
+- Tipo `Product` passou a aceitar `image_url`.
+- Atualizacao de produto no PDV preserva `image_url`.
+- Criada migration `supabase/sql/038_site_accessories_storage.sql` para
+  versionar:
+  - coluna `products.image_url`;
+  - bucket `site-accessories`;
+  - policies de leitura publica e upload autenticado.
+- Verificado no Supabase que o bucket `site-accessories` existe e esta publico.
+- Verificado que as policies do bucket existem.
+- Nao reapliquei as policies no Supabase porque a revisao automatica bloqueou
+  a operacao como mudanca persistente de seguranca; como elas ja existem, o
+  sistema ficou alinhado sem forcar a alteracao remota.
+- `.gitignore` passou a ignorar logs temporarios do Codex e anexos remotos.
+
+Arquivos modificados:
+
+- `.gitignore`
+- `app/site/page.tsx`
+- `components/layout/Sidebar.tsx`
+- `lib/access-control.ts`
+- `services/site-accessories.ts`
+- `services/pos.ts`
+- `types/domain.ts`
+- `supabase/sql/038_site_accessories_storage.sql`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente upload de foto em `/site` com usuario autenticado.
+- Se o upload falhar, revisar policy de Storage no Supabase Studio.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add .gitignore app/site/page.tsx components/layout/Sidebar.tsx lib/access-control.ts services/site-accessories.ts services/pos.ts types/domain.ts supabase/sql/038_site_accessories_storage.sql CONTINUAR_AQUI.md
+git commit -m "feat(site): gerenciar acessorios do agendamento"
+git push origin main
+```
 
 ## Bloco concluido - ordenar pets e tutores por nome
 

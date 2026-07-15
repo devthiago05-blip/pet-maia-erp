@@ -4,6 +4,42 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - contato do tutor em agendamentos antigos
+
+Ultima tarefa concluida:
+
+- Corrigido o caso em que a impressao da Agenda mostrava `-` na observacao de
+  agendamentos antigos.
+- A exibicao da observacao agora monta `Endereco` e `Telefone` diretamente dos
+  dados do tutor quando existirem.
+- A regra foi aplicada no card da Agenda, na tabela/lista e na impressao.
+- Isso evita precisar abrir e salvar novamente cada agendamento antigo para o
+  contato aparecer.
+
+Arquivos modificados:
+
+- `lib/appointment-observation.ts`
+- `components/agenda/AppointmentCard.tsx`
+- `components/agenda/AppointmentTable.tsx`
+- `app/agenda/page.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente imprimindo o agendamento da tutora Zelia para confirmar
+  que a observacao mostra endereco e telefone.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add lib/appointment-observation.ts components/agenda/AppointmentCard.tsx components/agenda/AppointmentTable.tsx app/agenda/page.tsx CONTINUAR_AQUI.md
+git commit -m "fix(agenda): exibir contato do tutor na impressao"
+git push origin main
+```
+
 ## Bloco concluido - corrigir notificacoes no mobile
 
 Ultima tarefa concluida:

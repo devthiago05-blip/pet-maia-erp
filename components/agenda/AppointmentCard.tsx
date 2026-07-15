@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { buildAppointmentObservation } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
 interface AppointmentCardProps {
@@ -23,8 +24,9 @@ export function AppointmentCard({
   onEdit,
 }: AppointmentCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const petName = appointment.pets?.nome || "Pet não informado";
-  const tutorName = appointment.pets?.tutors?.nome || "Tutor não informado";
+  const petName = appointment.pets?.nome || "Pet nao informado";
+  const tutorName = appointment.pets?.tutors?.nome || "Tutor nao informado";
+  const observation = buildAppointmentObservation(appointment);
 
   return (
     <>
@@ -48,9 +50,9 @@ export function AppointmentCard({
             {appointment.servico}
           </p>
 
-          {appointment.observacao && (
-            <p className="line-clamp-3 rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
-              {appointment.observacao}
+          {observation && (
+            <p className="line-clamp-3 whitespace-pre-line rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
+              {observation}
             </p>
           )}
         </div>
@@ -135,7 +137,7 @@ export function AppointmentCard({
       <ConfirmationDialog
         isOpen={deleteDialogOpen}
         title="Excluir agendamento"
-        description={`Deseja excluir o agendamento de ${petName}? Essa ação não poderá ser desfeita.`}
+        description={`Deseja excluir o agendamento de ${petName}? Essa acao nao podera ser desfeita.`}
         confirmText="Excluir"
         onCancel={() => setDeleteDialogOpen(false)}
         onConfirm={() => {

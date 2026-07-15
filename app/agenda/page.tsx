@@ -13,6 +13,7 @@ import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { formatAppointmentObservation } from "@/lib/appointment-observation";
 import {
   createAppointment,
   deleteAppointment,
@@ -730,7 +731,9 @@ function AppointmentPrintView({
                 </td>
                 <td className="border p-2">{appointment.servico}</td>
                 <td className="border p-2">{appointment.status}</td>
-                <td className="border p-2">{appointment.observacao || "-"}</td>
+                <td className="whitespace-pre-line border p-2">
+                  {formatAppointmentObservation(appointment)}
+                </td>
               </tr>
             ))
           )}

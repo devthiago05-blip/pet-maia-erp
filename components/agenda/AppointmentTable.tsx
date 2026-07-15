@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { formatAppointmentObservation } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
 interface AppointmentTableProps {
@@ -61,8 +62,8 @@ export function AppointmentTable({
 
                   <td className="p-3 sm:p-4">{appointment.servico}</td>
 
-                  <td className="max-w-72 p-3 text-sm text-slate-500 sm:p-4">
-                    {appointment.observacao || "-"}
+                  <td className="max-w-72 whitespace-pre-line p-3 text-sm text-slate-500 sm:p-4">
+                    {formatAppointmentObservation(appointment)}
                   </td>
 
                   <td className="p-3 sm:p-4">

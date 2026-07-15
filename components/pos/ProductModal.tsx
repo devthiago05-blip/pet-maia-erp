@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/formatters";
@@ -47,6 +47,16 @@ function createVariation(product?: Product): ProductVariationForm {
     estoqueMinimo: String(product?.estoque_minimo ?? 0),
   };
 }
+
+function createProductForm(product?: Product) {
+  return {
+    nome: product?.nome || "",
+    categoryId: String(product?.category_id || ""),
+    variations: [createVariation(product)],
+    ativo: product?.ativo ?? true,
+  };
+}
+
 function formatDecimal(value: number) {
   if (!Number.isFinite(value)) {
     return "";
@@ -73,15 +83,41 @@ export function ProductModal({
   onSave,
 }: ProductModalProps) {
   const [open, setOpen] = useState(false);
-  const [nome, setNome] = useState(product?.nome || "");
+  const [nome, setNome] = useState(() => createProductForm(product).nome);
   const [categoryId, setCategoryId] = useState(
-    String(product?.category_id || ""),
+    () => createProductForm(product).categoryId,
   );
-  const [variations, setVariations] = useState<ProductVariationForm[]>([
-    createVariation(product),
-  ]);
-  const [ativo, setAtivo] = useState(product?.ativo ?? true);
+  const [variations, setVariations] = useState<ProductVariationForm[]>(
+    () => createProductForm(product).variations,
+  );
+  const [ativo, setAtivo] = useState(() => createProductForm(product).ativo);
   const [saving, setSaving] = useState(false);
+
+  const loadForm = useCallback((nextProduct?: Product) => {
+    const nextForm = createProductForm(nextProduct);
+
+    setNome(nextForm.nome);
+    setCategoryId(nextForm.categoryId);
+    setVariations(nextForm.variations);
+    setAtivo(nextForm.ativo);
+  }, []);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      loadForm(product);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [loadForm, open, product]);
+
+  function handleClose() {
+    loadForm(product);
+    setOpen(false);
+  }
 
   function updateVariation(
     id: number,
@@ -222,6 +258,7 @@ export function ProductModal({
     setSaving(true);
     try {
       await onSave(products);
+      loadForm();
       setOpen(false);
     } catch {
       return;
@@ -234,7 +271,10 @@ export function ProductModal({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          loadForm(product);
+          setOpen(true);
+        }}
         className={
           product
             ? "text-blue-600"
@@ -416,7 +456,7 @@ export function ProductModal({
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={handleClose}
                 className="rounded-xl border py-2 sm:flex-1"
               >
                 Cancelar

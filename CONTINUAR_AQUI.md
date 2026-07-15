@@ -4,6 +4,40 @@
 - Branch: `main`
   Ultimo commit funcional: `feat(site): gerenciar acessorios do agendamento`
 
+## Bloco concluido - PDV limpa cadastro de produto
+
+Ultima tarefa concluida:
+
+- Corrigido o modal principal de produto do PDV para recarregar os dados sempre
+  que abrir.
+- Ao cadastrar um novo produto e salvar, o formulario volta para o estado limpo.
+- Ao editar um produto, o modal continua abrindo preenchido com os dados do item
+  escolhido.
+- O cancelamento tambem restaura o formulario antes de fechar.
+
+Arquivos modificados:
+
+- `components/pos/ProductModal.tsx`
+- `CONTINUAR_AQUI.md`
+
+Pendencias:
+
+- Testar manualmente `/pdv`: cadastrar um produto, salvar e abrir `Novo produto`
+  novamente para confirmar que os campos aparecem vazios.
+- Continuar melhorias do PDV depois desse ajuste, principalmente fluxo de
+  compra/fornecedor e historico de vendas.
+
+Comandos necessarios para continuar:
+
+```bash
+npm.cmd run lint
+npm.cmd run build
+git diff --check
+git add components/pos/ProductModal.tsx CONTINUAR_AQUI.md
+git commit -m "fix(pdv): limpar cadastro de produtos apos salvar"
+git push origin main
+```
+
 ## Bloco concluido - PDV filtros de venda e pagamentos
 
 Ultima tarefa concluida:

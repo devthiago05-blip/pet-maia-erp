@@ -14,6 +14,8 @@ Ultima tarefa concluida:
 - Ao trocar o tutor ou selecionar um pet, o endereco da observacao e atualizado.
 - Ao salvar, o endereco e garantido novamente para evitar agendamento sem essa
   informacao.
+- A observacao tambem passou a trazer o telefone do tutor em uma linha
+  `Telefone: ...`.
 - A busca de agendamentos passou a carregar `pets.tutors.endereco`.
 
 Arquivos modificados:

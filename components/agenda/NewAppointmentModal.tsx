@@ -29,22 +29,27 @@ interface NewAppointmentModalProps {
   appointment?: Appointment | null;
 }
 
-const addressLinePattern = /^(Endere[cç]o|Endereco):\s?.*$/i;
+const tutorContactLinePattern = /^(Endere[cç]o|Endereco|Telefone):\s?.*$/i;
 
-function syncObservationAddress(observation: string, address?: string) {
+function syncObservationTutorContact(
+  observation: string,
+  tutor?: Pick<Tutor, "endereco" | "telefone">,
+) {
   const cleanObservation = observation
     .split("\n")
-    .filter((line) => !addressLinePattern.test(line.trim()))
+    .filter((line) => !tutorContactLinePattern.test(line.trim()))
     .join("\n")
     .trim();
+  const contactLines = [
+    tutor?.endereco?.trim() ? `Endereco: ${tutor.endereco.trim()}` : "",
+    tutor?.telefone?.trim() ? `Telefone: ${tutor.telefone.trim()}` : "",
+  ].filter(Boolean);
 
-  if (!address?.trim()) {
+  if (contactLines.length === 0) {
     return cleanObservation;
   }
 
-  return [`Endereco: ${address.trim()}`, cleanObservation]
-    .filter(Boolean)
-    .join("\n");
+  return [...contactLines, cleanObservation].filter(Boolean).join("\n");
 }
 
 export function NewAppointmentModal({
@@ -102,9 +107,9 @@ export function NewAppointmentModal({
         setHora(appointment?.hora || "");
         setStatus(appointment?.status || "Agendado");
         setObservacao(
-          syncObservationAddress(
+          syncObservationTutorContact(
             appointment?.observacao || "",
-            initialTutor?.endereco,
+            initialTutor,
           ),
         );
       }
@@ -137,7 +142,7 @@ export function NewAppointmentModal({
     setTutorId(nextTutorId);
     setPetId("");
     setObservacao((currentObservation) =>
-      syncObservationAddress(currentObservation, nextTutor?.endereco),
+      syncObservationTutorContact(currentObservation, nextTutor),
     );
   }
 
@@ -154,7 +159,7 @@ export function NewAppointmentModal({
 
       setTutorId(nextTutorId);
       setObservacao((currentObservation) =>
-        syncObservationAddress(currentObservation, nextTutor?.endereco),
+        syncObservationTutorContact(currentObservation, nextTutor),
       );
     }
   }
@@ -178,7 +183,7 @@ export function NewAppointmentModal({
       data,
       hora,
       status,
-      observacao: syncObservationAddress(observacao, selectedTutor?.endereco),
+      observacao: syncObservationTutorContact(observacao, selectedTutor),
     });
 
     setSaving(false);

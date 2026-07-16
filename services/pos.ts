@@ -267,6 +267,16 @@ export async function convertPosQuote(quoteId: number, paymentMethod: string) {
   });
 }
 
+export async function convertPosQuoteWithPayments(
+  quoteId: number,
+  payments: Array<{ payment_method: string; amount: number }>,
+) {
+  return supabase.rpc("convert_pos_quote_with_payments", {
+    selected_quote_id: quoteId,
+    payments,
+  });
+}
+
 export async function cancelPosSale(saleId: number) {
   return supabase.rpc("cancel_pos_sale", {
     selected_sale_id: saleId,

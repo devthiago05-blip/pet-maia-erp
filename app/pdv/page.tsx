@@ -14,7 +14,10 @@ import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { CategoryModal } from "@/components/pos/CategoryModal";
-import { PosDocumentModal } from "@/components/pos/PosDocumentModal";
+import {
+  PosDocumentModal,
+  type PosQuoteConversion,
+} from "@/components/pos/PosDocumentModal";
 import { ProductCsvImportModal } from "@/components/pos/ProductCsvImportModal";
 import { ProductModal } from "@/components/pos/ProductModal";
 import { ProductSelectionModal } from "@/components/pos/ProductSelectionModal";
@@ -38,6 +41,7 @@ import {
   cancelPosSale,
   closePosCashRegister,
   convertPosQuote,
+  convertPosQuoteWithPayments,
   createPosQuote,
   createPosSale,
   createPosSaleWithPayments,
@@ -590,14 +594,21 @@ export default function PosPage() {
     await loadData();
   }
 
-  async function handleQuoteConvert(quoteId: number, paymentMethod: string) {
+  async function handleQuoteConvert(
+    quoteId: number,
+    conversion: PosQuoteConversion,
+  ) {
     if (!openCashRegister) {
       toast.error("Abra o caixa antes de converter o orcamento em venda");
       setView("cash");
       return;
     }
 
-    const { error } = await convertPosQuote(quoteId, paymentMethod);
+    const response = conversion.payments
+      ? await convertPosQuoteWithPayments(quoteId, conversion.payments)
+      : await convertPosQuote(quoteId, conversion.paymentMethod || "PIX");
+
+    const { error } = response;
 
     if (error) {
       toast.error(error.message);
@@ -1933,7 +1944,10 @@ function QuotesView({
   onConvert,
 }: {
   quotes: PosQuote[];
-  onConvert: (quoteId: number, paymentMethod: string) => Promise<void>;
+  onConvert: (
+    quoteId: number,
+    conversion: PosQuoteConversion,
+  ) => Promise<void>;
 }) {
   return (
     <div className="overflow-hidden rounded-xl border bg-white">
@@ -1982,8 +1996,7 @@ function QuotesView({
                       items={quote.pos_quote_items || []}
                       onConvert={
                         quote.status === "Aberto"
-                          ? (paymentMethod) =>
-                              onConvert(quote.id, paymentMethod)
+                          ? (conversion) => onConvert(quote.id, conversion)
                           : undefined
                       }
                     />

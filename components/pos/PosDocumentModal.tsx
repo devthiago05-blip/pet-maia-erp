@@ -4,8 +4,20 @@ import { Printer, X } from "lucide-react";
 import { useState } from "react";
 
 import { BrandLogo } from "@/components/branding/BrandLogo";
+import { financialPaymentMethods } from "@/lib/financial-options";
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import type { PosItem } from "@/types/domain";
+
+interface ConversionPayment {
+  id: string;
+  method: string;
+  amount: string;
+}
+
+export interface PosQuoteConversion {
+  paymentMethod?: string;
+  payments?: Array<{ payment_method: string; amount: number }>;
+}
 
 export function PosDocumentModal({
   type,
@@ -28,11 +40,21 @@ export function PosDocumentModal({
   status?: string;
   total: number;
   items: PosItem[];
-  onConvert?: (paymentMethod: string) => Promise<void>;
+  onConvert?: (conversion: PosQuoteConversion) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [converting, setConverting] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("PIX");
+  const [splitPayments, setSplitPayments] = useState(false);
+  const [payments, setPayments] = useState<ConversionPayment[]>([
+    { id: "quote-payment-1", method: "PIX", amount: "" },
+  ]);
+
+  const paymentTotal = payments.reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0,
+  );
+  const paymentDifference = total - paymentTotal;
 
   async function handleConvert() {
     if (!onConvert) {
@@ -41,7 +63,25 @@ export function PosDocumentModal({
 
     setConverting(true);
     try {
-      await onConvert(selectedPaymentMethod);
+      if (splitPayments) {
+        const normalizedPayments = payments
+          .map((payment) => ({
+            payment_method: payment.method,
+            amount: Number(payment.amount || 0),
+          }))
+          .filter((payment) => payment.amount > 0);
+
+        if (
+          normalizedPayments.length === 0 ||
+          Math.abs(paymentDifference) >= 0.01
+        ) {
+          return;
+        }
+
+        await onConvert({ payments: normalizedPayments });
+      } else {
+        await onConvert({ paymentMethod: selectedPaymentMethod });
+      }
       setOpen(false);
     } finally {
       setConverting(false);
@@ -139,23 +179,131 @@ export function PosDocumentModal({
 
             <div className="grid gap-3 border-t p-4 print:hidden sm:grid-cols-2 sm:p-5">
               {onConvert && (
-                <div className="flex gap-2 sm:col-span-2">
-                  <select
-                    value={selectedPaymentMethod}
-                    onChange={(event) =>
-                      setSelectedPaymentMethod(event.target.value)
-                    }
-                    className="min-w-0 flex-1 rounded-xl border p-3"
-                  >
-                    <option>PIX</option>
-                    <option>Dinheiro</option>
-                    <option>Cartão</option>
-                  </select>
+                <div className="space-y-3 sm:col-span-2">
+                  <label className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm font-medium">
+                    Pagamento dividido
+                    <input
+                      type="checkbox"
+                      checked={splitPayments}
+                      onChange={(event) =>
+                        setSplitPayments(event.target.checked)
+                      }
+                      className="size-4 accent-[#8A0EEA]"
+                    />
+                  </label>
+
+                  {splitPayments ? (
+                    <div className="space-y-2 rounded-xl border p-3">
+                      {payments.map((payment) => (
+                        <div
+                          key={payment.id}
+                          className="grid gap-2 sm:grid-cols-[1fr_120px_auto]"
+                        >
+                          <select
+                            value={payment.method}
+                            onChange={(event) =>
+                              setPayments((current) =>
+                                current.map((item) =>
+                                  item.id === payment.id
+                                    ? { ...item, method: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                            className="rounded-lg border p-2 text-sm"
+                          >
+                            {financialPaymentMethods.map((method) => (
+                              <option key={method}>{method}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={payment.amount}
+                            onChange={(event) =>
+                              setPayments((current) =>
+                                current.map((item) =>
+                                  item.id === payment.id
+                                    ? { ...item, amount: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                            placeholder="Valor"
+                            className="rounded-lg border p-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPayments((current) =>
+                                current.filter(
+                                  (item) => item.id !== payment.id,
+                                ),
+                              )
+                            }
+                            disabled={payments.length === 1}
+                            className="rounded-lg border px-3 text-sm text-red-600 disabled:opacity-40"
+                          >
+                            Remover
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPayments((current) => [
+                            ...current,
+                            {
+                              id: `quote-payment-${Date.now()}`,
+                              method: "PIX",
+                              amount: "",
+                            },
+                          ])
+                        }
+                        className="text-sm font-semibold text-[#8A0EEA]"
+                      >
+                        Adicionar forma de pagamento
+                      </button>
+                      <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-sm">
+                        <span className="text-slate-500">Pago</span>
+                        <strong className="text-right">
+                          {formatCurrency(paymentTotal)}
+                        </strong>
+                        <span className="text-slate-500">Diferença</span>
+                        <strong
+                          className={`text-right ${
+                            Math.abs(paymentDifference) >= 0.01
+                              ? "text-red-600"
+                              : "text-emerald-600"
+                          }`}
+                        >
+                          {formatCurrency(paymentDifference)}
+                        </strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <select
+                      value={selectedPaymentMethod}
+                      onChange={(event) =>
+                        setSelectedPaymentMethod(event.target.value)
+                      }
+                      className="w-full rounded-xl border p-3"
+                    >
+                      {financialPaymentMethods.map((method) => (
+                        <option key={method}>{method}</option>
+                      ))}
+                    </select>
+                  )}
+
                   <button
                     type="button"
                     onClick={handleConvert}
-                    disabled={converting}
-                    className="rounded-xl bg-emerald-600 px-4 text-white disabled:opacity-50"
+                    disabled={
+                      converting ||
+                      (splitPayments && Math.abs(paymentDifference) >= 0.01)
+                    }
+                    className="w-full rounded-xl bg-emerald-600 px-4 py-3 text-white disabled:opacity-50"
                   >
                     {converting ? "Convertendo..." : "Converter em venda"}
                   </button>

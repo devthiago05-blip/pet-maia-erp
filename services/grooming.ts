@@ -526,6 +526,39 @@ export async function createGroomingEquipment(input: GroomingEquipmentInput) {
   ]);
 }
 
+export async function updateGroomingEquipment(
+  equipmentId: number,
+  input: GroomingEquipmentInput,
+) {
+  return supabase
+    .from("grooming_equipment")
+    .update({
+      name: input.name.trim(),
+      equipment_type: input.equipmentType,
+      size_or_model: input.sizeOrModel?.trim() || null,
+      serial_number: input.serialNumber?.trim() || null,
+      supplier: input.supplier?.trim() || null,
+      purchase_date: input.purchaseDate || null,
+      purchase_cost: input.purchaseCost ?? null,
+      status: input.status,
+      notes: input.notes?.trim() || null,
+      active: input.active ?? true,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", equipmentId);
+}
+
+export async function deleteGroomingEquipment(equipmentId: number) {
+  return supabase
+    .from("grooming_equipment")
+    .update({
+      active: false,
+      status: "Baixado",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", equipmentId);
+}
+
 export async function fetchGroomingEquipmentServices() {
   return supabase
     .from("grooming_equipment_services")

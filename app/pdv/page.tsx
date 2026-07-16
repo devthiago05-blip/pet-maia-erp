@@ -851,6 +851,7 @@ export default function PosPage() {
             <ProductsView
               products={products}
               categories={categories}
+              sales={sales}
               onSave={handleProductSave}
               onDelete={handleProductDelete}
             />
@@ -2193,14 +2194,224 @@ function SaleView({
   );
 }
 
+function StockTurnoverDashboard({
+  products,
+  sales,
+}: {
+  products: Product[];
+  sales: PosSale[];
+}) {
+  const [reportToPrint, setReportToPrint] = useState(false);
+
+  const report = useMemo(() => {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - 30);
+    const soldByProduct = new Map<
+      number,
+      { quantity: number; revenue: number }
+    >();
+
+    sales
+      .filter(
+        (sale) =>
+          sale.status !== "Cancelada" && new Date(sale.created_at) >= cutoffDate,
+      )
+      .forEach((sale) => {
+        sale.pos_sale_items?.forEach((item) => {
+          if (!item.product_id) {
+            return;
+          }
+
+          const current = soldByProduct.get(item.product_id) || {
+            quantity: 0,
+            revenue: 0,
+          };
+          soldByProduct.set(item.product_id, {
+            quantity: current.quantity + Number(item.quantidade || 0),
+            revenue: current.revenue + Number(item.subtotal || 0),
+          });
+        });
+      });
+
+    const rows = products
+      .map((product) => ({
+        product,
+        quantitySold: soldByProduct.get(product.id)?.quantity || 0,
+        revenue: soldByProduct.get(product.id)?.revenue || 0,
+      }))
+      .sort((first, second) => second.quantitySold - first.quantitySold);
+
+    return {
+      rows,
+      lowStock: rows.filter(
+        ({ product }) => product.estoque <= product.estoque_minimo,
+      ),
+      noMovement: rows.filter(({ quantitySold }) => quantitySold === 0),
+      unitsSold: rows.reduce((sum, row) => sum + row.quantitySold, 0),
+      revenue: rows.reduce((sum, row) => sum + row.revenue, 0),
+      inventoryCost: products.reduce(
+        (sum, product) =>
+          sum + Number(product.preco_custo || 0) * Number(product.estoque || 0),
+        0,
+      ),
+    };
+  }, [products, sales]);
+
+  function printReport() {
+    setReportToPrint(true);
+    window.addEventListener("afterprint", () => setReportToPrint(false), {
+      once: true,
+    });
+    window.setTimeout(() => window.print(), 100);
+  }
+
+  return (
+    <>
+      <section className="mb-6 space-y-4 rounded-xl border bg-white p-4 sm:p-5 print:hidden">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-bold">Estoque e giro de produtos</h2>
+            <p className="text-sm text-slate-500">
+              Vendas e movimentação dos últimos 30 dias.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={printReport}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold text-[#8A0EEA]"
+          >
+            <Printer size={16} />
+            Imprimir relatório
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <Summary label="Produtos ativos" value={products.length} />
+          <Summary label="Estoque baixo" value={report.lowStock.length} />
+          <Summary label="Sem giro" value={report.noMovement.length} />
+          <Summary label="Unidades vendidas" value={report.unitsSold} />
+          <Summary label="Custo em estoque" value={report.inventoryCost} currency />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="overflow-hidden rounded-xl border">
+            <div className="border-b bg-red-50 p-3 font-semibold text-red-700">
+              Reposição necessária
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              {report.lowStock.length === 0 ? (
+                <p className="p-4 text-sm text-slate-500">
+                  Nenhum produto com estoque baixo.
+                </p>
+              ) : (
+                report.lowStock.map(({ product }) => (
+                  <div
+                    key={product.id}
+                    className="flex justify-between gap-3 border-b p-3 text-sm last:border-b-0"
+                  >
+                    <span>{formatProductName(product)}</span>
+                    <strong className="text-red-600">
+                      {product.estoque} / mín. {product.estoque_minimo}
+                    </strong>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="overflow-hidden rounded-xl border">
+            <div className="border-b bg-purple-50 p-3 font-semibold text-[#8A0EEA]">
+              Produtos com maior giro
+            </div>
+            <div className="max-h-64 overflow-y-auto">
+              {report.rows.slice(0, 10).map((row) => (
+                <div
+                  key={row.product.id}
+                  className="grid grid-cols-[1fr_auto_auto] gap-3 border-b p-3 text-sm last:border-b-0"
+                >
+                  <span>{formatProductName(row.product)}</span>
+                  <strong>{row.quantitySold} un.</strong>
+                  <strong>{formatCurrency(row.revenue)}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {reportToPrint && (
+        <section className="document-print-area hidden bg-white p-8 text-slate-950 print:block">
+          <header className="border-b-4 border-[#8A0EEA] pb-4">
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+              Clínica Veterinária Pet Maia
+            </p>
+            <h1 className="mt-1 text-2xl font-bold">
+              Relatório de estoque e giro
+            </h1>
+            <p className="mt-1 text-sm text-slate-600">
+              Últimos 30 dias · Emitido em {formatDate(new Date().toISOString())}
+            </p>
+          </header>
+
+          <div className="mt-6 grid grid-cols-5 gap-3">
+            <PrintMetric label="Produtos" textValue={String(products.length)} />
+            <PrintMetric
+              label="Estoque baixo"
+              textValue={String(report.lowStock.length)}
+            />
+            <PrintMetric
+              label="Sem giro"
+              textValue={String(report.noMovement.length)}
+            />
+            <PrintMetric
+              label="Unidades vendidas"
+              textValue={String(report.unitsSold)}
+            />
+            <PrintMetric label="Custo em estoque" value={report.inventoryCost} />
+          </div>
+
+          <table className="mt-6 w-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-100 text-left">
+                <th className="border p-2">Produto</th>
+                <th className="border p-2">Categoria</th>
+                <th className="border p-2">Estoque</th>
+                <th className="border p-2">Mínimo</th>
+                <th className="border p-2">Vendidos</th>
+                <th className="border p-2">Faturamento</th>
+              </tr>
+            </thead>
+            <tbody>
+              {report.rows.map((row) => (
+                <tr key={row.product.id}>
+                  <td className="border p-2">
+                    {formatProductName(row.product)}
+                  </td>
+                  <td className="border p-2">{row.product.categoria || "-"}</td>
+                  <td className="border p-2">{row.product.estoque}</td>
+                  <td className="border p-2">{row.product.estoque_minimo}</td>
+                  <td className="border p-2">{row.quantitySold}</td>
+                  <td className="border p-2">{formatCurrency(row.revenue)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+    </>
+  );
+}
+
 function ProductsView({
   products,
   categories,
+  sales,
   onSave,
   onDelete,
 }: {
   products: Product[];
   categories: ProductCategory[];
+  sales: PosSale[];
   onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
   onDelete: (product: Product) => Promise<void>;
 }) {
@@ -2226,6 +2437,8 @@ function ProductsView({
 
   return (
     <>
+      <StockTurnoverDashboard products={activeProducts} sales={sales} />
+
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px]">

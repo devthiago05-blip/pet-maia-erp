@@ -18,12 +18,14 @@ import {
   createGroomingEquipmentService,
   createGroomingSupply,
   createGroomingSupplyMovement,
+  deleteGroomingEquipment,
   deleteGroomingSupplyMovement,
   fetchGroomerDailyPayments,
   fetchGroomingEquipment,
   fetchGroomingEquipmentServices,
   fetchGroomingSupplies,
   fetchGroomingSupplyMovements,
+  updateGroomingEquipment,
 } from "@/services/grooming";
 import type {
   GroomerDailyPayment,
@@ -112,6 +114,11 @@ export function GroomingSuppliesManager() {
   const [movementToDelete, setMovementToDelete] =
     useState<GroomingSupplyMovement | null>(null);
   const [deletingMovement, setDeletingMovement] = useState(false);
+  const [editingEquipment, setEditingEquipment] =
+    useState<GroomingEquipment | null>(null);
+  const [equipmentToDelete, setEquipmentToDelete] =
+    useState<GroomingEquipment | null>(null);
+  const [deletingEquipment, setDeletingEquipment] = useState(false);
 
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [movements, setMovements] = useState<GroomingSupplyMovement[]>([]);
@@ -487,7 +494,40 @@ export function GroomingSuppliesManager() {
     await loadData();
   }
 
-  async function handleCreateEquipment() {
+  function resetEquipmentForm() {
+    setEquipmentForm({
+      name: "",
+      equipmentType: "Secador",
+      sizeOrModel: "",
+      serialNumber: "",
+      supplier: "",
+      purchaseDate: "",
+      purchaseCost: "",
+      status: "Em uso",
+      notes: "",
+    });
+    setEditingEquipment(null);
+  }
+
+  function handleEditEquipment(item: GroomingEquipment) {
+    setEditingEquipment(item);
+    setEquipmentForm({
+      name: item.name,
+      equipmentType: item.equipment_type,
+      sizeOrModel: item.size_or_model || "",
+      serialNumber: item.serial_number || "",
+      supplier: item.supplier || "",
+      purchaseDate: item.purchase_date || "",
+      purchaseCost:
+        item.purchase_cost === undefined || item.purchase_cost === null
+          ? ""
+          : String(item.purchase_cost),
+      status: item.status,
+      notes: item.notes || "",
+    });
+  }
+
+  async function handleSaveEquipment() {
     const purchaseCost = equipmentForm.purchaseCost
       ? Number(equipmentForm.purchaseCost.replace(",", "."))
       : undefined;
@@ -505,7 +545,7 @@ export function GroomingSuppliesManager() {
       return;
     }
 
-    const { error } = await createGroomingEquipment({
+    const input = {
       name: equipmentForm.name,
       equipmentType: equipmentForm.equipmentType,
       sizeOrModel: equipmentForm.sizeOrModel,
@@ -515,26 +555,54 @@ export function GroomingSuppliesManager() {
       purchaseCost,
       status: equipmentForm.status,
       notes: equipmentForm.notes,
-    });
+      active: true,
+    };
+
+    const { error } = editingEquipment
+      ? await updateGroomingEquipment(editingEquipment.id, input)
+      : await createGroomingEquipment(input);
 
     if (error) {
       console.error(error);
-      toast.error("Erro ao cadastrar equipamento.");
+      toast.error(
+        editingEquipment
+          ? "Erro ao atualizar equipamento."
+          : "Erro ao cadastrar equipamento.",
+      );
       return;
     }
 
-    toast.success("Equipamento cadastrado com sucesso.");
-    setEquipmentForm({
-      name: "",
-      equipmentType: "Secador",
-      sizeOrModel: "",
-      serialNumber: "",
-      supplier: "",
-      purchaseDate: "",
-      purchaseCost: "",
-      status: "Em uso",
-      notes: "",
-    });
+    toast.success(
+      editingEquipment
+        ? "Equipamento atualizado com sucesso."
+        : "Equipamento cadastrado com sucesso.",
+    );
+    resetEquipmentForm();
+    await loadData();
+  }
+
+  async function handleDeleteEquipment() {
+    if (!equipmentToDelete) {
+      return;
+    }
+
+    setDeletingEquipment(true);
+    const { error } = await deleteGroomingEquipment(equipmentToDelete.id);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir equipamento.");
+      setDeletingEquipment(false);
+      return;
+    }
+
+    if (editingEquipment?.id === equipmentToDelete.id) {
+      resetEquipmentForm();
+    }
+
+    toast.success("Equipamento excluído com sucesso.");
+    setEquipmentToDelete(null);
+    setDeletingEquipment(false);
     await loadData();
   }
 
@@ -1204,7 +1272,13 @@ export function GroomingSuppliesManager() {
           {activeTab === "equipamentos" && (
             <div className="grid gap-5 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
               <div className="space-y-5">
-                <FormCard title="Cadastrar equipamento">
+                <FormCard
+                  title={
+                    editingEquipment
+                      ? `Editar equipamento: ${editingEquipment.name}`
+                      : "Cadastrar equipamento"
+                  }
+                >
                   <TextInput
                     label="Nome"
                     value={equipmentForm.name}
@@ -1315,11 +1389,20 @@ export function GroomingSuppliesManager() {
 
                   <button
                     type="button"
-                    onClick={handleCreateEquipment}
+                    onClick={handleSaveEquipment}
                     className="rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
                   >
-                    Salvar equipamento
+                    {editingEquipment ? "Atualizar equipamento" : "Salvar equipamento"}
                   </button>
+                  {editingEquipment && (
+                    <button
+                      type="button"
+                      onClick={resetEquipmentForm}
+                      className="rounded-xl border px-4 py-2.5 font-semibold text-slate-700"
+                    >
+                      Cancelar edição
+                    </button>
+                  )}
                 </FormCard>
 
                 <FormCard title="Enviar para manutenção ou afiação">
@@ -1489,22 +1572,43 @@ export function GroomingSuppliesManager() {
                           <th className="p-3">Modelo</th>
                           <th className="p-3">Fornecedor</th>
                           <th className="p-3">Status</th>
+                          <th className="p-3">Ações</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {equipment.map((item) => (
+                        {equipment
+                          .filter((item) => item.active)
+                          .map((item) => (
                           <tr key={item.id} className="border-b">
                             <td className="p-3 font-semibold">{item.name}</td>
                             <td className="p-3">{item.equipment_type}</td>
                             <td className="p-3">{item.size_or_model || "-"}</td>
                             <td className="p-3">{item.supplier || "-"}</td>
                             <td className="p-3">{item.status}</td>
+                            <td className="p-3">
+                              <div className="flex gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() => handleEditEquipment(item)}
+                                  className="font-semibold text-blue-600"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEquipmentToDelete(item)}
+                                  className="font-semibold text-red-600"
+                                >
+                                  Excluir
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
-                        {equipment.length === 0 && (
+                        {equipment.filter((item) => item.active).length === 0 && (
                           <tr>
                             <td
-                              colSpan={5}
+                              colSpan={6}
                               className="p-6 text-center text-slate-500"
                             >
                               Nenhum equipamento cadastrado.
@@ -1644,6 +1748,27 @@ export function GroomingSuppliesManager() {
         onConfirm={() => {
           if (!deletingMovement) {
             void handleDeleteMovement();
+          }
+        }}
+      />
+
+      <ConfirmationDialog
+        isOpen={Boolean(equipmentToDelete)}
+        title="Excluir equipamento"
+        description={
+          equipmentToDelete
+            ? `Deseja excluir ${equipmentToDelete.name}? O equipamento será removido das listas de uso, mas o histórico de manutenção e financeiro será preservado.`
+            : ""
+        }
+        confirmText={deletingEquipment ? "Excluindo..." : "Excluir"}
+        onCancel={() => {
+          if (!deletingEquipment) {
+            setEquipmentToDelete(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!deletingEquipment) {
+            void handleDeleteEquipment();
           }
         }}
       />

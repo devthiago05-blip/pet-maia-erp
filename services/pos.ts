@@ -179,7 +179,7 @@ export async function fetchPosSales() {
       `,
     )
     .order("created_at", { ascending: false })
-    .limit(50);
+    .limit(500);
 }
 
 export async function fetchPosCashRegisters() {

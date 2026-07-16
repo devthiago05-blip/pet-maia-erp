@@ -1,5 +1,6 @@
 "use client";
 
+import { Printer } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -90,6 +91,10 @@ export default function PetsPage() {
     toast.success("Pet excluído com sucesso!");
   }
 
+  function handlePrintPets() {
+    window.print();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -97,7 +102,7 @@ export default function PetsPage() {
       <main className="min-w-0 flex-1 bg-slate-50">
         <Header />
 
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
@@ -117,6 +122,15 @@ export default function PetsPage() {
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 sm:min-w-72 lg:w-80"
               />
 
+              <button
+                type="button"
+                onClick={handlePrintPets}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
+              >
+                <Printer size={18} />
+                Imprimir
+              </button>
+
               <NewPetModal tutors={tutors} onSave={handleCreatePet} />
             </div>
           </div>
@@ -135,7 +149,71 @@ export default function PetsPage() {
             onEdit={setEditingPet}
           />
         </div>
+
+        <PetPrintView pets={filteredPets} />
       </main>
     </div>
+  );
+}
+
+function PetPrintView({ pets }: { pets: Pet[] }) {
+  const printedAt = new Date().toLocaleString("pt-BR");
+
+  return (
+    <section className="document-print-area hidden bg-white p-8 print:block">
+      <div className="mb-6 border-b-2 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          PET MAIA ERP
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">
+          Pets cadastrados
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
+      </div>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Foto</th>
+            <th className="border p-2">Nome</th>
+            <th className="border p-2">Espécie</th>
+            <th className="border p-2">Raça</th>
+            <th className="border p-2">Porte</th>
+            <th className="border p-2">Tutor</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pets.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={6}>
+                Nenhum pet encontrado.
+              </td>
+            </tr>
+          ) : (
+            pets.map((pet) => (
+              <tr key={pet.id}>
+                <td className="border p-2">
+                  {pet.photo_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={pet.photo_url}
+                      alt={pet.nome}
+                      className="h-14 w-14 rounded-lg object-cover"
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td className="border p-2">{pet.nome}</td>
+                <td className="border p-2">{pet.especie || "-"}</td>
+                <td className="border p-2">{pet.raca || "-"}</td>
+                <td className="border p-2">{pet.porte || "-"}</td>
+                <td className="border p-2">{pet.tutors?.nome || "-"}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </section>
   );
 }

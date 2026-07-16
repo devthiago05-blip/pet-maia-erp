@@ -369,6 +369,24 @@ export interface ClinicalDocumentInput {
   professionalName: string;
 }
 
+export interface ClinicalDocumentTemplate {
+  id: number;
+  document_type: ClinicalDocument["document_type"];
+  title: string;
+  content: string;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClinicalDocumentTemplateInput {
+  documentType: ClinicalDocument["document_type"];
+  title: string;
+  content: string;
+  sortOrder: number;
+}
+
 export type AppointmentStatus =
   | "Pendente"
   | "Agendado"

@@ -5,56 +5,59 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { BrandLogo } from "@/components/branding/BrandLogo";
+import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatDate } from "@/lib/formatters";
+import { fetchClinicalDocumentTemplates } from "@/services/clinical";
 import type {
   ClinicalDocument,
   ClinicalDocumentInput,
+  ClinicalDocumentTemplate,
   Pet,
 } from "@/types/domain";
 
-const documentTemplates: Array<{
-  id: string;
+const fallbackDocumentTemplates: Array<{
+  id: number;
   type: ClinicalDocument["document_type"];
   title: string;
   content: string;
 }> = [
   {
-    id: "health-certificate",
+    id: -1,
     type: "Atestado",
     title: "Atestado de saúde animal",
     content:
       "Atesto, para os devidos fins, que o paciente {pet}, sob responsabilidade de {tutor}, foi avaliado nesta data.\n\nCondição clínica e observações:\n",
   },
   {
-    id: "attendance",
+    id: -2,
     type: "Declaração",
     title: "Declaração de comparecimento",
     content:
       "Declaro que {tutor} compareceu à Clínica Veterinária Pet Maia nesta data, acompanhando o paciente {pet}, para atendimento veterinário.",
   },
   {
-    id: "procedure-authorization",
+    id: -3,
     type: "Declaração",
     title: "Autorização para procedimento",
     content:
       "Eu, {tutor}, responsável pelo paciente {pet}, autorizo a realização do procedimento descrito abaixo, após receber esclarecimentos sobre benefícios, riscos e cuidados.\n\nProcedimento autorizado:\n",
   },
   {
-    id: "anesthesia-authorization",
+    id: -4,
     type: "Declaração",
     title: "Autorização anestésica e cirúrgica",
     content:
       "Eu, {tutor}, responsável pelo paciente {pet}, autorizo o procedimento anestésico e/ou cirúrgico indicado, declarando ter recebido esclarecimentos sobre riscos, exames e cuidados necessários.\n\nProcedimento:\n",
   },
   {
-    id: "treatment-refusal",
+    id: -5,
     type: "Declaração",
     title: "Termo de recusa de tratamento",
     content:
       "Eu, {tutor}, responsável pelo paciente {pet}, declaro que fui informado sobre a recomendação clínica descrita abaixo e, neste momento, opto por não autorizar sua realização.\n\nRecomendação recusada:\n",
   },
   {
-    id: "guidance",
+    id: -6,
     type: "Orientação",
     title: "Orientações ao responsável",
     content:
@@ -88,9 +91,38 @@ export function ClinicalDocumentModal({
     document?.professional_name || defaultProfessionalName,
   );
   const [saving, setSaving] = useState(false);
+  const [documentTemplates, setDocumentTemplates] = useState<
+    Array<
+      Pick<
+        ClinicalDocumentTemplate,
+        "id" | "document_type" | "title" | "content"
+      >
+    >
+  >(
+    fallbackDocumentTemplates.map((template) => ({
+      id: template.id,
+      document_type: template.type,
+      title: template.title,
+      content: template.content,
+    })),
+  );
+
+  useMountEffect(() => {
+    async function loadTemplates() {
+      const { data, error } = await fetchClinicalDocumentTemplates();
+
+      if (!error && data) {
+        setDocumentTemplates(data as ClinicalDocumentTemplate[]);
+      }
+    }
+
+    void loadTemplates();
+  });
 
   function applyTemplate(templateId: string) {
-    const template = documentTemplates.find((item) => item.id === templateId);
+    const template = documentTemplates.find(
+      (item) => String(item.id) === templateId,
+    );
 
     if (!template) {
       return;
@@ -101,7 +133,7 @@ export function ClinicalDocumentModal({
         .replaceAll("{pet}", pet.nome)
         .replaceAll("{tutor}", pet.tutors?.nome || "responsável");
 
-    setDocumentType(template.type);
+    setDocumentType(template.document_type);
     setTitle(template.title);
     setContent(replacePatientData(template.content));
   }

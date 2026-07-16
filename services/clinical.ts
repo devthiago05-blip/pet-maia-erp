@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import type {
   ClinicalAttachment,
   ClinicalDocumentInput,
+  ClinicalDocumentTemplateInput,
   ClinicalExamInput,
   MedicationCatalogInput,
   NewClinicalPrescriptionInput,
@@ -562,4 +563,47 @@ export async function createClinicalDocument(input: ClinicalDocumentInput) {
 
 export async function deleteClinicalDocument(id: number) {
   return supabase.from("clinical_documents").delete().eq("id", id);
+}
+
+export async function fetchClinicalDocumentTemplates() {
+  return supabase
+    .from("clinical_document_templates")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order")
+    .order("title");
+}
+
+export async function createClinicalDocumentTemplate(
+  input: ClinicalDocumentTemplateInput,
+) {
+  return supabase.from("clinical_document_templates").insert([{
+    document_type: input.documentType,
+    title: input.title.trim(),
+    content: input.content.trim(),
+    sort_order: input.sortOrder,
+  }]);
+}
+
+export async function updateClinicalDocumentTemplate(
+  id: number,
+  input: ClinicalDocumentTemplateInput,
+) {
+  return supabase
+    .from("clinical_document_templates")
+    .update({
+      document_type: input.documentType,
+      title: input.title.trim(),
+      content: input.content.trim(),
+      sort_order: input.sortOrder,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+}
+
+export async function archiveClinicalDocumentTemplate(id: number) {
+  return supabase
+    .from("clinical_document_templates")
+    .update({ active: false, updated_at: new Date().toISOString() })
+    .eq("id", id);
 }

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAccess } from "@/components/auth/AccessContext";
 import { ClinicalCatalogManager } from "@/components/clinic/ClinicalCatalogManager";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
+import { ClinicalDocumentTemplateManager } from "@/components/clinic/ClinicalDocumentTemplateManager";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -297,6 +298,8 @@ export default function ClinicPage() {
           />
 
           <ClinicalCatalogManager />
+
+          <ClinicalDocumentTemplateManager />
 
           <WeeklyReturnsQueue returns={weeklyReturns} />
 

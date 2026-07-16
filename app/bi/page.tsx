@@ -4,6 +4,7 @@ import {
   CalendarCheck,
   CircleDollarSign,
   PackageSearch,
+  Printer,
   ShoppingCart,
   TrendingUp,
   Users,
@@ -29,14 +30,20 @@ import type {
 } from "@/types/domain";
 
 export default function BiPage() {
+  const today = new Date();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [sales, setSales] = useState<PosSale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`,
+  );
+  const [endDate, setEndDate] = useState(
+    `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`,
+  );
+  const [reportToPrint, setReportToPrint] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -98,6 +105,14 @@ export default function BiPage() {
   );
   const averageTicket =
     periodSales.length > 0 ? posRevenue / periodSales.length : 0;
+  const pendingRevenueEntries = periodEntries.filter(
+    (entry) =>
+      entry.tipo === "Receita" && entry.status_pagamento === "Pendente",
+  );
+  const pendingRevenue = pendingRevenueEntries.reduce(
+    (total, entry) => total + Number(entry.valor),
+    0,
+  );
   const lowStock = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
   );
@@ -116,6 +131,33 @@ export default function BiPage() {
       .sort((first, second) => second[1] - first[1])
       .slice(0, 6);
   })();
+  const topServices = Array.from(
+    periodAppointments
+      .filter((appointment) => appointment.status !== "Cancelado")
+      .reduce((ranking, appointment) => {
+        const service = appointment.servico || "Não informado";
+        ranking.set(service, (ranking.get(service) || 0) + 1);
+        return ranking;
+      }, new Map<string, number>()),
+  )
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, 8);
+  const recurringTutors = Array.from(
+    periodAppointments
+      .filter((appointment) => appointment.status !== "Cancelado")
+      .reduce((ranking, appointment) => {
+        const tutor = appointment.pets?.tutors?.nome;
+
+        if (tutor) {
+          ranking.set(tutor, (ranking.get(tutor) || 0) + 1);
+        }
+
+        return ranking;
+      }, new Map<string, number>()),
+  )
+    .filter(([, count]) => count > 1)
+    .sort((first, second) => second[1] - first[1])
+    .slice(0, 8);
   const appointmentStatus = [
     "Pendente",
     "Agendado",
@@ -165,19 +207,37 @@ export default function BiPage() {
       ...values,
     }));
 
+  function printReport() {
+    setReportToPrint(true);
+    window.addEventListener("afterprint", () => setReportToPrint(false), {
+      once: true,
+    });
+    window.setTimeout(() => window.print(), 100);
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
       <main className="min-w-0 flex-1">
         <Header />
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-          <div>
-            <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
-              BI
-            </h1>
-            <p className="text-slate-500">
-              Visão executiva da operação e dos resultados
-            </p>
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+                BI
+              </h1>
+              <p className="text-slate-500">
+                Visão executiva da operação e dos resultados
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={printReport}
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] disabled:opacity-50"
+            >
+              <Printer size={18} /> Imprimir relatório
+            </button>
           </div>
 
           <div className="grid gap-4 rounded-xl border bg-white p-4 sm:grid-cols-3">
@@ -240,6 +300,11 @@ export default function BiPage() {
                   value={formatCurrency(averageTicket)}
                 />
                 <BiCard
+                  icon={CircleDollarSign}
+                  label="A receber"
+                  value={formatCurrency(pendingRevenue)}
+                />
+                <BiCard
                   icon={CalendarCheck}
                   label="Atendimentos"
                   value={String(periodAppointments.length)}
@@ -281,6 +346,23 @@ export default function BiPage() {
                   colors={["bg-[#8A0EEA]", "bg-blue-500", "bg-emerald-500"]}
                 />
                 <BarChart
+                  title="Serviços mais vendidos"
+                  items={topServices.map(([label, value]) => ({
+                    label,
+                    value,
+                  }))}
+                  colors={["bg-[#8A0EEA]", "bg-blue-500", "bg-emerald-500"]}
+                />
+                <BarChart
+                  title="Tutores recorrentes"
+                  items={recurringTutors.map(([label, value]) => ({
+                    label,
+                    value,
+                  }))}
+                  valueSuffix=" atend."
+                  colors={["bg-blue-500", "bg-[#8A0EEA]", "bg-emerald-500"]}
+                />
+                <BarChart
                   title="Receitas por pagamento"
                   items={paymentMethods.map(([label, value]) => ({
                     label,
@@ -302,7 +384,161 @@ export default function BiPage() {
             </>
           )}
         </div>
+
+        {reportToPrint && (
+          <BiPrintReport
+            startDate={startDate}
+            endDate={endDate}
+            revenue={revenue}
+            expenses={expenses}
+            pendingRevenue={pendingRevenue}
+            averageTicket={averageTicket}
+            appointments={periodAppointments.length}
+            lowStock={lowStock}
+            topProducts={topProducts}
+            topServices={topServices}
+            recurringTutors={recurringTutors}
+            paymentMethods={paymentMethods}
+          />
+        )}
       </main>
+    </div>
+  );
+}
+
+function BiPrintReport({
+  startDate,
+  endDate,
+  revenue,
+  expenses,
+  pendingRevenue,
+  averageTicket,
+  appointments,
+  lowStock,
+  topProducts,
+  topServices,
+  recurringTutors,
+  paymentMethods,
+}: {
+  startDate: string;
+  endDate: string;
+  revenue: number;
+  expenses: number;
+  pendingRevenue: number;
+  averageTicket: number;
+  appointments: number;
+  lowStock: Product[];
+  topProducts: Array<[string, number]>;
+  topServices: Array<[string, number]>;
+  recurringTutors: Array<[string, number]>;
+  paymentMethods: Array<[string, number]>;
+}) {
+  return (
+    <section className="document-print-area hidden bg-white p-8 text-slate-950 print:block">
+      <header className="border-b-4 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          Clínica Veterinária Pet Maia
+        </p>
+        <h1 className="mt-1 text-2xl font-bold">Relatório gerencial — BI</h1>
+        <p className="mt-1 text-sm text-slate-600">
+          Período: {startDate || "início"} até {endDate || "hoje"} · Emitido em {new Date().toLocaleString("pt-BR")}
+        </p>
+      </header>
+
+      <div className="mt-6 grid grid-cols-4 gap-3">
+        <PrintBiMetric label="Receita" value={formatCurrency(revenue)} />
+        <PrintBiMetric label="Despesas" value={formatCurrency(expenses)} />
+        <PrintBiMetric
+          label="Resultado"
+          value={formatCurrency(revenue - expenses)}
+        />
+        <PrintBiMetric
+          label="A receber"
+          value={formatCurrency(pendingRevenue)}
+        />
+        <PrintBiMetric
+          label="Ticket médio"
+          value={formatCurrency(averageTicket)}
+        />
+        <PrintBiMetric label="Atendimentos" value={String(appointments)} />
+        <PrintBiMetric label="Estoque baixo" value={String(lowStock.length)} />
+      </div>
+
+      <div className="mt-6 grid grid-cols-2 gap-5">
+        <PrintRanking title="Produtos mais vendidos" items={topProducts} />
+        <PrintRanking title="Serviços mais vendidos" items={topServices} />
+        <PrintRanking title="Tutores recorrentes" items={recurringTutors} />
+        <PrintRanking
+          title="Receitas por pagamento"
+          items={paymentMethods}
+          currency
+        />
+      </div>
+
+      <div className="mt-6">
+        <h2 className="mb-2 font-bold">Produtos com estoque baixo</h2>
+        <table className="w-full border-collapse text-xs">
+          <thead>
+            <tr className="bg-slate-100 text-left">
+              <th className="border p-2">Produto</th>
+              <th className="border p-2">Categoria</th>
+              <th className="border p-2">Estoque</th>
+              <th className="border p-2">Mínimo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {lowStock.map((product) => (
+              <tr key={product.id}>
+                <td className="border p-2">{product.nome}</td>
+                <td className="border p-2">{product.categoria || "-"}</td>
+                <td className="border p-2">{product.estoque}</td>
+                <td className="border p-2">{product.estoque_minimo}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function PrintBiMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border p-3">
+      <p className="text-[10px] font-semibold uppercase text-slate-500">
+        {label}
+      </p>
+      <p className="mt-1 text-base font-bold">{value}</p>
+    </div>
+  );
+}
+
+function PrintRanking({
+  title,
+  items,
+  currency = false,
+}: {
+  title: string;
+  items: Array<[string, number]>;
+  currency?: boolean;
+}) {
+  return (
+    <div className="border p-3">
+      <h2 className="mb-2 font-bold">{title}</h2>
+      {items.length === 0 ? (
+        <p className="text-sm text-slate-500">Nenhum dado no período.</p>
+      ) : (
+        <ol className="space-y-1 text-sm">
+          {items.map(([label, value], index) => (
+            <li key={label} className="flex justify-between gap-3">
+              <span>
+                {index + 1}. {label}
+              </span>
+              <strong>{currency ? formatCurrency(value) : value}</strong>
+            </li>
+          ))}
+        </ol>
+      )}
     </div>
   );
 }

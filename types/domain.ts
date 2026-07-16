@@ -555,6 +555,9 @@ export interface PosCashRegister {
   notes?: string;
   opened_at: string;
   closed_at?: string;
+  user_profiles?: {
+    nome: string;
+  } | null;
   pos_cash_movements?: PosCashMovement[];
 }
 

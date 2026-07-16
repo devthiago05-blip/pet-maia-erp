@@ -188,6 +188,9 @@ export async function fetchPosCashRegisters() {
     .select(
       `
         *,
+        user_profiles!pos_cash_registers_opened_by_fkey (
+          nome
+        ),
         pos_cash_movements (
           id,
           cash_register_id,
@@ -208,7 +211,7 @@ export async function fetchPosCashRegisters() {
       `,
     )
     .order("opened_at", { ascending: false })
-    .limit(20)
+    .limit(200)
     .returns<PosCashRegister[]>();
 }
 

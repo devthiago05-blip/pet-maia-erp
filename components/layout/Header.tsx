@@ -67,6 +67,7 @@ const pageTitles: Record<string, string> = {
   "/clinica": "Clínica",
   "/crm": "CRM",
   "/financeiro": "Financeiro",
+  "/estoque": "Estoque",
   "/pets": "Pets",
   "/pdv": "PDV",
   "/receipts": "Recibos",

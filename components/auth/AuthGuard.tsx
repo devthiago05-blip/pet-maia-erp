@@ -4,6 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
 import { AccessProvider } from "@/components/auth/AccessContext";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import {
   type AccessModule,
   accessModules,
@@ -146,6 +147,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   return (
     <AccessProvider profile={profile} permissions={permissions}>
       {children}
+      <MobileBottomNav />
     </AccessProvider>
   );
 }

@@ -482,6 +482,52 @@ export interface Product {
 
 export type NewProductInput = Omit<Product, "id" | "created_at">;
 
+export type ProductStockMovementKind =
+  | "entrada"
+  | "saida"
+  | "inventario"
+  | "perda"
+  | "vencido"
+  | "sistema"
+  | "edicao";
+
+export interface ProductStockMovement {
+  id: number;
+  product_id: number;
+  movement_kind: ProductStockMovementKind;
+  quantity_delta: number;
+  previous_stock: number;
+  resulting_stock: number;
+  reason: string;
+  batch_number?: string;
+  expiration_date?: string;
+  created_by?: string;
+  created_at: string;
+  products?: Pick<Product, "id" | "nome" | "sku" | "barcode">;
+  user_profiles?: Pick<UserProfile, "nome"> | null;
+}
+
+export interface ProductBatch {
+  id: number;
+  product_id: number;
+  batch_number: string;
+  expiration_date?: string;
+  quantity: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  products?: Pick<Product, "id" | "nome" | "sku" | "barcode">;
+}
+
+export interface ProductStockAdjustmentInput {
+  productId: number;
+  quantityDelta: number;
+  kind: Exclude<ProductStockMovementKind, "sistema" | "edicao">;
+  reason: string;
+  batchNumber?: string;
+  expirationDate?: string;
+}
+
 export interface ProductCategory {
   id: number;
   nome: string;

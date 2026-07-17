@@ -1,10 +1,11 @@
 import "./globals.css";
 
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Figtree, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 
 import { AuthGuard } from "@/components/auth/AuthGuard";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { cn } from "@/lib/utils";
 
 const figtree = Figtree({
@@ -25,6 +26,19 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Clínica Veterinária Pet Maia",
   description: "Gestão clínica e comercial da Clínica Veterinária Pet Maia",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PET MAIA",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#8A0EEA",
 };
 
 export default function RootLayout({
@@ -46,6 +60,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <AuthGuard>{children}</AuthGuard>
+        <PwaRegister />
         <Toaster richColors position="top-right" closeButton duration={3000} />
       </body>
     </html>

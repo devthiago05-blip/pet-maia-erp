@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Menu,
+  PackageSearch,
   PawPrint,
   Receipt,
   Scissors,
@@ -53,6 +54,12 @@ const menuItems: Array<{
     icon: BarChart3,
   },
   { href: "/pdv", label: "PDV", module: "pdv", icon: ShoppingCart },
+  {
+    href: "/estoque",
+    label: "Estoque",
+    module: "pdv",
+    icon: PackageSearch,
+  },
   { href: "/site", label: "Site", module: "site", icon: ImageIcon },
   {
     href: "/clinica",

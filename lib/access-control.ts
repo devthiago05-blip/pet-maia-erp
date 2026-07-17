@@ -46,6 +46,7 @@ export const routeAccess: Record<string, AccessModule> = {
   "/receipts": "recibos",
   "/relatorios": "relatorios",
   "/pdv": "pdv",
+  "/estoque": "pdv",
   "/site": "site",
   "/clinica": "clinica",
   "/crm": "crm",

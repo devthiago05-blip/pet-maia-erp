@@ -1,12 +1,21 @@
 "use client";
 
-import { Barcode, ClipboardCheck, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Barcode,
+  ClipboardCheck,
+  History,
+  Plus,
+  Printer,
+  Search,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { formatProductName } from "@/lib/formatters";
-import type { Product } from "@/types/domain";
+import type { Product, ProductStocktake } from "@/types/domain";
 
 interface StocktakeItem {
   product: Product;
@@ -15,6 +24,7 @@ interface StocktakeItem {
 
 interface StocktakeViewProps {
   products: Product[];
+  stocktakes: ProductStocktake[];
   processing: boolean;
   onComplete: (input: {
     items: Array<{ product_id: number; counted_quantity: number }>;
@@ -24,6 +34,7 @@ interface StocktakeViewProps {
 
 export function StocktakeView({
   products,
+  stocktakes,
   processing,
   onComplete,
 }: StocktakeViewProps) {
@@ -31,6 +42,8 @@ export function StocktakeView({
   const [items, setItems] = useState<StocktakeItem[]>([]);
   const [notes, setNotes] = useState("");
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [selectedStocktake, setSelectedStocktake] =
+    useState<ProductStocktake | null>(null);
 
   const availableProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -344,6 +357,12 @@ export function StocktakeView({
         </button>
       </div>
 
+      <StocktakeHistory
+        stocktakes={stocktakes}
+        selected={selectedStocktake}
+        onSelect={setSelectedStocktake}
+      />
+
       <ConfirmationDialog
         isOpen={confirmationOpen}
         title="Finalizar balanço de estoque"
@@ -354,6 +373,194 @@ export function StocktakeView({
         onCancel={() => setConfirmationOpen(false)}
       />
     </section>
+  );
+}
+
+function StocktakeHistory({
+  stocktakes,
+  selected,
+  onSelect,
+}: {
+  stocktakes: ProductStocktake[];
+  selected: ProductStocktake | null;
+  onSelect: (stocktake: ProductStocktake | null) => void;
+}) {
+  function printStocktake(stocktake: ProductStocktake) {
+    onSelect(stocktake);
+    window.setTimeout(() => window.print(), 100);
+  }
+
+  return (
+    <>
+      <section className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6 print:hidden">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+            <History size={22} />
+          </div>
+          <div>
+            <h2 className="font-bold">Histórico de balanços</h2>
+            <p className="text-sm text-slate-500">
+              Últimos 50 balanços finalizados.
+            </p>
+          </div>
+        </div>
+
+        {stocktakes.length === 0 ? (
+          <p className="mt-5 rounded-xl bg-slate-50 p-5 text-center text-sm text-slate-500">
+            Nenhum balanço registrado ainda. O próximo aparecerá aqui.
+          </p>
+        ) : (
+          <div className="mt-5 grid gap-3">
+            {stocktakes.map((stocktake) => (
+              <article
+                key={stocktake.id}
+                className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_auto] md:items-center"
+              >
+                <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+                  <HistoryField label="Balanço" value={`#${stocktake.id}`} />
+                  <HistoryField
+                    label="Data"
+                    value={new Intl.DateTimeFormat("pt-BR", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    }).format(new Date(stocktake.created_at))}
+                  />
+                  <HistoryField
+                    label="Responsável"
+                    value={stocktake.user_profiles?.nome || "Usuário"}
+                  />
+                  <HistoryField
+                    label="Produtos"
+                    value={String(stocktake.product_count)}
+                  />
+                  <HistoryField
+                    label="Diferença"
+                    value={
+                      stocktake.total_difference > 0
+                        ? `+${stocktake.total_difference}`
+                        : String(stocktake.total_difference)
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelect(stocktake)}
+                  className="rounded-lg border px-4 py-2 text-sm font-semibold text-violet-700 hover:bg-violet-50"
+                >
+                  Ver detalhes
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4 print:static print:block print:bg-white print:p-0">
+          <section className="document-print-area max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:rounded-2xl sm:p-6 print:max-h-none print:max-w-none print:overflow-visible print:rounded-none print:p-8 print:shadow-none">
+            <header className="flex items-start justify-between gap-4 border-b pb-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-wide text-violet-700">
+                  Clínica Veterinária Pet Maia
+                </p>
+                <h1 className="mt-1 text-2xl font-black">
+                  Balanço de estoque #{selected.id}
+                </h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  {new Intl.DateTimeFormat("pt-BR", {
+                    dateStyle: "long",
+                    timeStyle: "short",
+                  }).format(new Date(selected.created_at))}
+                  {" · "}
+                  {selected.user_profiles?.nome || "Usuário"}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelect(null)}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 print:hidden"
+                aria-label="Fechar detalhes do balanço"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StocktakeSummary label="Produtos" value={selected.product_count} />
+              <StocktakeSummary label="Alterados" value={selected.changed_count} />
+              <StocktakeSummary label="Sem alteração" value={selected.unchanged_count} />
+              <StocktakeSummary
+                label="Diferença líquida"
+                value={selected.total_difference}
+                tone={selected.total_difference < 0 ? "danger" : "success"}
+                signed
+              />
+            </div>
+
+            {selected.notes && (
+              <p className="mb-5 rounded-xl bg-slate-50 p-3 text-sm">
+                <strong>Observação:</strong> {selected.notes}
+              </p>
+            )}
+
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[660px] border-collapse text-sm print:min-w-0 print:text-xs">
+                <thead className="bg-slate-100 text-left">
+                  <tr>
+                    <th className="border p-2">Produto</th>
+                    <th className="border p-2">Código</th>
+                    <th className="border p-2 text-center">Anterior</th>
+                    <th className="border p-2 text-center">Contado</th>
+                    <th className="border p-2 text-center">Diferença</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(selected.product_stocktake_items || []).map((item) => (
+                    <tr key={item.id}>
+                      <td className="border p-2 font-medium">{item.product_name}</td>
+                      <td className="border p-2">{item.product_code || "-"}</td>
+                      <td className="border p-2 text-center">{item.previous_quantity}</td>
+                      <td className="border p-2 text-center">{item.counted_quantity}</td>
+                      <td className="border p-2 text-center font-bold">
+                        {item.difference > 0 ? `+${item.difference}` : item.difference}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-5 flex justify-end gap-3 print:hidden">
+              <button
+                type="button"
+                onClick={() => onSelect(null)}
+                className="rounded-xl border px-4 py-2 font-semibold"
+              >
+                Fechar
+              </button>
+              <button
+                type="button"
+                onClick={() => printStocktake(selected)}
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 font-bold text-white"
+              >
+                <Printer size={18} /> Imprimir relatório
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+
+function HistoryField({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </p>
+      <p className="mt-0.5 font-semibold text-slate-800">{value}</p>
+    </div>
   );
 }
 

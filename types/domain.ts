@@ -507,6 +507,30 @@ export interface ProductStockMovement {
   user_profiles?: Pick<UserProfile, "nome"> | null;
 }
 
+export interface ProductStocktakeItem {
+  id: number;
+  stocktake_id: number;
+  product_id?: number | null;
+  product_name: string;
+  product_code?: string | null;
+  previous_quantity: number;
+  counted_quantity: number;
+  difference: number;
+}
+
+export interface ProductStocktake {
+  id: number;
+  created_at: string;
+  created_by: string;
+  notes?: string | null;
+  product_count: number;
+  changed_count: number;
+  unchanged_count: number;
+  total_difference: number;
+  user_profiles?: Pick<UserProfile, "nome"> | null;
+  product_stocktake_items?: ProductStocktakeItem[];
+}
+
 export interface ProductBatch {
   id: number;
   product_id: number;

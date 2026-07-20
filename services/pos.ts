@@ -6,6 +6,7 @@ import type {
   PosCashMovementType,
   PosCashRegister,
   Product,
+  ProductStocktake,
 } from "@/types/domain";
 
 export interface PosCartItem {
@@ -28,6 +29,19 @@ export async function completeProductStocktake({
     items,
     notes: notes.trim() || null,
   });
+}
+
+export async function fetchProductStocktakes() {
+  return supabase
+    .from("product_stocktakes")
+    .select(`
+      *,
+      user_profiles!product_stocktakes_created_by_fkey (nome),
+      product_stocktake_items (*)
+    `)
+    .order("created_at", { ascending: false })
+    .limit(50)
+    .returns<ProductStocktake[]>();
 }
 
 export async function fetchProductCategories() {

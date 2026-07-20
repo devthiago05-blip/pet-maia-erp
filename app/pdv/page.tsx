@@ -57,6 +57,7 @@ import {
   fetchProductCategories,
   fetchProductPurchases,
   fetchProducts,
+  fetchProductStocktakes,
   fetchSuppliers,
   openPosCashRegister,
   updateProduct,
@@ -73,6 +74,7 @@ import type {
   Product,
   ProductCategory,
   ProductPurchase,
+  ProductStocktake,
   Supplier,
   Tutor,
 } from "@/types/domain";
@@ -178,6 +180,7 @@ export default function PosPage() {
   const [cashRegisters, setCashRegisters] = useState<PosCashRegister[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
+  const [stocktakes, setStocktakes] = useState<ProductStocktake[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [view, setView] = useState<
@@ -267,6 +270,7 @@ export default function PosPage() {
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
+      stocktakesResponse,
     ] = await Promise.all([
       fetchProducts(),
       fetchProductCategories(),
@@ -276,6 +280,7 @@ export default function PosPage() {
       fetchTutors(),
       fetchSuppliers(),
       fetchProductPurchases(),
+      fetchProductStocktakes(),
     ]);
 
     const error =
@@ -286,7 +291,8 @@ export default function PosPage() {
       cashRegistersResponse.error ||
       tutorsResponse.error ||
       suppliersResponse.error ||
-      purchasesResponse.error;
+      purchasesResponse.error ||
+      stocktakesResponse.error;
 
     if (error) {
       console.error(error);
@@ -305,6 +311,7 @@ export default function PosPage() {
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
+    setStocktakes((stocktakesResponse.data || []) as ProductStocktake[]);
     setLoading(false);
   }
 
@@ -889,6 +896,7 @@ export default function PosPage() {
           ) : view === "stocktake" ? (
             <StocktakeView
               products={products}
+              stocktakes={stocktakes}
               processing={processing}
               onComplete={handleCompleteStocktake}
             />

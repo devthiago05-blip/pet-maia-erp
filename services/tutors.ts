@@ -2,7 +2,22 @@ import { supabase } from "@/lib/supabase";
 import type { NewTutorInput, Tutor } from "@/types/domain";
 
 export async function fetchTutors() {
-  return supabase.from("tutors").select("*").order("nome", { ascending: true });
+  const response = await supabase
+    .from("tutors")
+    .select("*, pets(count)")
+    .order("nome", { ascending: true });
+
+  if (!response.data) {
+    return response;
+  }
+
+  return {
+    ...response,
+    data: response.data.map((tutor) => ({
+      ...tutor,
+      pets: tutor.pets?.[0]?.count ?? 0,
+    })) as Tutor[],
+  };
 }
 
 export async function createTutor(tutor: NewTutorInput) {

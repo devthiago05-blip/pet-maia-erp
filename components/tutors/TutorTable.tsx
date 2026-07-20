@@ -117,7 +117,14 @@ export function TutorTable({
                     <td className="max-w-64 truncate p-3 sm:p-4">
                       <MapsRouteLink address={tutor.endereco} compact />
                     </td>
-                    <td className="p-3 sm:p-4">{tutor.pets}</td>
+                    <td className="p-3 sm:p-4">
+                      <span
+                        className="inline-flex min-w-8 justify-center rounded-full bg-violet-100 px-2.5 py-1 text-xs font-bold text-violet-700"
+                        title={`${tutor.pets ?? 0} pet(s) vinculado(s)`}
+                      >
+                        {tutor.pets ?? 0}
+                      </span>
+                    </td>
                     <td className="p-3 sm:p-4">
                       <div className="flex flex-wrap gap-3">
                         <button

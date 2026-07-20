@@ -1,6 +1,12 @@
 "use client";
 
-import { MessageCircle, Plus } from "lucide-react";
+import {
+  MessageCircle,
+  PawPrint,
+  Pencil,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -65,7 +71,103 @@ export function TutorTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="space-y-3 md:hidden">
+        {tutors.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+            Nenhum tutor encontrado.
+          </div>
+        ) : (
+          tutors.map((tutor) => {
+            const whatsappUrl = createTutorWhatsAppUrl(
+              tutor.telefone,
+              tutor.nome,
+            );
+            const petCount = tutor.pets ?? 0;
+
+            return (
+              <article
+                key={tutor.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-lg font-bold text-violet-700">
+                    {tutor.nome.charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => handleTutorClick(tutor)}
+                      className="block max-w-full truncate text-left text-lg font-bold text-violet-700"
+                    >
+                      {tutor.nome}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleTutorClick(tutor)}
+                      className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600"
+                    >
+                      <PawPrint size={16} className="text-violet-600" />
+                      {petCount === 1 ? "1 pet vinculado" : `${petCount} pets vinculados`}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid gap-2">
+                  {whatsappUrl ? (
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-50 px-3 font-semibold text-emerald-700"
+                      aria-label={`Abrir conversa com ${tutor.nome} no WhatsApp`}
+                    >
+                      <MessageCircle size={18} className="shrink-0" />
+                      <span className="truncate">{tutor.telefone}</span>
+                    </a>
+                  ) : (
+                    <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                      Telefone não informado
+                    </div>
+                  )}
+
+                  {tutor.endereco ? (
+                    <MapsRouteLink
+                      address={tutor.endereco}
+                      compact
+                      className="min-h-11 rounded-xl bg-blue-50 px-3 no-underline"
+                    />
+                  ) : (
+                    <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                      Endereço não informado
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(tutor)}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-50 font-semibold text-blue-700"
+                  >
+                    <Pencil size={16} />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTutorToDelete(tutor)}
+                    className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-red-50 font-semibold text-red-600"
+                  >
+                    <Trash2 size={16} />
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[820px]">
             <thead className="bg-slate-50">

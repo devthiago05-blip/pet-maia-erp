@@ -36,8 +36,11 @@ export default function TutorsPage() {
   const [petModalOpen, setPetModalOpen] = useState(false);
   const [search, setSearch] = useState(searchParams.get("search") || "");
 
+  const normalizedSearch = search.trim().toLowerCase();
   const filteredTutors = tutors.filter((tutor) =>
-    tutor.nome.toLowerCase().includes(search.toLowerCase()),
+    [tutor.nome, tutor.telefone, tutor.email, tutor.endereco].some((value) =>
+      value?.toLowerCase().includes(normalizedSearch),
+    ),
   );
   const tutorsForPetModal =
     createdTutorForPet &&
@@ -153,7 +156,7 @@ export default function TutorsPage() {
             <div className="flex w-full flex-col gap-3 sm:flex-row lg:w-auto lg:items-center">
               <input
                 type="text"
-                placeholder="Buscar tutor..."
+                placeholder="Buscar por nome, telefone ou endereço..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-2 sm:min-w-72 lg:w-80"

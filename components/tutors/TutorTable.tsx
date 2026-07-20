@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { createTutorWhatsAppUrl } from "@/lib/whatsapp";
 import { fetchPetsByTutorId } from "@/services/pets";
 import type { Pet, Tutor } from "@/types/domain";
 
@@ -71,42 +73,65 @@ export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
             </thead>
 
             <tbody>
-              {tutors.map((tutor) => (
-                <tr key={tutor.id} className="border-t border-slate-100">
-                  <td className="p-3 sm:p-4">
-                    <button
-                      type="button"
-                      onClick={() => handleTutorClick(tutor)}
-                      className="font-semibold text-violet-700 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-900"
-                      title="Ver pets relacionados"
-                    >
-                      {tutor.nome}
-                    </button>
-                  </td>
-                  <td className="p-3 sm:p-4">{tutor.telefone}</td>
-                  <td className="max-w-64 truncate p-3 sm:p-4">
-                    <MapsRouteLink address={tutor.endereco} compact />
-                  </td>
-                  <td className="p-3 sm:p-4">{tutor.pets}</td>
-                  <td className="p-3 sm:p-4">
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        onClick={() => onEdit(tutor)}
-                        className="text-blue-600"
-                      >
-                        Editar
-                      </button>
+              {tutors.map((tutor) => {
+                const whatsappUrl = createTutorWhatsAppUrl(
+                  tutor.telefone,
+                  tutor.nome,
+                );
 
+                return (
+                  <tr key={tutor.id} className="border-t border-slate-100">
+                    <td className="p-3 sm:p-4">
                       <button
-                        onClick={() => setTutorToDelete(tutor)}
-                        className="text-red-600"
+                        type="button"
+                        onClick={() => handleTutorClick(tutor)}
+                        className="font-semibold text-violet-700 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-900"
+                        title="Ver pets relacionados"
                       >
-                        Excluir
+                        {tutor.nome}
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      {whatsappUrl ? (
+                        <a
+                          href={whatsappUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-2 transition hover:text-emerald-900"
+                          title={`Conversar com ${tutor.nome} no WhatsApp`}
+                          aria-label={`Abrir conversa com ${tutor.nome} no WhatsApp`}
+                        >
+                          <MessageCircle size={15} className="shrink-0" />
+                          {tutor.telefone}
+                        </a>
+                      ) : (
+                        tutor.telefone || "-"
+                      )}
+                    </td>
+                    <td className="max-w-64 truncate p-3 sm:p-4">
+                      <MapsRouteLink address={tutor.endereco} compact />
+                    </td>
+                    <td className="p-3 sm:p-4">{tutor.pets}</td>
+                    <td className="p-3 sm:p-4">
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => onEdit(tutor)}
+                          className="text-blue-600"
+                        >
+                          Editar
+                        </button>
+
+                        <button
+                          onClick={() => setTutorToDelete(tutor)}
+                          className="text-red-600"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

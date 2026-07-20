@@ -542,7 +542,7 @@ Equipe Pet Maia Banho e Tosa.`;
             href={actionHref}
             className="inline-flex items-center justify-center rounded-xl border px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
           >
-            Abrir solicitaÃ§Ãµes
+            Abrir solicitações
           </a>
         )}
       </div>
@@ -831,7 +831,7 @@ Equipe Pet Maia Banho e Tosa.`;
             </StatCard>
 
             <StatCard
-              title="SolicitaÃ§Ãµes Pendentes"
+              title="Solicitações Pendentes"
               value={String(pendingAppointments)}
               icon={<CalendarDays size={24} />}
               active={activeDetail === "pendingAppointments"}
@@ -839,7 +839,7 @@ Equipe Pet Maia Banho e Tosa.`;
             >
               {renderAppointmentsList(
                 pendingAppointmentsList,
-                "Nenhuma solicitaÃ§Ã£o pendente no momento.",
+                "Nenhuma solicitação pendente no momento.",
                 "/agenda?status=Pendente",
               )}
             </StatCard>

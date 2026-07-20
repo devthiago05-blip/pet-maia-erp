@@ -2534,7 +2534,90 @@ function ProductsView({
     <>
       <StockTurnoverDashboard products={activeProducts} sales={sales} />
 
-      <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-bold text-slate-900">Catálogo de produtos</h2>
+          <p className="text-sm text-slate-500">
+            Preços, estoque e manutenção dos produtos ativos.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+          {activeProducts.length}
+        </span>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {activeProducts.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
+            Nenhum produto cadastrado.
+          </div>
+        ) : (
+          activeProducts.map((product) => {
+            const lowStock = product.estoque <= product.estoque_minimo;
+
+            return (
+              <article
+                key={product.id}
+                className="rounded-2xl border bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h3 className="break-words font-bold text-slate-900">
+                      {formatProductName(product)}
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {product.barcode || product.sku || "Sem código"}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {product.categoria || "Sem categoria"}
+                    </p>
+                  </div>
+                  <p className="shrink-0 text-lg font-bold text-[#8A0EEA]">
+                    {formatCurrency(product.preco_venda)}
+                  </p>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3">
+                  <div>
+                    <p className="text-xs text-slate-500">Estoque atual</p>
+                    <p className={`text-xl font-bold ${lowStock ? "text-red-600" : "text-slate-900"}`}>
+                      {product.estoque}
+                    </p>
+                  </div>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      lowStock
+                        ? "bg-red-100 text-red-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {lowStock ? "Estoque baixo" : "Estoque normal"}
+                  </span>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3">
+                  <div className="flex min-h-10 items-center justify-center rounded-xl bg-purple-50 font-semibold text-[#8A0EEA]">
+                    <ProductModal
+                      product={product}
+                      categories={categories}
+                      onSave={onSave}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setProductToDelete(product)}
+                    className="min-h-10 rounded-xl bg-red-50 font-semibold text-red-600"
+                  >
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border bg-white md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px]">
             <thead className="bg-slate-50">
@@ -2717,7 +2800,107 @@ function SalesView({
 
   return (
     <>
-      <div className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-bold text-slate-900">Histórico de vendas</h2>
+          <p className="text-sm text-slate-500">
+            Consulte comprovantes e acompanhe o status das vendas.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+          {sales.length}
+        </span>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {sales.length === 0 ? (
+          <div className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
+            Nenhuma venda registrada.
+          </div>
+        ) : (
+          sales.map((sale) => {
+            const customer =
+              sale.tutors?.nome || sale.cliente_nome || "Consumidor";
+            const cancelled = sale.status === "Cancelada";
+
+            return (
+              <article
+                key={sale.id}
+                className="rounded-2xl border bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-slate-400">
+                      VENDA #{String(sale.id).padStart(6, "0")}
+                    </p>
+                    <h3 className="mt-1 font-bold text-slate-900">{customer}</h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {formatDate(sale.created_at)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-[#8A0EEA]">
+                      {formatCurrency(sale.total)}
+                    </p>
+                    <span
+                      className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        cancelled
+                          ? "bg-red-100 text-red-700"
+                          : "bg-emerald-100 text-emerald-700"
+                      }`}
+                    >
+                      {sale.status || "Concluída"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-2 rounded-xl bg-slate-50 p-3 text-sm">
+                  <div>
+                    <p className="text-xs text-slate-500">Pagamento</p>
+                    <p className="font-semibold text-slate-700">
+                      {sale.forma_pagamento || "-"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500">Caixa</p>
+                    <p className="font-semibold text-slate-700">
+                      {sale.cash_register_id
+                        ? `#${String(sale.cash_register_id).padStart(6, "0")}`
+                        : "-"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`mt-3 grid gap-2 border-t pt-3 ${cancelled ? "grid-cols-1" : "grid-cols-2"}`}>
+                  <div className="flex min-h-10 items-center justify-center rounded-xl bg-purple-50 font-semibold text-[#8A0EEA]">
+                    <PosDocumentModal
+                      type="Venda"
+                      number={sale.id}
+                      customer={customer}
+                      date={sale.created_at}
+                      paymentMethod={sale.forma_pagamento}
+                      status={sale.status || "Concluída"}
+                      total={sale.total}
+                      items={sale.pos_sale_items || []}
+                    />
+                  </div>
+                  {!cancelled && (
+                    <button
+                      type="button"
+                      onClick={() => setSaleToCancel(sale)}
+                      className="min-h-10 rounded-xl bg-red-50 font-semibold text-red-600"
+                    >
+                      Excluir venda
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border bg-white md:block">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[940px]">
             <thead className="bg-slate-50">

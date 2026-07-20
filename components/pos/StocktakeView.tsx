@@ -337,7 +337,88 @@ export function StocktakeView({
             Busque um produto para começar o balanço.
           </div>
         ) : (
-          <div className="w-full overflow-x-auto">
+          <>
+          <div className="divide-y md:hidden">
+            {items.map((item) => {
+              const hasCount = item.countedQuantity !== "";
+              const difference = hasCount
+                ? Number(item.countedQuantity) - item.product.estoque
+                : null;
+
+              return (
+                <article key={item.product.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="break-words font-bold text-slate-900">
+                        {formatProductName(item.product)}
+                      </h3>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {item.product.barcode || item.product.sku || "Sem código"}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setItems((current) =>
+                          current.filter(
+                            (currentItem) =>
+                              currentItem.product.id !== item.product.id,
+                          ),
+                        )
+                      }
+                      className="rounded-lg bg-red-50 p-2 text-red-600"
+                      aria-label={`Remover ${item.product.nome} do balanço`}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid grid-cols-[1fr_1.2fr] items-end gap-3 rounded-xl bg-slate-50 p-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Estoque atual</p>
+                      <p className="text-2xl font-bold">{item.product.estoque}</p>
+                    </div>
+                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                      Contagem física
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={item.countedQuantity}
+                        onChange={(event) =>
+                          updateQuantity(item.product.id, event.target.value)
+                        }
+                        aria-label={`Contagem física de ${item.product.nome}`}
+                        className="w-full rounded-lg border bg-white px-3 py-2 text-center text-lg font-bold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between text-sm">
+                    <span className="text-slate-500">Diferença encontrada</span>
+                    <span
+                      className={`inline-flex min-w-12 justify-center rounded-full px-2.5 py-1 font-bold ${
+                        difference === null || difference === 0
+                          ? "bg-slate-100 text-slate-600"
+                          : difference > 0
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {difference === null
+                        ? "-"
+                        : difference > 0
+                          ? `+${difference}`
+                          : difference}
+                    </span>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="hidden w-full overflow-x-auto md:block">
             <table className="w-full min-w-[760px]">
               <thead className="bg-slate-50 text-sm text-slate-600">
                 <tr>
@@ -421,6 +502,7 @@ export function StocktakeView({
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

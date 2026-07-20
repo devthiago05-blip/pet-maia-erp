@@ -213,6 +213,28 @@ export async function deletePosQuote(quoteId: number) {
   return supabase.from("pos_quotes").delete().eq("id", quoteId);
 }
 
+export async function updatePosQuote({
+  quoteId,
+  tutorId,
+  customerName,
+  expirationDate,
+  items,
+}: {
+  quoteId: number;
+  tutorId: number | null;
+  customerName: string;
+  expirationDate: string | null;
+  items: Array<{ product_id: number; quantidade: number; valor_unitario: number }>;
+}) {
+  return supabase.rpc("update_pos_quote", {
+    selected_quote_id: quoteId,
+    customer_tutor_id: tutorId,
+    customer_name: customerName,
+    expiration_date: expirationDate,
+    items,
+  });
+}
+
 export async function fetchPosSales() {
   return supabase
     .from("pos_sales")

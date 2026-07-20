@@ -589,6 +589,7 @@ export type NewProductCategoryInput = Pick<ProductCategory, "nome">;
 
 export interface PosQuote {
   id: number;
+  tutor_id?: number | null;
   cliente_nome?: string;
   total: number;
   validade?: string;

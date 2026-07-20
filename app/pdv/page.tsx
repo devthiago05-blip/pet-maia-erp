@@ -26,6 +26,10 @@ import {
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
+import {
+  QuoteEditModal,
+  type QuoteUpdateInput,
+} from "@/components/pos/QuoteEditModal";
 import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -65,6 +69,7 @@ import {
   fetchSuppliers,
   openPosCashRegister,
   saveProductStocktakeDraft,
+  updatePosQuote,
   updateProduct,
 } from "@/services/pos";
 import { fetchTutors } from "@/services/tutors";
@@ -718,6 +723,16 @@ export default function PosPage() {
     setQuotes((current) => current.filter((quote) => quote.id !== quoteId));
   }
 
+  async function handleQuoteUpdate(input: QuoteUpdateInput) {
+    const { error } = await updatePosQuote(input);
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+    toast.success("Orçamento atualizado com sucesso!");
+    await loadData();
+  }
+
   async function handleSaleCancel(saleId: number) {
     const { error } = await cancelPosSale(saleId);
 
@@ -969,8 +984,11 @@ export default function PosPage() {
           ) : view === "quotes" ? (
             <QuotesView
               quotes={quotes}
+              products={products}
+              tutors={tutors}
               onConvert={handleQuoteConvert}
               onDelete={handleQuoteDelete}
+              onUpdate={handleQuoteUpdate}
             />
           ) : (
             <SalesView sales={sales} onCancel={handleSaleCancel} />
@@ -2729,15 +2747,21 @@ function ProductsView({
 
 function QuotesView({
   quotes,
+  products,
+  tutors,
   onConvert,
   onDelete,
+  onUpdate,
 }: {
   quotes: PosQuote[];
+  products: Product[];
+  tutors: Tutor[];
   onConvert: (
     quoteId: number,
     conversion: PosQuoteConversion,
   ) => Promise<void>;
   onDelete: (quoteId: number) => Promise<void>;
+  onUpdate: (input: QuoteUpdateInput) => Promise<void>;
 }) {
   const [quoteToDelete, setQuoteToDelete] = useState<PosQuote | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -2808,6 +2832,14 @@ function QuotesView({
                           : undefined
                       }
                     />
+                    {quote.status === "Aberto" && (
+                      <QuoteEditModal
+                        quote={quote}
+                        products={products}
+                        tutors={tutors}
+                        onSave={onUpdate}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => setQuoteToDelete(quote)}

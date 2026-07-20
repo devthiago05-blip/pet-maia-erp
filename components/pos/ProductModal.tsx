@@ -252,7 +252,9 @@ export function ProductModal({
       return;
     }
 
-    const fiscalError = validateProductFiscalFields({ ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial });
+    const fiscalFields = { ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial };
+    const fiscalError = validateProductFiscalFields(fiscalFields, false);
+    const fiscalPending = validateProductFiscalFields(fiscalFields) !== null;
     if (fiscalError) {
       toast.error(fiscalError);
       return;
@@ -329,6 +331,7 @@ export function ProductModal({
     setSaving(true);
     try {
       await onSave(products);
+      if (fiscalPending) toast.warning("Produto salvo. Complete a tributação antes de emitir NFC-e.");
       loadForm();
       setOpen(false);
     } catch {
@@ -415,7 +418,7 @@ export function ProductModal({
 
             <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
               <h3 className="font-bold text-slate-900">Dados fiscais para NFC-e</h3>
-              <p className="mt-1 text-sm text-slate-500">Confirme NCM, CFOP e tributação com a contabilidade antes de emitir em produção.</p>
+              <p className="mt-1 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Preenchimento opcional agora. NCM, CFOP e tributação serão necessários antes de emitir NFC-e.</p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <ProductInput label="NCM (8 dígitos)" value={ncm} onChange={(value) => setNcm(normalizeFiscalCode(value, 8))} />
                 <ProductInput label="CFOP (4 dígitos)" value={cfop} onChange={(value) => setCfop(normalizeFiscalCode(value, 4))} />

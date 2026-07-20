@@ -51,7 +51,7 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
       nome,
       telefone,
       email,
-      endereco,
+      endereco: endereco.trim().toUpperCase(),
     });
 
     setOpen(false);
@@ -112,7 +112,7 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
             <label className="text-sm font-medium">Endereço</label>
             <input
               value={endereco}
-              onChange={(event) => setEndereco(event.target.value)}
+              onChange={(event) => setEndereco(event.target.value.toUpperCase())}
               className="mt-1 w-full rounded-lg border p-2"
             />
           </div>

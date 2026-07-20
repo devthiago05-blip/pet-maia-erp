@@ -59,7 +59,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
       nome: nome.trim(),
       telefone,
       email: email.trim(),
-      endereco: endereco.trim(),
+      endereco: endereco.trim().toUpperCase(),
     });
 
     setSaving(false);
@@ -130,7 +130,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
               <label className="text-sm font-medium">Endereço</label>
               <input
                 value={endereco}
-                onChange={(event) => setEndereco(event.target.value)}
+                onChange={(event) => setEndereco(event.target.value.toUpperCase())}
                 className="mt-1 w-full rounded-lg border p-2"
               />
             </div>

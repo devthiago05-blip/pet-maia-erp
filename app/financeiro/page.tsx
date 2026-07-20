@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown, Printer, Search, SlidersHorizontal } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EditFinancialModal } from "@/components/financeiro/EditFinancialModal";
@@ -46,6 +47,9 @@ function getCurrentMonthPeriod() {
 }
 
 export default function FinanceiroPage() {
+  const searchParams = useSearchParams();
+  const requestedEntryId = searchParams.get("entryId");
+  const openedNotificationRef = useRef(false);
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -64,6 +68,7 @@ export default function FinanceiroPage() {
   );
   const [endDate, setEndDate] = useState(() => getCurrentMonthPeriod().end);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
   const currentMonthPeriod = getCurrentMonthPeriod();
   const isTodaySelected =
     startDate === new Date().toLocaleDateString("en-CA") &&
@@ -282,7 +287,17 @@ export default function FinanceiroPage() {
       toast.warning("Não foi possível carregar os pets.");
     }
 
-    setEntries((financialResponse.data || []) as FinancialEntry[]);
+    const loadedEntries = (financialResponse.data || []) as FinancialEntry[];
+    setEntries(loadedEntries);
+    if (requestedEntryId && !openedNotificationRef.current) {
+      const entry = loadedEntries.find((item) => String(item.id) === requestedEntryId);
+      openedNotificationRef.current = true;
+      if (entry) {
+        const date = entry.created_at?.slice(0,10);
+        if (date) { setStartDate(date); setEndDate(date); }
+        setEntryToEdit(entry);
+      }
+    }
     setTutors((tutorsResponse.data || []) as Tutor[]);
     setPets((petsResponse.data || []) as Pet[]);
     setLoading(false);

@@ -110,7 +110,9 @@ export function QuickProductModal({
       return;
     }
 
-    const fiscalError = validateProductFiscalFields({ ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial });
+    const fiscalFields = { ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial };
+    const fiscalError = validateProductFiscalFields(fiscalFields, false);
+    const fiscalPending = validateProductFiscalFields(fiscalFields) !== null;
     if (fiscalError) { toast.error(fiscalError); return; }
 
     const selectedCategory = categories.find(
@@ -187,6 +189,7 @@ export function QuickProductModal({
     setSaving(true);
     try {
       await onSave(products);
+      if (fiscalPending) toast.warning("Produto salvo. Complete a tributação antes de emitir NFC-e.");
       reset();
       setOpen(false);
     } catch {

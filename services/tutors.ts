@@ -28,7 +28,7 @@ export async function createTutor(tutor: NewTutorInput) {
         nome: tutor.nome.trim().toUpperCase(),
         telefone: tutor.telefone,
         email: tutor.email,
-        endereco: tutor.endereco,
+        endereco: tutor.endereco.trim().toUpperCase(),
       },
     ])
     .select("*")
@@ -42,7 +42,7 @@ export async function updateTutor(tutor: Tutor) {
       nome: tutor.nome.trim().toUpperCase(),
       telefone: tutor.telefone,
       email: tutor.email,
-      endereco: tutor.endereco,
+      endereco: tutor.endereco?.trim().toUpperCase(),
     })
     .eq("id", tutor.id);
 }

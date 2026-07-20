@@ -149,7 +149,7 @@ export function Header() {
         id: `appointment-${appointment.id}`,
         title: `${appointment.hora} · ${appointment.pets?.nome || "Pet"}`,
         description: appointment.servico,
-        href: "/agenda",
+        href: `/agenda?appointmentId=${appointment.id}`,
       }));
       const pendingSiteAppointmentItems: NotificationItem[] = (
         (pendingSiteAppointmentsResponse.data ||
@@ -158,7 +158,7 @@ export function Header() {
         id: `site-appointment-${appointment.id}`,
         title: `Solicitacao do site - ${appointment.pets?.nome || "Pet"}`,
         description: `${appointment.data || "Sem data"} ${appointment.hora || ""} - Tutor: ${appointment.pets?.tutors?.nome || "nao informado"} - ${appointment.servico}`,
-        href: "/agenda?status=Pendente",
+        href: `/agenda?appointmentId=${appointment.id}&status=Pendente`,
       }));
       const financialItems: NotificationItem[] = (
         financialResponse.data || []
@@ -166,7 +166,7 @@ export function Header() {
         id: `financial-${entry.id}`,
         title: "Pagamento pendente",
         description: `${entry.descricao} · ${formatCurrency(entry.valor)}`,
-        href: "/financeiro",
+        href: `/financeiro?entryId=${entry.id}`,
       }));
 
       const vaccinationItems: NotificationItem[] = (

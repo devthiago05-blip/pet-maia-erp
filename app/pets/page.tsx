@@ -8,7 +8,10 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { EditPetModal } from "@/components/pets/EditPetModal";
 import { NewPetModal } from "@/components/pets/NewPetModal";
-import { PetTable } from "@/components/pets/PetTable";
+import {
+  formatBathRecurrence,
+  PetTable,
+} from "@/components/pets/PetTable";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { createPet, deletePet, fetchPets, updatePet } from "@/services/pets";
 import { fetchTutors } from "@/services/tutors";
@@ -180,12 +183,13 @@ function PetPrintView({ pets }: { pets: Pet[] }) {
             <th className="border p-2">Raça</th>
             <th className="border p-2">Porte</th>
             <th className="border p-2">Tutor</th>
+            <th className="border p-2">Recorrência de banho</th>
           </tr>
         </thead>
         <tbody>
           {pets.length === 0 ? (
             <tr>
-              <td className="border p-4 text-center" colSpan={6}>
+              <td className="border p-4 text-center" colSpan={7}>
                 Nenhum pet encontrado.
               </td>
             </tr>
@@ -209,6 +213,9 @@ function PetPrintView({ pets }: { pets: Pet[] }) {
                 <td className="border p-2">{pet.raca || "-"}</td>
                 <td className="border p-2">{pet.porte || "-"}</td>
                 <td className="border p-2">{pet.tutors?.nome || "-"}</td>
+                <td className="border p-2">
+                  {formatBathRecurrence(pet.bath_reminder_interval_days)}
+                </td>
               </tr>
             ))
           )}

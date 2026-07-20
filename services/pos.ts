@@ -454,17 +454,26 @@ export async function createPosSale({
   customerName,
   paymentMethod,
   items,
+  discount,
+  surcharge,
+  adjustmentReason,
 }: {
   tutorId: number | null;
   customerName: string;
   paymentMethod: string;
   items: PosCartItem[];
+  discount: number;
+  surcharge: number;
+  adjustmentReason: string;
 }) {
-  return supabase.rpc("create_pos_sale", {
+  return supabase.rpc("create_pos_sale_adjusted", {
     customer_tutor_id: tutorId,
     customer_name: customerName,
     payment_method: paymentMethod,
     items,
+    selected_discount: discount,
+    selected_surcharge: surcharge,
+    selected_reason: adjustmentReason,
   });
 }
 
@@ -473,16 +482,32 @@ export async function createPosSaleWithPayments({
   customerName,
   payments,
   items,
+  discount,
+  surcharge,
+  adjustmentReason,
 }: {
   tutorId: number | null;
   customerName: string;
   payments: Array<{ payment_method: string; amount: number }>;
   items: PosCartItem[];
+  discount: number;
+  surcharge: number;
+  adjustmentReason: string;
 }) {
-  return supabase.rpc("create_pos_sale_with_payments", {
+  return supabase.rpc("create_pos_sale_with_payments_adjusted", {
     customer_tutor_id: tutorId,
     customer_name: customerName,
     payments,
     items,
+    selected_discount: discount,
+    selected_surcharge: surcharge,
+    selected_reason: adjustmentReason,
   });
+}
+
+export async function fetchCurrentPosDiscountLimit() {
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) return { data: null, error: userError || new Error("Usuário não autenticado") };
+  const response = await supabase.from("user_profiles").select("is_admin,max_discount_percent").eq("id", userData.user.id).single();
+  return { data: response.data ? (response.data.is_admin ? 100 : Number(response.data.max_discount_percent)) : null, error: response.error };
 }

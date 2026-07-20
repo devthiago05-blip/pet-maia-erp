@@ -11,6 +11,7 @@ export interface UserProfile {
   email: string;
   ativo: boolean;
   is_admin: boolean;
+  max_discount_percent?: number;
   created_at?: string;
   crmv?: string;
   especialidade?: string;
@@ -614,6 +615,10 @@ export interface PosSale {
   id: number;
   cliente_nome?: string;
   total: number;
+  subtotal?: number;
+  discount_amount?: number;
+  surcharge_amount?: number;
+  adjustment_reason?: string;
   forma_pagamento: string;
   status?: "Concluída" | "Cancelada";
   cash_register_id?: number;

@@ -63,6 +63,7 @@ import {
   deletePosQuote,
   deleteProductStocktakeDraft,
   deleteSuspendedPosSale,
+  fetchCurrentPosDiscountLimit,
   fetchPosCashRegisters,
   fetchPosQuotes,
   fetchPosSales,
@@ -222,6 +223,10 @@ export default function PosPage() {
   const [search, setSearch] = useState("");
   const [tutorId, setTutorId] = useState("");
   const [customerName, setCustomerName] = useState("");
+  const [discount, setDiscount] = useState("");
+  const [surcharge, setSurcharge] = useState("");
+  const [adjustmentReason, setAdjustmentReason] = useState("");
+  const [discountLimitPercent, setDiscountLimitPercent] = useState(10);
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [splitPayments, setSplitPayments] = useState(false);
   const [payments, setPayments] = useState<PaymentSplit[]>([
@@ -278,7 +283,12 @@ export default function PosPage() {
     (total, payment) => total + Number(payment.amount || 0),
     0,
   );
-  const paymentDifference = Number((cartTotal - paymentTotal).toFixed(2));
+  const discountAmount = Math.max(0, Number(discount || 0));
+  const surchargeAmount = Math.max(0, Number(surcharge || 0));
+  const saleTotal = Math.max(0, cartTotal - discountAmount + surchargeAmount);
+  const maxDiscountAmount = cartTotal * discountLimitPercent / 100;
+  const discountIsInvalid = discountAmount > maxDiscountAmount || saleTotal <= 0;
+  const paymentDifference = Number((saleTotal - paymentTotal).toFixed(2));
   const lowStockCount = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
   ).length;
@@ -301,6 +311,7 @@ export default function PosPage() {
       purchaseOrdersResponse,
       stocktakesResponse,
       stocktakeDraftResponse,
+      discountLimitResponse,
     ] = await Promise.all([
       fetchProducts(),
       fetchProductCategories(),
@@ -314,6 +325,7 @@ export default function PosPage() {
       fetchPurchaseOrders(),
       fetchProductStocktakes(),
       fetchProductStocktakeDraft(),
+      fetchCurrentPosDiscountLimit(),
     ]);
 
     const error =
@@ -353,6 +365,7 @@ export default function PosPage() {
     setStocktakeDraft(
       (stocktakeDraftResponse.data as ProductStocktakeDraft | null) || null,
     );
+    setDiscountLimitPercent(discountLimitResponse.data ?? 10);
     setLoading(false);
   }
 
@@ -567,6 +580,16 @@ export default function PosPage() {
       return;
     }
 
+    if (discountIsInvalid) {
+      toast.error(`Seu limite de desconto é ${discountLimitPercent}% (${formatCurrency(maxDiscountAmount)})`);
+      return;
+    }
+
+    if ((discountAmount > 0 || surchargeAmount > 0) && !adjustmentReason.trim()) {
+      toast.error("Informe o motivo do desconto ou acréscimo");
+      return;
+    }
+
     const customer = getCustomer();
     const saleItems = cart.map((item) => ({
       product_id: item.product.id,
@@ -596,6 +619,9 @@ export default function PosPage() {
         ...customer,
         payments: normalizedPayments,
         items: saleItems,
+        discount: discountAmount,
+        surcharge: surchargeAmount,
+        adjustmentReason,
       });
       setProcessing(false);
 
@@ -609,6 +635,9 @@ export default function PosPage() {
         ...customer,
         paymentMethod,
         items: saleItems,
+        discount: discountAmount,
+        surcharge: surchargeAmount,
+        adjustmentReason,
       });
       setProcessing(false);
 
@@ -631,6 +660,9 @@ export default function PosPage() {
     setPaymentMethod("PIX");
     setSplitPayments(false);
     setPayments([{ id: "payment-1", method: "PIX", amount: "" }]);
+    setDiscount("");
+    setSurcharge("");
+    setAdjustmentReason("");
   }
 
   async function handleSuspendSale(notes: string) {
@@ -1014,6 +1046,12 @@ export default function PosPage() {
               search={search}
               tutorId={tutorId}
               customerName={customerName}
+              discount={discount}
+              surcharge={surcharge}
+              adjustmentReason={adjustmentReason}
+              discountLimitPercent={discountLimitPercent}
+              maxDiscountAmount={maxDiscountAmount}
+              discountIsInvalid={discountIsInvalid}
               paymentMethod={paymentMethod}
               splitPayments={splitPayments}
               payments={payments}
@@ -1022,7 +1060,8 @@ export default function PosPage() {
               expirationDate={expirationDate}
               tutors={tutors}
               suspendedSales={suspendedSales}
-              total={cartTotal}
+              subtotal={cartTotal}
+              total={saleTotal}
               processing={processing}
               onSearch={setSearch}
               onBarcodeScan={handleBarcodeScan}
@@ -1030,6 +1069,9 @@ export default function PosPage() {
               onQuantity={updateQuantity}
               onTutor={setTutorId}
               onCustomerName={setCustomerName}
+              onDiscount={setDiscount}
+              onSurcharge={setSurcharge}
+              onAdjustmentReason={setAdjustmentReason}
               onPaymentMethod={setPaymentMethod}
               onSplitPayments={setSplitPayments}
               onPaymentSplit={updatePaymentSplit}
@@ -2068,6 +2110,12 @@ function SaleView({
   search,
   tutorId,
   customerName,
+  discount,
+  surcharge,
+  adjustmentReason,
+  discountLimitPercent,
+  maxDiscountAmount,
+  discountIsInvalid,
   paymentMethod,
   splitPayments,
   payments,
@@ -2076,6 +2124,7 @@ function SaleView({
   expirationDate,
   tutors,
   suspendedSales,
+  subtotal,
   total,
   processing,
   onSearch,
@@ -2084,6 +2133,9 @@ function SaleView({
   onQuantity,
   onTutor,
   onCustomerName,
+  onDiscount,
+  onSurcharge,
+  onAdjustmentReason,
   onPaymentMethod,
   onSplitPayments,
   onPaymentSplit,
@@ -2102,6 +2154,12 @@ function SaleView({
   search: string;
   tutorId: string;
   customerName: string;
+  discount: string;
+  surcharge: string;
+  adjustmentReason: string;
+  discountLimitPercent: number;
+  maxDiscountAmount: number;
+  discountIsInvalid: boolean;
   paymentMethod: string;
   splitPayments: boolean;
   payments: PaymentSplit[];
@@ -2110,6 +2168,7 @@ function SaleView({
   expirationDate: string;
   tutors: Tutor[];
   suspendedSales: SuspendedPosSale[];
+  subtotal: number;
   total: number;
   processing: boolean;
   onSearch: (value: string) => void;
@@ -2118,6 +2177,9 @@ function SaleView({
   onQuantity: (id: number, delta: number) => void;
   onTutor: (value: string) => void;
   onCustomerName: (value: string) => void;
+  onDiscount: (value: string) => void;
+  onSurcharge: (value: string) => void;
+  onAdjustmentReason: (value: string) => void;
   onPaymentMethod: (value: string) => void;
   onSplitPayments: (value: boolean) => void;
   onPaymentSplit: (
@@ -2437,11 +2499,28 @@ function SaleView({
             />
           </label>
         </div>
-        <div className="mt-5 flex items-center justify-between border-t pt-4">
+        <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-bold text-slate-700">Ajustes da venda</span>
+            <span className="text-xs font-semibold text-[#8A0EEA]">Limite: {discountLimitPercent}%</span>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <label className="grid gap-1 text-xs font-medium text-slate-500">Desconto (R$)<input type="number" min="0" step="0.01" max={maxDiscountAmount} value={discount} onChange={(event)=>onDiscount(event.target.value)} className={`rounded-xl border bg-white p-3 text-sm text-slate-900 ${discountIsInvalid?"border-red-400":""}`}/></label>
+            <label className="grid gap-1 text-xs font-medium text-slate-500">Acréscimo (R$)<input type="number" min="0" step="0.01" value={surcharge} onChange={(event)=>onSurcharge(event.target.value)} className="rounded-xl border bg-white p-3 text-sm text-slate-900"/></label>
+          </div>
+          {(Number(discount||0)>0||Number(surcharge||0)>0)&&<input value={adjustmentReason} onChange={(event)=>onAdjustmentReason(event.target.value)} placeholder="Motivo obrigatório" className="mt-2 w-full rounded-xl border bg-white p-3 text-sm"/>}
+          {discountIsInvalid&&<p className="mt-2 text-xs font-semibold text-red-600">Desconto máximo: {formatCurrency(maxDiscountAmount)}</p>}
+        </div>
+        <div className="mt-5 space-y-2 border-t pt-4">
+          {(Number(discount||0)>0||Number(surcharge||0)>0)&&<div className="flex justify-between text-sm text-slate-500"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>}
+          {Number(discount||0)>0&&<div className="flex justify-between text-sm font-medium text-emerald-700"><span>Desconto</span><span>- {formatCurrency(Number(discount))}</span></div>}
+          {Number(surcharge||0)>0&&<div className="flex justify-between text-sm font-medium text-amber-700"><span>Acréscimo</span><span>+ {formatCurrency(Number(surcharge))}</span></div>}
+          <div className="flex items-center justify-between">
           <span className="font-medium">Total</span>
           <strong className="text-2xl text-[#8A0EEA]">
             {formatCurrency(total)}
           </strong>
+          </div>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
           <button
@@ -2458,6 +2537,8 @@ function SaleView({
             disabled={
               processing ||
               cart.length === 0 ||
+              discountIsInvalid ||
+              ((Number(discount||0)>0||Number(surcharge||0)>0)&&!adjustmentReason.trim()) ||
               (splitPayments && Math.abs(paymentDifference) >= 0.01)
             }
             className="rounded-xl bg-[#8A0EEA] py-3 font-semibold text-white disabled:opacity-50"
@@ -3122,6 +3203,10 @@ function SalesView({
                       paymentMethod={sale.forma_pagamento}
                       status={sale.status || "Concluída"}
                       total={sale.total}
+                      subtotal={sale.subtotal}
+                      discount={sale.discount_amount}
+                      surcharge={sale.surcharge_amount}
+                      adjustmentReason={sale.adjustment_reason}
                       items={sale.pos_sale_items || []}
                     />
                   </div>
@@ -3203,6 +3288,10 @@ function SalesView({
                           paymentMethod={sale.forma_pagamento}
                           status={sale.status || "Concluída"}
                           total={sale.total}
+                          subtotal={sale.subtotal}
+                          discount={sale.discount_amount}
+                          surcharge={sale.surcharge_amount}
+                          adjustmentReason={sale.adjustment_reason}
                           items={sale.pos_sale_items || []}
                         />
                         {sale.status !== "Cancelada" && (

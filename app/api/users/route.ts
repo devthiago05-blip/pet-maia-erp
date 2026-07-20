@@ -10,6 +10,7 @@ interface UserPayload {
   password?: string;
   ativo?: boolean;
   is_admin?: boolean;
+  max_discount_percent?: number;
   permissions?: AccessModule[];
 }
 
@@ -45,6 +46,7 @@ export async function GET(request: Request) {
         email,
         ativo,
         is_admin,
+        max_discount_percent,
         created_at,
         user_permissions (
           module,
@@ -73,8 +75,9 @@ export async function POST(request: Request) {
   const email = payload.email?.trim().toLowerCase();
   const password = payload.password || "";
   const isAdmin = Boolean(payload.is_admin);
+  const maxDiscountPercent = isAdmin ? 100 : Number(payload.max_discount_percent ?? 10);
 
-  if (!nome || !email || password.length < 6) {
+  if (!nome || !email || password.length < 6 || !Number.isFinite(maxDiscountPercent) || maxDiscountPercent < 0 || maxDiscountPercent > 100) {
     return Response.json(
       { error: "Informe nome, email e uma senha com pelo menos 6 caracteres." },
       { status: 400 },
@@ -104,6 +107,7 @@ export async function POST(request: Request) {
       email,
       ativo: payload.ativo ?? true,
       is_admin: isAdmin,
+      max_discount_percent: maxDiscountPercent,
       updated_at: new Date().toISOString(),
     });
 
@@ -139,8 +143,9 @@ export async function PATCH(request: Request) {
   const nome = payload.nome?.trim();
   const email = payload.email?.trim().toLowerCase();
   const isAdmin = Boolean(payload.is_admin);
+  const maxDiscountPercent = isAdmin ? 100 : Number(payload.max_discount_percent ?? 10);
 
-  if (!id || !nome || !email) {
+  if (!id || !nome || !email || !Number.isFinite(maxDiscountPercent) || maxDiscountPercent < 0 || maxDiscountPercent > 100) {
     return Response.json(
       { error: "Usuário, nome e email são obrigatórios." },
       { status: 400 },
@@ -181,6 +186,7 @@ export async function PATCH(request: Request) {
       email,
       ativo: payload.ativo ?? true,
       is_admin: isAdmin,
+      max_discount_percent: maxDiscountPercent,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

@@ -23,6 +23,7 @@ export function UserModal({ user, onSave }: UserModalProps) {
   const [password, setPassword] = useState("");
   const [ativo, setAtivo] = useState(user?.ativo ?? true);
   const [isAdmin, setIsAdmin] = useState(user?.is_admin ?? false);
+  const [maxDiscountPercent, setMaxDiscountPercent] = useState(String(user?.max_discount_percent ?? 10));
   const [permissions, setPermissions] = useState<AccessModule[]>(
     user?.user_permissions
       ?.filter((permission) => permission.can_access)
@@ -40,6 +41,7 @@ export function UserModal({ user, onSave }: UserModalProps) {
     setPassword("");
     setAtivo(true);
     setIsAdmin(false);
+    setMaxDiscountPercent("10");
     setPermissions(["dashboard"]);
   }
 
@@ -77,6 +79,7 @@ export function UserModal({ user, onSave }: UserModalProps) {
         password: password || undefined,
         ativo,
         is_admin: isAdmin,
+        max_discount_percent: isAdmin ? 100 : Number(maxDiscountPercent),
         permissions: isAdmin ? [...accessModules] : permissions,
       });
       setOpen(false);
@@ -159,6 +162,12 @@ export function UserModal({ user, onSave }: UserModalProps) {
                 <span className="text-sm font-medium">Administrador</span>
               </label>
             </div>
+
+            <label className="mt-5 grid gap-2 rounded-xl border border-purple-100 bg-purple-50/50 p-4 text-sm font-medium">
+              Limite de desconto no PDV (%)
+              <input type="number" min="0" max="100" step="0.5" value={isAdmin?"100":maxDiscountPercent} disabled={isAdmin} onChange={(event)=>setMaxDiscountPercent(event.target.value)} className="rounded-xl border bg-white p-3 font-normal disabled:bg-slate-100"/>
+              <span className="text-xs font-normal text-slate-500">Administradores possuem limite de 100%.</span>
+            </label>
 
             <fieldset className="mt-5 rounded-xl border p-4">
               <legend className="px-2 font-semibold">Módulos permitidos</legend>

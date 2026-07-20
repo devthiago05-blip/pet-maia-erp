@@ -9,6 +9,7 @@ export interface UserInput {
   password?: string;
   ativo: boolean;
   is_admin: boolean;
+  max_discount_percent: number;
   permissions: AccessModule[];
 }
 

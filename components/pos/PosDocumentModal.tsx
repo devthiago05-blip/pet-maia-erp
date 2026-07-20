@@ -28,6 +28,10 @@ export function PosDocumentModal({
   paymentMethod,
   status,
   total,
+  subtotal,
+  discount,
+  surcharge,
+  adjustmentReason,
   items,
   onConvert,
 }: {
@@ -39,6 +43,10 @@ export function PosDocumentModal({
   paymentMethod?: string;
   status?: string;
   total: number;
+  subtotal?: number;
+  discount?: number;
+  surcharge?: number;
+  adjustmentReason?: string;
   items: PosItem[];
   onConvert?: (conversion: PosQuoteConversion) => Promise<void>;
 }) {
@@ -169,7 +177,8 @@ export function PosDocumentModal({
                   </tbody>
                 </table>
               </div>
-              <div className="flex justify-between border-t pt-4 text-lg">
+              {(Number(discount||0)>0||Number(surcharge||0)>0)&&<div className="space-y-1 border-t pt-4 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal||total)}</span></div>{Number(discount||0)>0&&<div className="flex justify-between text-emerald-700"><span>Desconto</span><span>- {formatCurrency(discount||0)}</span></div>}{Number(surcharge||0)>0&&<div className="flex justify-between text-amber-700"><span>Acréscimo</span><span>+ {formatCurrency(surcharge||0)}</span></div>}{adjustmentReason&&<p className="pt-1 text-xs text-slate-500">Motivo: {adjustmentReason}</p>}</div>}
+              <div className={`${Number(discount||0)>0||Number(surcharge||0)>0?"pt-2":"border-t pt-4"} flex justify-between text-lg`}>
                 <strong>Total</strong>
                 <strong className="text-[#8A0EEA]">
                   {formatCurrency(total)}

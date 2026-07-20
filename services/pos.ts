@@ -8,6 +8,7 @@ import type {
   Product,
   ProductStocktake,
   ProductStocktakeDraft,
+  PurchaseOrder,
 } from "@/types/domain";
 
 export interface PosCartItem {
@@ -189,6 +190,35 @@ export async function createProductPurchase({
     notes,
     items,
   });
+}
+
+export async function fetchPurchaseOrders() {
+  return supabase.from("purchase_orders").select(`
+    *, suppliers(nome),
+    purchase_order_items(*, products(id,nome,sku,tamanho,cor,sabor))
+  `).order("created_at", { ascending: false }).limit(50).returns<PurchaseOrder[]>();
+}
+
+export function createPurchaseOrder(input: {
+  supplierId: number;
+  expectedDate: string | null;
+  notes: string;
+  items: Array<{ product_id: number; quantidade: number; custo_unitario: number }>;
+}) {
+  return supabase.rpc("create_purchase_order", {
+    selected_supplier_id: input.supplierId,
+    selected_expected_date: input.expectedDate,
+    selected_notes: input.notes,
+    items: input.items,
+  });
+}
+
+export function setPurchaseOrderStatus(orderId: number, status: "Enviado" | "Cancelado") {
+  return supabase.rpc("set_purchase_order_status", { selected_order_id: orderId, selected_status: status });
+}
+
+export function receivePurchaseOrder(orderId: number, receipts: Array<{ item_id: number; quantidade: number }>) {
+  return supabase.rpc("receive_purchase_order", { selected_order_id: orderId, receipts });
 }
 
 export async function fetchPosQuotes() {

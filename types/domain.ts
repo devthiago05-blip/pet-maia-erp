@@ -709,6 +709,35 @@ export interface ProductPurchase {
   }>;
 }
 
+export type PurchaseOrderStatus =
+  | "Rascunho"
+  | "Enviado"
+  | "Recebido parcialmente"
+  | "Concluído"
+  | "Cancelado";
+
+export interface PurchaseOrderItem {
+  id: number;
+  order_id: number;
+  product_id: number;
+  ordered_quantity: number;
+  received_quantity: number;
+  unit_cost: number;
+  products?: Pick<Product, "id" | "nome" | "sku" | "tamanho" | "cor" | "sabor">;
+}
+
+export interface PurchaseOrder {
+  id: number;
+  supplier_id: number;
+  expected_date?: string;
+  status: PurchaseOrderStatus;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+  suppliers?: Pick<Supplier, "nome">;
+  purchase_order_items?: PurchaseOrderItem[];
+}
+
 export interface NewServiceInput {
   nome: string;
   preco_pequeno: number;

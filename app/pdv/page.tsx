@@ -25,6 +25,7 @@ import {
   type PurchaseInput,
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
+import { type NewPurchaseOrderInput, PurchaseOrdersPanel } from "@/components/pos/PurchaseOrdersPanel";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import {
   QuoteEditModal,
@@ -56,6 +57,7 @@ import {
   createProductCategory,
   createProductPurchase,
   createProducts,
+  createPurchaseOrder,
   createSupplier,
   deletePosQuote,
   deleteProductStocktakeDraft,
@@ -67,9 +69,12 @@ import {
   fetchProducts,
   fetchProductStocktakeDraft,
   fetchProductStocktakes,
+  fetchPurchaseOrders,
   fetchSuppliers,
   openPosCashRegister,
+  receivePurchaseOrder,
   saveProductStocktakeDraft,
+  setPurchaseOrderStatus,
   updatePosQuote,
   updateProduct,
 } from "@/services/pos";
@@ -87,6 +92,7 @@ import type {
   ProductPurchase,
   ProductStocktake,
   ProductStocktakeDraft,
+  PurchaseOrder,
   Supplier,
   Tutor,
 } from "@/types/domain";
@@ -192,6 +198,7 @@ export default function PosPage() {
   const [cashRegisters, setCashRegisters] = useState<PosCashRegister[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [stocktakes, setStocktakes] = useState<ProductStocktake[]>([]);
   const [stocktakeDraft, setStocktakeDraft] =
     useState<ProductStocktakeDraft | null>(null);
@@ -284,6 +291,7 @@ export default function PosPage() {
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
+      purchaseOrdersResponse,
       stocktakesResponse,
       stocktakeDraftResponse,
     ] = await Promise.all([
@@ -295,6 +303,7 @@ export default function PosPage() {
       fetchTutors(),
       fetchSuppliers(),
       fetchProductPurchases(),
+      fetchPurchaseOrders(),
       fetchProductStocktakes(),
       fetchProductStocktakeDraft(),
     ]);
@@ -308,6 +317,7 @@ export default function PosPage() {
       tutorsResponse.error ||
       suppliersResponse.error ||
       purchasesResponse.error ||
+      purchaseOrdersResponse.error ||
       stocktakesResponse.error ||
       stocktakeDraftResponse.error;
 
@@ -328,6 +338,7 @@ export default function PosPage() {
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
+    setPurchaseOrders((purchaseOrdersResponse.data || []) as PurchaseOrder[]);
     setStocktakes((stocktakesResponse.data || []) as ProductStocktake[]);
     setStocktakeDraft(
       (stocktakeDraftResponse.data as ProductStocktakeDraft | null) || null,
@@ -686,6 +697,27 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handlePurchaseOrderCreate(input: NewPurchaseOrderInput) {
+    const { error } = await createPurchaseOrder(input);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success("Pedido de compra criado sem alterar o estoque!");
+    await loadData();
+  }
+
+  async function handlePurchaseOrderStatus(id: number, status: "Enviado" | "Cancelado") {
+    const { error } = await setPurchaseOrderStatus(id, status);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success(status === "Enviado" ? "Pedido marcado como enviado!" : "Pedido cancelado!");
+    await loadData();
+  }
+
+  async function handlePurchaseOrderReceive(id: number, receipts: Array<{ item_id: number; quantidade: number }>) {
+    const { error } = await receivePurchaseOrder(id, receipts);
+    if (error) { toast.error(error.message); throw error; }
+    toast.success("Recebimento registrado e estoque atualizado!");
+    await loadData();
+  }
+
   async function handleQuoteConvert(
     quoteId: number,
     conversion: PosQuoteConversion,
@@ -983,10 +1015,13 @@ export default function PosPage() {
           ) : view === "purchases" ? (
             <PurchasesView
               purchases={purchases}
+              purchaseOrders={purchaseOrders}
               suppliers={suppliers}
               products={products}
               sales={sales}
-              onSave={handlePurchaseSave}
+              onCreateOrder={handlePurchaseOrderCreate}
+              onOrderStatus={handlePurchaseOrderStatus}
+              onOrderReceive={handlePurchaseOrderReceive}
             />
           ) : view === "quotes" ? (
             <QuotesView
@@ -1874,16 +1909,22 @@ function PrintMetric({
 
 function PurchasesView({
   purchases,
+  purchaseOrders,
   suppliers,
   products,
   sales,
-  onSave,
+  onCreateOrder,
+  onOrderStatus,
+  onOrderReceive,
 }: {
   purchases: ProductPurchase[];
+  purchaseOrders: PurchaseOrder[];
   suppliers: Supplier[];
   products: Product[];
   sales: PosSale[];
-  onSave: (purchase: PurchaseInput) => Promise<void>;
+  onCreateOrder: (input: NewPurchaseOrderInput) => Promise<void>;
+  onOrderStatus: (id: number, status: "Enviado" | "Cancelado") => Promise<void>;
+  onOrderReceive: (id: number, receipts: Array<{ item_id: number; quantidade: number }>) => Promise<void>;
 }) {
   return (
     <div className="space-y-6">
@@ -1892,7 +1933,15 @@ function PurchasesView({
         sales={sales}
         purchases={purchases}
         suppliers={suppliers}
-        onSave={onSave}
+        onCreateOrder={onCreateOrder}
+      />
+      <PurchaseOrdersPanel
+        orders={purchaseOrders}
+        products={products}
+        suppliers={suppliers}
+        onCreate={onCreateOrder}
+        onStatus={onOrderStatus}
+        onReceive={onOrderReceive}
       />
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="overflow-hidden rounded-xl border bg-white">

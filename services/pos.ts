@@ -110,6 +110,11 @@ export async function updateProduct(product: Product) {
       estoque: product.estoque,
       estoque_minimo: product.estoque_minimo,
       image_url: product.image_url || null,
+      ncm: product.ncm || null,
+      cfop: product.cfop || null,
+      origem_mercadoria: product.origem_mercadoria || null,
+      csosn: product.csosn || null,
+      unidade_comercial: product.unidade_comercial || null,
       ativo: product.ativo,
       updated_at: new Date().toISOString(),
     })

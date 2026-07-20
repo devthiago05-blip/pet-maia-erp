@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/formatters";
+import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface ProductModalProps {
@@ -54,6 +55,11 @@ function createProductForm(product?: Product) {
     categoryId: String(product?.category_id || ""),
     variations: [createVariation(product)],
     ativo: product?.ativo ?? true,
+    ncm: product?.ncm || "",
+    cfop: product?.cfop || "",
+    origemMercadoria: product?.origem_mercadoria || "0",
+    csosn: product?.csosn || "",
+    unidadeComercial: product?.unidade_comercial || "UN",
   };
 }
 
@@ -91,6 +97,11 @@ export function ProductModal({
     () => createProductForm(product).variations,
   );
   const [ativo, setAtivo] = useState(() => createProductForm(product).ativo);
+  const [ncm, setNcm] = useState(() => createProductForm(product).ncm);
+  const [cfop, setCfop] = useState(() => createProductForm(product).cfop);
+  const [origemMercadoria, setOrigemMercadoria] = useState(() => createProductForm(product).origemMercadoria);
+  const [csosn, setCsosn] = useState(() => createProductForm(product).csosn);
+  const [unidadeComercial, setUnidadeComercial] = useState(() => createProductForm(product).unidadeComercial);
   const [saving, setSaving] = useState(false);
 
   const loadForm = useCallback((nextProduct?: Product) => {
@@ -100,6 +111,11 @@ export function ProductModal({
     setCategoryId(nextForm.categoryId);
     setVariations(nextForm.variations);
     setAtivo(nextForm.ativo);
+    setNcm(nextForm.ncm);
+    setCfop(nextForm.cfop);
+    setOrigemMercadoria(nextForm.origemMercadoria);
+    setCsosn(nextForm.csosn);
+    setUnidadeComercial(nextForm.unidadeComercial);
   }, []);
 
   useEffect(() => {
@@ -193,6 +209,12 @@ export function ProductModal({
       return;
     }
 
+    const fiscalError = validateProductFiscalFields({ ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial });
+    if (fiscalError) {
+      toast.error(fiscalError);
+      return;
+    }
+
     const parsedVariations = variations.map((variation) => ({
       ...variation,
       barcodeValue: variation.barcode.trim(),
@@ -251,6 +273,11 @@ export function ProductModal({
         preco_venda: variation.precoVendaNumber,
         estoque: variation.estoqueNumber,
         estoque_minimo: variation.estoqueMinimoNumber,
+        ncm,
+        cfop,
+        origem_mercadoria: origemMercadoria,
+        csosn,
+        unidade_comercial: unidadeComercial,
         ativo,
       }),
     );
@@ -316,6 +343,18 @@ export function ProductModal({
                 />
                 Produto ativo
               </label>
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+              <h3 className="font-bold text-slate-900">Dados fiscais para NFC-e</h3>
+              <p className="mt-1 text-sm text-slate-500">Confirme NCM, CFOP e tributação com a contabilidade antes de emitir em produção.</p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                <ProductInput label="NCM (8 dígitos)" value={ncm} onChange={(value) => setNcm(normalizeFiscalCode(value, 8))} />
+                <ProductInput label="CFOP (4 dígitos)" value={cfop} onChange={(value) => setCfop(normalizeFiscalCode(value, 4))} />
+                <label className="grid gap-2 text-sm font-medium">Origem<select value={origemMercadoria} onChange={(event) => setOrigemMercadoria(event.target.value)} className="rounded-xl border bg-white p-3 font-normal"><option value="0">0 - Nacional</option><option value="1">1 - Importação direta</option><option value="2">2 - Estrangeira, mercado interno</option><option value="3">3 - Nacional, importado &gt; 40%</option><option value="4">4 - Processo básico</option><option value="5">5 - Nacional, importado ≤ 40%</option><option value="6">6 - Importado, sem similar</option><option value="7">7 - Interno, sem similar</option><option value="8">8 - Nacional, importado &gt; 70%</option></select></label>
+                <ProductInput label="CSOSN / CST" value={csosn} onChange={(value) => setCsosn(normalizeFiscalCode(value, 3))} />
+                <ProductInput label="Unidade" value={unidadeComercial} onChange={(value) => setUnidadeComercial(value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 6))} />
+              </div>
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">

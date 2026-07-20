@@ -36,6 +36,7 @@ import {
   formatDate,
   formatProductName,
 } from "@/lib/formatters";
+import { isProductFiscalReady } from "@/lib/product-fiscal";
 import {
   addPosCashMovement,
   archiveProduct,
@@ -2554,6 +2555,7 @@ function ProductsView({
         ) : (
           activeProducts.map((product) => {
             const lowStock = product.estoque <= product.estoque_minimo;
+            const fiscalReady = isProductFiscalReady(product);
 
             return (
               <article
@@ -2594,6 +2596,9 @@ function ProductsView({
                     {lowStock ? "Estoque baixo" : "Estoque normal"}
                   </span>
                 </div>
+                <span className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fiscalReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                  {fiscalReady ? "Fiscal completo" : "Fiscal pendente"}
+                </span>
 
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3">
                   <div className="flex min-h-10 items-center justify-center rounded-xl bg-purple-50 font-semibold text-[#8A0EEA]">
@@ -2658,7 +2663,12 @@ function ProductsView({
                       {product.estoque}
                     </td>
                     <td className="p-4">
-                      {product.ativo ? "Ativo" : "Inativo"}
+                      <div className="flex flex-col items-start gap-1">
+                        <span>{product.ativo ? "Ativo" : "Inativo"}</span>
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isProductFiscalReady(product) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                          {isProductFiscalReady(product) ? "Fiscal completo" : "Fiscal pendente"}
+                        </span>
+                      </div>
                     </td>
                     <td className="p-4">
                       <div className="flex flex-wrap gap-3">

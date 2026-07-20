@@ -483,6 +483,11 @@ export interface Product {
   estoque: number;
   estoque_minimo: number;
   image_url?: string | null;
+  ncm?: string;
+  cfop?: string;
+  origem_mercadoria?: string;
+  csosn?: string;
+  unidade_comercial?: string;
   ativo: boolean;
   created_at?: string;
 }

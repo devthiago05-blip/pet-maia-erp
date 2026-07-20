@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   CreditCard,
+  Download,
   FileKey2,
   ShieldCheck,
   Stethoscope,
@@ -241,6 +242,13 @@ export default function SettingsPage() {
             title="NFC-e (cupom fiscal)"
             description="Configuração segura para emissão da NFC-e modelo 65 no Ceará. Comece em homologação."
           >
+            <a
+              href="/manual-configuracao-nfce-pet-maia.pdf"
+              download
+              className="mb-5 inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-purple-50 px-4 py-2 font-semibold text-[#8A0EEA]"
+            >
+              <Download size={18} /> Baixar manual de configuração (PDF)
+            </a>
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="grid gap-4 sm:grid-cols-2">
                 <SettingsInput

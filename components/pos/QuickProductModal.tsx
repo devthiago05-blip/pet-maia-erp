@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface QuickProductModalProps {
@@ -46,6 +47,11 @@ export function QuickProductModal({
   const [categoryId, setCategoryId] = useState("");
   const [precoCusto, setPrecoCusto] = useState("");
   const [estoqueMinimo, setEstoqueMinimo] = useState("0");
+  const [ncm, setNcm] = useState("");
+  const [cfop, setCfop] = useState("");
+  const [origemMercadoria, setOrigemMercadoria] = useState("0");
+  const [csosn, setCsosn] = useState("");
+  const [unidadeComercial, setUnidadeComercial] = useState("UN");
   const [variations, setVariations] = useState<QuickVariation[]>([
     createQuickVariation(),
   ]);
@@ -56,6 +62,11 @@ export function QuickProductModal({
     setCategoryId("");
     setPrecoCusto("");
     setEstoqueMinimo("0");
+    setNcm("");
+    setCfop("");
+    setOrigemMercadoria("0");
+    setCsosn("");
+    setUnidadeComercial("UN");
     setVariations([createQuickVariation()]);
   }
 
@@ -98,6 +109,9 @@ export function QuickProductModal({
       toast.error("Selecione uma categoria");
       return;
     }
+
+    const fiscalError = validateProductFiscalFields({ ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial });
+    if (fiscalError) { toast.error(fiscalError); return; }
 
     const selectedCategory = categories.find(
       (category) => String(category.id) === categoryId,
@@ -162,6 +176,11 @@ export function QuickProductModal({
       preco_venda: variation.precoVendaNumber,
       estoque: variation.estoqueNumber,
       estoque_minimo: parsedMinimumStock,
+      ncm,
+      cfop,
+      origem_mercadoria: origemMercadoria,
+      csosn,
+      unidade_comercial: unidadeComercial,
       ativo: true,
     }));
 
@@ -207,6 +226,18 @@ export function QuickProductModal({
               >
                 Fechar
               </button>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+              <h3 className="font-bold">Dados fiscais para NFC-e</h3>
+              <p className="mt-1 text-sm text-slate-500">Use os dados confirmados pela contabilidade.</p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                <QuickInput label="NCM" value={ncm} onChange={(value) => setNcm(normalizeFiscalCode(value, 8))} />
+                <QuickInput label="CFOP" value={cfop} onChange={(value) => setCfop(normalizeFiscalCode(value, 4))} />
+                <label className="grid gap-2 text-sm font-medium">Origem<select value={origemMercadoria} onChange={(event) => setOrigemMercadoria(event.target.value)} className="rounded-xl border bg-white p-3 font-normal"><option value="0">0 - Nacional</option><option value="1">1 - Importação direta</option><option value="2">2 - Mercado interno</option><option value="3">3 - Nacional, importado &gt; 40%</option><option value="4">4 - Processo básico</option><option value="5">5 - Nacional, importado ≤ 40%</option><option value="6">6 - Importado, sem similar</option><option value="7">7 - Interno, sem similar</option><option value="8">8 - Nacional, importado &gt; 70%</option></select></label>
+                <QuickInput label="CSOSN / CST" value={csosn} onChange={(value) => setCsosn(normalizeFiscalCode(value, 3))} />
+                <QuickInput label="Unidade" value={unidadeComercial} onChange={(value) => setUnidadeComercial(value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 6))} />
+              </div>
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">

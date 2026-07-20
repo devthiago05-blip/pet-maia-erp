@@ -249,6 +249,10 @@ export default function SettingsPage() {
             >
               <Download size={18} /> Baixar manual de configuração (PDF)
             </a>
+            <p className="mb-5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              Os XML autorizados serão arquivados separadamente em uma área privada,
+              organizados por ambiente, ano e mês. Certificados e XML nunca ficam na mesma pasta.
+            </p>
             <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
               <div className="grid gap-4 sm:grid-cols-2">
                 <SettingsInput

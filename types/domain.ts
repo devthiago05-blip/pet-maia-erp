@@ -734,7 +734,7 @@ export interface PurchaseOrder {
   notes?: string;
   created_at: string;
   updated_at: string;
-  suppliers?: Pick<Supplier, "nome">;
+  suppliers?: Pick<Supplier, "nome" | "documento" | "telefone" | "email" | "contato">;
   purchase_order_items?: PurchaseOrderItem[];
 }
 

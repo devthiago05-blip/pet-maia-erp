@@ -194,7 +194,7 @@ export async function createProductPurchase({
 
 export async function fetchPurchaseOrders() {
   return supabase.from("purchase_orders").select(`
-    *, suppliers(nome),
+    *, suppliers(nome,documento,telefone,email,contato),
     purchase_order_items(*, products(id,nome,sku,tamanho,cor,sabor))
   `).order("created_at", { ascending: false }).limit(50).returns<PurchaseOrder[]>();
 }

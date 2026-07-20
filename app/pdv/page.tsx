@@ -51,15 +51,18 @@ import {
   createProductPurchase,
   createProducts,
   createSupplier,
+  deleteProductStocktakeDraft,
   fetchPosCashRegisters,
   fetchPosQuotes,
   fetchPosSales,
   fetchProductCategories,
   fetchProductPurchases,
   fetchProducts,
+  fetchProductStocktakeDraft,
   fetchProductStocktakes,
   fetchSuppliers,
   openPosCashRegister,
+  saveProductStocktakeDraft,
   updateProduct,
 } from "@/services/pos";
 import { fetchTutors } from "@/services/tutors";
@@ -75,6 +78,7 @@ import type {
   ProductCategory,
   ProductPurchase,
   ProductStocktake,
+  ProductStocktakeDraft,
   Supplier,
   Tutor,
 } from "@/types/domain";
@@ -181,6 +185,8 @@ export default function PosPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
   const [stocktakes, setStocktakes] = useState<ProductStocktake[]>([]);
+  const [stocktakeDraft, setStocktakeDraft] =
+    useState<ProductStocktakeDraft | null>(null);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [view, setView] = useState<
@@ -271,6 +277,7 @@ export default function PosPage() {
       suppliersResponse,
       purchasesResponse,
       stocktakesResponse,
+      stocktakeDraftResponse,
     ] = await Promise.all([
       fetchProducts(),
       fetchProductCategories(),
@@ -281,6 +288,7 @@ export default function PosPage() {
       fetchSuppliers(),
       fetchProductPurchases(),
       fetchProductStocktakes(),
+      fetchProductStocktakeDraft(),
     ]);
 
     const error =
@@ -292,7 +300,8 @@ export default function PosPage() {
       tutorsResponse.error ||
       suppliersResponse.error ||
       purchasesResponse.error ||
-      stocktakesResponse.error;
+      stocktakesResponse.error ||
+      stocktakeDraftResponse.error;
 
     if (error) {
       console.error(error);
@@ -312,6 +321,9 @@ export default function PosPage() {
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
     setStocktakes((stocktakesResponse.data || []) as ProductStocktake[]);
+    setStocktakeDraft(
+      (stocktakeDraftResponse.data as ProductStocktakeDraft | null) || null,
+    );
     setLoading(false);
   }
 
@@ -334,6 +346,41 @@ export default function PosPage() {
       `Balanço finalizado! ${result?.changed_count ?? 0} produto(s) ajustado(s).`,
     );
     await loadData();
+    return true;
+  }
+
+  async function handleSaveStocktakeDraft(input: {
+    items: Array<{ product_id: number; counted_quantity: number | null }>;
+    notes: string;
+  }) {
+    setProcessing(true);
+    const { error } = await saveProductStocktakeDraft(input);
+    setProcessing(false);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao salvar rascunho");
+      return false;
+    }
+
+    toast.success("Rascunho do balanço salvo!");
+    await loadData();
+    return true;
+  }
+
+  async function handleDeleteStocktakeDraft() {
+    setProcessing(true);
+    const { error } = await deleteProductStocktakeDraft();
+    setProcessing(false);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao descartar rascunho");
+      return false;
+    }
+
+    setStocktakeDraft(null);
+    toast.success("Rascunho descartado");
     return true;
   }
 
@@ -897,8 +944,11 @@ export default function PosPage() {
             <StocktakeView
               products={products}
               stocktakes={stocktakes}
+              draft={stocktakeDraft}
               processing={processing}
               onComplete={handleCompleteStocktake}
+              onSaveDraft={handleSaveStocktakeDraft}
+              onDeleteDraft={handleDeleteStocktakeDraft}
             />
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />

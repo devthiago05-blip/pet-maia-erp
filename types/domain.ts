@@ -531,6 +531,20 @@ export interface ProductStocktake {
   product_stocktake_items?: ProductStocktakeItem[];
 }
 
+export interface ProductStocktakeDraftItem {
+  product_id: number;
+  counted_quantity: number | null;
+}
+
+export interface ProductStocktakeDraft {
+  id: number;
+  created_by: string;
+  items: ProductStocktakeDraftItem[];
+  notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProductBatch {
   id: number;
   product_id: number;

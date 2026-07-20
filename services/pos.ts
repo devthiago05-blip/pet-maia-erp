@@ -7,6 +7,7 @@ import type {
   PosCashRegister,
   Product,
   ProductStocktake,
+  ProductStocktakeDraft,
 } from "@/types/domain";
 
 export interface PosCartItem {
@@ -42,6 +43,30 @@ export async function fetchProductStocktakes() {
     .order("created_at", { ascending: false })
     .limit(50)
     .returns<ProductStocktake[]>();
+}
+
+export async function fetchProductStocktakeDraft() {
+  return supabase
+    .from("product_stocktake_drafts")
+    .select("*")
+    .maybeSingle<ProductStocktakeDraft>();
+}
+
+export async function saveProductStocktakeDraft({
+  items,
+  notes,
+}: {
+  items: Array<{ product_id: number; counted_quantity: number | null }>;
+  notes: string;
+}) {
+  return supabase.rpc("save_product_stocktake_draft", {
+    draft_items: items,
+    draft_notes: notes.trim() || null,
+  });
+}
+
+export async function deleteProductStocktakeDraft() {
+  return supabase.rpc("delete_product_stocktake_draft");
 }
 
 export async function fetchProductCategories() {

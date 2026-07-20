@@ -3,6 +3,7 @@
 import {
   Barcode,
   ClipboardCheck,
+  FilePenLine,
   History,
   Plus,
   Printer,
@@ -15,7 +16,11 @@ import { toast } from "sonner";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { formatProductName } from "@/lib/formatters";
-import type { Product, ProductStocktake } from "@/types/domain";
+import type {
+  Product,
+  ProductStocktake,
+  ProductStocktakeDraft,
+} from "@/types/domain";
 
 interface StocktakeItem {
   product: Product;
@@ -25,23 +30,61 @@ interface StocktakeItem {
 interface StocktakeViewProps {
   products: Product[];
   stocktakes: ProductStocktake[];
+  draft: ProductStocktakeDraft | null;
   processing: boolean;
   onComplete: (input: {
     items: Array<{ product_id: number; counted_quantity: number }>;
     notes: string;
   }) => Promise<boolean>;
+  onSaveDraft: (input: {
+    items: Array<{ product_id: number; counted_quantity: number | null }>;
+    notes: string;
+  }) => Promise<boolean>;
+  onDeleteDraft: () => Promise<boolean>;
+}
+
+function restoreDraftItems(
+  draft: ProductStocktakeDraft | null,
+  products: Product[],
+): StocktakeItem[] {
+  if (!draft) {
+    return [];
+  }
+
+  return draft.items.flatMap((draftItem) => {
+    const product = products.find((item) => item.id === draftItem.product_id);
+    if (!product || !product.ativo) {
+      return [];
+    }
+
+    return [
+      {
+        product,
+        countedQuantity:
+          draftItem.counted_quantity === null
+            ? ""
+            : String(draftItem.counted_quantity),
+      },
+    ];
+  });
 }
 
 export function StocktakeView({
   products,
   stocktakes,
+  draft,
   processing,
   onComplete,
+  onSaveDraft,
+  onDeleteDraft,
 }: StocktakeViewProps) {
   const [search, setSearch] = useState("");
-  const [items, setItems] = useState<StocktakeItem[]>([]);
-  const [notes, setNotes] = useState("");
+  const [items, setItems] = useState<StocktakeItem[]>(() =>
+    restoreDraftItems(draft, products),
+  );
+  const [notes, setNotes] = useState(draft?.notes || "");
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
   const [selectedStocktake, setSelectedStocktake] =
     useState<ProductStocktake | null>(null);
 
@@ -137,6 +180,32 @@ export function StocktakeView({
     );
   }
 
+  async function saveDraft() {
+    if (items.length === 0) {
+      toast.error("Adicione ao menos um produto ao rascunho");
+      return;
+    }
+
+    await onSaveDraft({
+      items: items.map((item) => ({
+        product_id: item.product.id,
+        counted_quantity:
+          item.countedQuantity === "" ? null : Number(item.countedQuantity),
+      })),
+      notes,
+    });
+  }
+
+  async function discardDraft() {
+    setDiscardConfirmationOpen(false);
+    const deleted = await onDeleteDraft();
+    if (deleted) {
+      setItems([]);
+      setNotes("");
+      setSearch("");
+    }
+  }
+
   function requestCompletion() {
     if (items.length === 0) {
       toast.error("Adicione ao menos um produto ao balanço");
@@ -183,6 +252,26 @@ export function StocktakeView({
             </p>
           </div>
         </div>
+
+        {draft && (
+          <div className="mt-4 flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              <strong>Rascunho recuperado.</strong> Último salvamento em{" "}
+              {new Intl.DateTimeFormat("pt-BR", {
+                dateStyle: "short",
+                timeStyle: "short",
+              }).format(new Date(draft.updated_at))}.
+            </span>
+            <button
+              type="button"
+              onClick={() => setDiscardConfirmationOpen(true)}
+              disabled={processing}
+              className="shrink-0 font-bold text-red-700 hover:underline disabled:opacity-50"
+            >
+              Descartar rascunho
+            </button>
+          </div>
+        )}
 
         <div className="relative mt-5">
           <div className="flex items-center gap-2 rounded-xl border bg-slate-50 px-3">
@@ -346,15 +435,26 @@ export function StocktakeView({
             className="w-full min-w-0 resize-y rounded-xl border p-3 font-normal"
           />
         </label>
-        <button
-          type="button"
-          onClick={requestCompletion}
-          disabled={processing || items.length === 0}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 py-3 font-bold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50 lg:w-auto"
-        >
-          <ClipboardCheck size={20} />
-          {processing ? "Finalizando..." : "Finalizar balanço"}
-        </button>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={saveDraft}
+            disabled={processing || items.length === 0}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 px-5 py-3 font-bold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FilePenLine size={20} />
+            Salvar rascunho
+          </button>
+          <button
+            type="button"
+            onClick={requestCompletion}
+            disabled={processing || items.length === 0}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 py-3 font-bold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ClipboardCheck size={20} />
+            {processing ? "Processando..." : "Finalizar balanço"}
+          </button>
+        </div>
       </div>
 
       <StocktakeHistory
@@ -371,6 +471,16 @@ export function StocktakeView({
         cancelText="Revisar"
         onConfirm={completeStocktake}
         onCancel={() => setConfirmationOpen(false)}
+      />
+
+      <ConfirmationDialog
+        isOpen={discardConfirmationOpen}
+        title="Descartar rascunho"
+        description="A contagem salva será apagada. Nenhuma quantidade do estoque será alterada. Deseja continuar?"
+        confirmText="Descartar"
+        cancelText="Manter rascunho"
+        onConfirm={discardDraft}
+        onCancel={() => setDiscardConfirmationOpen(false)}
       />
     </section>
   );

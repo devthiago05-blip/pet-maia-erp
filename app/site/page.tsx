@@ -457,10 +457,10 @@ export default function SitePage() {
 
             <form
               onSubmit={handlePetImageSubmit}
-              className="grid gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[1fr_220px]"
+              className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
             >
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                <label className="grid gap-2 text-sm font-medium">
+              <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="grid min-w-0 gap-2 text-sm font-medium">
                   Nome do pet
                   <input
                     value={petImageForm.name}
@@ -468,11 +468,11 @@ export default function SitePage() {
                       updatePetImageForm("name", event.target.value)
                     }
                     placeholder="Ex: Estela"
-                    className="rounded-xl border p-3 font-normal"
+                    className="w-full min-w-0 rounded-xl border p-3 font-normal"
                   />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium xl:col-span-2">
+                <label className="grid min-w-0 gap-2 text-sm font-medium xl:col-span-2">
                   Legenda
                   <input
                     value={petImageForm.detail}
@@ -480,11 +480,11 @@ export default function SitePage() {
                       updatePetImageForm("detail", event.target.value)
                     }
                     placeholder="Ex: Banho e lacinho"
-                    className="rounded-xl border p-3 font-normal"
+                    className="w-full min-w-0 rounded-xl border p-3 font-normal"
                   />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium">
+                <label className="grid min-w-0 gap-2 text-sm font-medium">
                   Ordem
                   <input
                     type="number"
@@ -494,17 +494,17 @@ export default function SitePage() {
                     onChange={(event) =>
                       updatePetImageForm("sortOrder", event.target.value)
                     }
-                    className="rounded-xl border p-3 font-normal"
+                    className="w-full min-w-0 rounded-xl border p-3 font-normal"
                   />
                 </label>
 
-                <label className="grid gap-2 text-sm font-medium md:col-span-2 xl:col-span-3">
+                <label className="grid min-w-0 gap-2 text-sm font-medium md:col-span-2 xl:col-span-3">
                   Foto pet
                   <input
                     type="file"
                     accept="image/png,image/jpeg,image/webp"
                     onChange={handlePetImageFileChange}
-                    className="rounded-xl border bg-white p-3 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
+                    className="w-full min-w-0 rounded-xl border bg-white p-3 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
                   />
                 </label>
 
@@ -520,11 +520,11 @@ export default function SitePage() {
                   Mostrar no site
                 </label>
 
-                <div className="flex flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
+                <div className="flex min-w-0 flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
                   <button
                     type="submit"
                     disabled={petImageSaving}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] px-4 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                    className="inline-flex w-full min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] px-4 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60 sm:w-auto"
                   >
                     <Save size={18} />
                     {petImageSaving
@@ -537,14 +537,14 @@ export default function SitePage() {
                   <button
                     type="button"
                     onClick={resetPetImageForm}
-                    className="rounded-xl border px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+                    className="w-full min-w-0 rounded-xl border px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
                   >
                     Limpar
                   </button>
                 </div>
               </div>
 
-              <div className="grid min-h-52 place-items-center overflow-hidden rounded-xl border bg-slate-50">
+              <div className="grid min-h-52 min-w-0 place-items-center overflow-hidden rounded-xl border bg-slate-50">
                 {petImageForm.imagePreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -585,19 +585,19 @@ export default function SitePage() {
 
           <form
             onSubmit={handleSubmit}
-            className="grid gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[1fr_220px]"
+            className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
           >
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="grid gap-2 text-sm font-medium">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid min-w-0 gap-2 text-sm font-medium">
                 Tipo
-                <div className="grid grid-cols-2 rounded-xl border bg-slate-50 p-1">
+                <div className="grid min-w-0 grid-cols-2 rounded-xl border bg-slate-50 p-1">
                   {(["Bandana", "Lacinho"] as SiteAccessoryKind[]).map(
                     (kind) => (
                       <button
                         key={kind}
                         type="button"
                         onClick={() => updateForm("kind", kind)}
-                        className={`rounded-lg px-3 py-2 font-semibold transition ${
+                        className={`min-w-0 rounded-lg px-3 py-2 font-semibold transition ${
                           form.kind === kind
                             ? "bg-[#8A0EEA] text-white"
                             : "text-slate-600 hover:bg-white"
@@ -610,17 +610,17 @@ export default function SitePage() {
                 </div>
               </div>
 
-              <label className="grid gap-2 text-sm font-medium xl:col-span-2">
+              <label className="grid min-w-0 gap-2 text-sm font-medium xl:col-span-2">
                 Nome
                 <input
                   value={form.nome}
                   onChange={(event) => updateForm("nome", event.target.value)}
                   placeholder="Ex: Bandana rosa floral"
-                  className="rounded-xl border p-3 font-normal"
+                  className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium">
+              <label className="grid min-w-0 gap-2 text-sm font-medium">
                 Estoque
                 <input
                   type="number"
@@ -628,25 +628,25 @@ export default function SitePage() {
                   step="1"
                   value={form.estoque}
                   onChange={(event) => updateForm("estoque", event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
+                  className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />
               </label>
 
-              <label className="grid gap-2 text-sm font-medium md:col-span-2 xl:col-span-4">
+              <label className="grid min-w-0 gap-2 text-sm font-medium md:col-span-2 xl:col-span-4">
                 Foto
                 <input
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   onChange={handleFileChange}
-                  className="rounded-xl border bg-white p-3 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
+                  className="w-full min-w-0 rounded-xl border bg-white p-3 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
                 />
               </label>
 
-              <div className="flex flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] px-4 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                  className="inline-flex w-full min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] px-4 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60 sm:w-auto"
                 >
                   <Save size={18} />
                   {saving
@@ -658,14 +658,14 @@ export default function SitePage() {
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="rounded-xl border px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+                  className="w-full min-w-0 rounded-xl border px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 sm:w-auto"
                 >
                   Limpar
                 </button>
               </div>
             </div>
 
-            <div className="grid min-h-52 place-items-center overflow-hidden rounded-xl border bg-slate-50">
+            <div className="grid min-h-52 min-w-0 place-items-center overflow-hidden rounded-xl border bg-slate-50">
               {form.imagePreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

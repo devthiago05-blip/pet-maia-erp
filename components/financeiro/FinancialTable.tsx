@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  CalendarDays,
+  CheckCircle2,
+  CreditCard,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -38,7 +45,125 @@ export function FinancialTable({
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="space-y-3 md:hidden">
+        {entries.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
+            Nenhum lançamento financeiro encontrado.
+          </div>
+        ) : (
+          entries.map((entry) => {
+            const effectiveType = getEffectiveFinancialEntryType(entry);
+            const isExpense = effectiveType === "Despesa";
+            const isPaid = entry.status_pagamento === "Pago";
+
+            return (
+              <article
+                key={entry.id}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isExpense
+                            ? "bg-red-100 text-red-700"
+                            : "bg-green-100 text-green-700"
+                        }`}
+                      >
+                        {effectiveType}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          isPaid
+                            ? "bg-green-100 text-green-700"
+                            : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {isPaid ? "Pago" : "Pendente"}
+                      </span>
+                    </div>
+                    <h3 className="mt-3 break-words font-bold text-slate-900">
+                      {entry.descricao}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {getFinancialOriginLabel(entry.origem)}
+                    </p>
+                  </div>
+                  <p
+                    className={`shrink-0 text-lg font-bold ${
+                      isExpense ? "text-red-700" : "text-green-700"
+                    }`}
+                  >
+                    {formatCurrency(entry.valor)}
+                  </p>
+                </div>
+
+                <div className="mt-4 grid gap-2 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                  {(entry.tutors?.nome || entry.pets?.nome) && (
+                    <p>
+                      {[entry.tutors?.nome, entry.pets?.nome]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  )}
+                  <p className="flex items-center gap-2">
+                    <CreditCard size={16} className="shrink-0 text-slate-400" />
+                    {entry.forma_pagamento || "Pagamento não informado"}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <CalendarDays
+                      size={16}
+                      className="shrink-0 text-slate-400"
+                    />
+                    Lançamento: {formatDate(entry.created_at)}
+                  </p>
+                  {isExpense && entry.data_vencimento && (
+                    <p className="pl-6">
+                      Vencimento: {formatDate(entry.data_vencimento)}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  className={`mt-3 grid gap-2 border-t border-slate-100 pt-3 ${
+                    isPaid ? "grid-cols-2" : "grid-cols-3"
+                  }`}
+                >
+                  {!isPaid && (
+                    <button
+                      type="button"
+                      onClick={() => onReceive(entry.id)}
+                      className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-green-50 text-sm font-semibold text-green-700"
+                    >
+                      <CheckCircle2 size={16} />
+                      {isExpense ? "Pagar" : "Receber"}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onEdit(entry)}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-purple-50 text-sm font-semibold text-[#8A0EEA]"
+                  >
+                    <Pencil size={16} />
+                    Editar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEntryToDelete(entry)}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-red-50 text-sm font-semibold text-red-600"
+                  >
+                    <Trash2 size={16} />
+                    Excluir
+                  </button>
+                </div>
+              </article>
+            );
+          })
+        )}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white md:block">
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[1500px]">
             <thead className="bg-slate-50">

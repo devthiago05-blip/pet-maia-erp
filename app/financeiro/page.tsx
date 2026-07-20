@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer, Search } from "lucide-react";
+import { ChevronDown, Printer, Search, SlidersHorizontal } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -63,6 +63,7 @@ export default function FinanceiroPage() {
     () => getCurrentMonthPeriod().start,
   );
   const [endDate, setEndDate] = useState(() => getCurrentMonthPeriod().end);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const currentMonthPeriod = getCurrentMonthPeriod();
   const isTodaySelected =
     startDate === new Date().toLocaleDateString("en-CA") &&
@@ -442,7 +443,7 @@ export default function FinanceiroPage() {
           )}
 
           <div className="space-y-3 rounded-xl border bg-white p-4">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={setTodayFilter}
@@ -472,9 +473,24 @@ export default function FinanceiroPage() {
               >
                 Limpar filtros
               </button>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((open) => !open)}
+                aria-expanded={filtersOpen}
+                className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 md:hidden"
+              >
+                <SlidersHorizontal size={16} />
+                Filtros
+                <ChevronDown
+                  size={16}
+                  className={`transition ${filtersOpen ? "rotate-180" : ""}`}
+                />
+              </button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div
+              className={`${filtersOpen ? "grid" : "hidden"} gap-3 md:grid md:grid-cols-2 xl:grid-cols-4`}
+            >
               <label className="flex items-center gap-3 rounded-xl border px-3">
                 <Search size={18} className="text-slate-400" />
                 <input

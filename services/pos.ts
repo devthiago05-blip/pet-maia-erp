@@ -147,6 +147,11 @@ export async function fetchProductPurchases() {
         *,
         suppliers (
           nome
+        ),
+        product_purchase_items (
+          product_id,
+          quantidade,
+          custo_unitario
         )
       `,
     )

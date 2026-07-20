@@ -30,6 +30,7 @@ import {
   QuoteEditModal,
   type QuoteUpdateInput,
 } from "@/components/pos/QuoteEditModal";
+import { ReplenishmentPanel } from "@/components/pos/ReplenishmentPanel";
 import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
@@ -980,7 +981,13 @@ export default function PosPage() {
               onDeleteDraft={handleDeleteStocktakeDraft}
             />
           ) : view === "purchases" ? (
-            <PurchasesView purchases={purchases} suppliers={suppliers} />
+            <PurchasesView
+              purchases={purchases}
+              suppliers={suppliers}
+              products={products}
+              sales={sales}
+              onSave={handlePurchaseSave}
+            />
           ) : view === "quotes" ? (
             <QuotesView
               quotes={quotes}
@@ -1868,11 +1875,25 @@ function PrintMetric({
 function PurchasesView({
   purchases,
   suppliers,
+  products,
+  sales,
+  onSave,
 }: {
   purchases: ProductPurchase[];
   suppliers: Supplier[];
+  products: Product[];
+  sales: PosSale[];
+  onSave: (purchase: PurchaseInput) => Promise<void>;
 }) {
   return (
+    <div className="space-y-6">
+      <ReplenishmentPanel
+        products={products}
+        sales={sales}
+        purchases={purchases}
+        suppliers={suppliers}
+        onSave={onSave}
+      />
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="overflow-hidden rounded-xl border bg-white">
         <div className="overflow-x-auto">
@@ -1930,6 +1951,7 @@ function PurchasesView({
           )}
         </div>
       </aside>
+    </div>
     </div>
   );
 }

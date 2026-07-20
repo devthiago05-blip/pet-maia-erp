@@ -691,6 +691,7 @@ export type NewSupplierInput = Omit<Supplier, "id" | "created_at">;
 
 export interface ProductPurchase {
   id: number;
+  supplier_id?: number;
   numero_documento?: string;
   data_compra: string;
   total: number;
@@ -701,6 +702,11 @@ export interface ProductPurchase {
   suppliers?: {
     nome: string;
   };
+  product_purchase_items?: Array<{
+    product_id: number;
+    quantidade: number;
+    custo_unitario: number;
+  }>;
 }
 
 export interface NewServiceInput {

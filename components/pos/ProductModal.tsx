@@ -1,9 +1,10 @@
 "use client";
 
-import { Barcode, Plus, Search, Trash2 } from "lucide-react";
+import { Barcode, Camera, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { BarcodeScannerModal } from "@/components/pos/BarcodeScannerModal";
 import { formatCurrency } from "@/lib/formatters";
 import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
 import { lookupProductBarcode } from "@/services/product-lookup";
@@ -107,6 +108,7 @@ export function ProductModal({
   const [imageUrl, setImageUrl] = useState(() => createProductForm(product).imageUrl);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupSource, setLookupSource] = useState("");
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadForm = useCallback((nextProduct?: Product) => {
@@ -205,8 +207,8 @@ export function ProductModal({
     ]);
   }
 
-  async function handleBarcodeLookup() {
-    const code = variations[0]?.barcode.replace(/\D/g, "") || "";
+  async function handleBarcodeLookup(detectedCode?: string) {
+    const code = detectedCode || variations[0]?.barcode.replace(/\D/g, "") || "";
     if (!/^\d{8,14}$/.test(code)) {
       toast.error("Informe primeiro um código de barras com 8 a 14 dígitos");
       return;
@@ -394,9 +396,12 @@ export function ProductModal({
                   <p className="mt-1 text-sm text-slate-500">Digite ou escaneie o GTIN/EAN para consultar a base pública.</p>
                 </div>
                 <ProductInput label="Código de barras" value={variations[0]?.barcode || ""} onChange={(value) => updateVariation(variations[0].id, "barcode", value.replace(/\D/g, "").slice(0, 14))} />
-                <button type="button" onClick={handleBarcodeLookup} disabled={lookingUp} className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60">
-                  <Search size={17} /> {lookingUp ? "Consultando..." : "Buscar informações"}
-                </button>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setScannerOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-700 bg-white px-3 py-3 font-semibold text-sky-700"><Camera size={18} /><span className="sm:hidden xl:inline">Câmera</span></button>
+                  <button type="button" onClick={() => void handleBarcodeLookup()} disabled={lookingUp} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60">
+                    <Search size={17} /> {lookingUp ? "Consultando..." : "Buscar informações"}
+                  </button>
+                </div>
               </div>
               {(imageUrl || lookupSource) && <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
                 {imageUrl && <>
@@ -579,6 +584,15 @@ export function ProductModal({
           </div>
         </div>
       )}
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onDetected={(code) => {
+          updateVariation(variations[0].id, "barcode", code);
+          setScannerOpen(false);
+          void handleBarcodeLookup(code);
+        }}
+      />
     </>
   );
 }

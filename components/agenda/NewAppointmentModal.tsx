@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { extractRequestedPetNameFromObservation } from "@/lib/appointment-observation";
 import type {
   Appointment,
   AppointmentStatus,
@@ -29,6 +30,34 @@ interface NewAppointmentModalProps {
   appointment?: Appointment | null;
 }
 
+const appointmentPhoneLinePattern = /^(Celular|Telefone):\s?(.+)$/i;
+
+function normalizePhoneDigits(phone?: string | null) {
+  const digits = phone?.replace(/\D/g, "") || "";
+
+  return digits.startsWith("55") && digits.length > 11
+    ? digits.slice(2)
+    : digits;
+}
+
+function findTutorByAppointmentPhone(
+  observation: string | undefined,
+  tutors: Tutor[],
+) {
+  const appointmentPhone = observation
+    ?.split("\n")
+    .map((line) => line.trim().match(appointmentPhoneLinePattern)?.[2])
+    .find(Boolean);
+  const appointmentPhoneDigits = normalizePhoneDigits(appointmentPhone);
+
+  if (!appointmentPhoneDigits) {
+    return undefined;
+  }
+
+  return tutors.find(
+    (tutor) => normalizePhoneDigits(tutor.telefone) === appointmentPhoneDigits,
+  );
+}
 const tutorContactLinePattern = /^(Endere[cç]o|Endereco|Telefone):\s?.*$/i;
 
 function syncObservationTutorContact(
@@ -80,6 +109,11 @@ export function NewAppointmentModal({
     ? pets.filter((petItem) => String(petItem.tutor_id) === tutorId)
     : pets;
   const selectedTutor = tutors.find((tutor) => String(tutor.id) === tutorId);
+  const requestedPetName = !petId
+    ? extractRequestedPetNameFromObservation(
+        observacao || appointment?.observacao,
+      )
+    : "";
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -87,9 +121,12 @@ export function NewAppointmentModal({
         const selectedPet = appointment
           ? pets.find((pet) => pet.id === appointment.pet_id)
           : null;
+        const matchedTutor = appointment
+          ? findTutorByAppointmentPhone(appointment.observacao, tutors)
+          : undefined;
         const initialTutorId = selectedPet?.tutor_id
           ? String(selectedPet.tutor_id)
-          : defaultTutorId;
+          : defaultTutorId || (matchedTutor ? String(matchedTutor.id) : "");
         const initialTutor = tutors.find(
           (tutor) => String(tutor.id) === initialTutorId,
         );
@@ -234,7 +271,11 @@ export function NewAppointmentModal({
                 onChange={(event) => handlePetChange(event.target.value)}
                 className="w-full rounded-xl border p-3"
               >
-                <option value="">Selecione um Pet</option>
+                <option value="">
+                  {requestedPetName
+                    ? `Pet informado no site: ${requestedPetName}`
+                    : "Selecione um Pet"}
+                </option>
 
                 {petsFiltrados.map((petItem) => (
                   <option key={petItem.id} value={petItem.id}>

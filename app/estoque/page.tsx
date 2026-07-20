@@ -34,6 +34,7 @@ import type {
 } from "@/types/domain";
 
 type StockView = "saldo" | "historico" | "lotes";
+type StockFilter = "todos" | "baixo";
 type AdjustmentKind = Exclude<
   ProductStockMovementKind,
   "sistema" | "edicao"
@@ -98,6 +99,7 @@ export default function StockPage() {
   const [movements, setMovements] = useState<ProductStockMovement[]>([]);
   const [batches, setBatches] = useState<ProductBatch[]>([]);
   const [view, setView] = useState<StockView>("saldo");
+  const [stockFilter, setStockFilter] = useState<StockFilter>("todos");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [adjusting, setAdjusting] = useState<Product | null>(null);
@@ -130,16 +132,21 @@ export default function StockPage() {
 
   const filteredProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return products.filter(
-      (product) =>
+    return products.filter((product) => {
+      const matchesStatus =
+        stockFilter === "todos" || product.estoque <= product.estoque_minimo;
+
+      return (
         product.ativo &&
+        matchesStatus &&
         (!term ||
           product.nome.toLowerCase().includes(term) ||
           product.sku?.toLowerCase().includes(term) ||
           product.barcode?.toLowerCase().includes(term) ||
-          product.categoria?.toLowerCase().includes(term)),
-    );
-  }, [products, search]);
+          product.categoria?.toLowerCase().includes(term))
+      );
+    });
+  }, [products, search, stockFilter]);
 
   const filteredMovements = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -239,6 +246,33 @@ export default function StockPage() {
               ))}
             </div>
           </div>
+
+          {view === "saldo" && (
+            <div className="flex items-center gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setStockFilter("todos")}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  stockFilter === "todos"
+                    ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]"
+                    : "border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                Todos ({products.filter((product) => product.ativo).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStockFilter("baixo")}
+                className={`shrink-0 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  stockFilter === "baixo"
+                    ? "border-amber-400 bg-amber-50 text-amber-700"
+                    : "border-slate-200 bg-white text-slate-600"
+                }`}
+              >
+                Estoque baixo ({lowStock.length})
+              </button>
+            </div>
+          )}
 
           {loading ? (
             <div className="rounded-2xl border bg-white p-8 text-center text-slate-500">Carregando estoque...</div>

@@ -13,7 +13,10 @@ import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { formatAppointmentObservation } from "@/lib/appointment-observation";
+import {
+  formatAppointmentObservation,
+  getAppointmentPetDisplayName,
+} from "@/lib/appointment-observation";
 import {
   createAppointment,
   deleteAppointment,
@@ -322,8 +325,15 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
-  async function handleConfirmAppointment(id: number) {
-    const { error } = await updateAppointmentStatus(id, "Agendado");
+  async function handleConfirmAppointment(appointment: Appointment) {
+    if (!appointment.pet_id) {
+      setAppointmentToEdit(appointment);
+      setAppointmentModalOpen(true);
+      toast.info("Selecione o tutor e associe o pet antes de confirmar.");
+      return;
+    }
+
+    const { error } = await updateAppointmentStatus(appointment.id, "Agendado");
 
     if (error) {
       console.error(error);
@@ -725,7 +735,9 @@ function AppointmentPrintView({
                     "-"
                   )}
                 </td>
-                <td className="border p-2">{appointment.pets?.nome || "-"}</td>
+                <td className="border p-2">
+                  {getAppointmentPetDisplayName(appointment)}
+                </td>
                 <td className="border p-2">
                   {appointment.pets?.tutors?.nome || "-"}
                 </td>

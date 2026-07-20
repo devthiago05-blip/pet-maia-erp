@@ -1,6 +1,27 @@
 import type { Appointment } from "@/types/domain";
 
 const autoContactLinePattern = /^(Endereco|Telefone):\s?.*$/i;
+const requestedPetLinePattern = /^Pet:\s?(.+)$/i;
+
+export function extractRequestedPetNameFromObservation(observation?: string) {
+  return (
+    observation
+      ?.split("\n")
+      .map((line) => line.trim().match(requestedPetLinePattern)?.[1]?.trim())
+      .find(Boolean) || ""
+  );
+}
+
+export function getAppointmentPetDisplayName(
+  appointment: Appointment,
+  fallback = "-",
+) {
+  return (
+    appointment.pets?.nome ||
+    extractRequestedPetNameFromObservation(appointment.observacao) ||
+    fallback
+  );
+}
 
 export function buildAppointmentObservation(appointment: Appointment) {
   const tutor = appointment.pets?.tutors;

@@ -7,7 +7,7 @@ interface KanbanColumnProps {
   appointments: Appointment[];
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
-  onConfirm: (id: number) => void;
+  onConfirm: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (appointment: Appointment) => void;

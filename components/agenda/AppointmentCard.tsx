@@ -1,14 +1,17 @@
 import { useState } from "react";
 
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
-import { buildAppointmentObservation } from "@/lib/appointment-observation";
+import {
+  buildAppointmentObservation,
+  getAppointmentPetDisplayName,
+} from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
 interface AppointmentCardProps {
   appointment: Appointment;
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
-  onConfirm: (id: number) => void;
+  onConfirm: (appointment: Appointment) => void;
   onCancel: (id: number) => void;
   onDelete: (id: number) => void;
   onEdit: (appointment: Appointment) => void;
@@ -24,7 +27,10 @@ export function AppointmentCard({
   onEdit,
 }: AppointmentCardProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const petName = appointment.pets?.nome || "Pet nao informado";
+  const petName = getAppointmentPetDisplayName(
+    appointment,
+    "Pet nao informado",
+  );
   const tutorName = appointment.pets?.tutors?.nome || "Tutor nao informado";
   const observation = buildAppointmentObservation(appointment);
 
@@ -62,7 +68,7 @@ export function AppointmentCard({
             <>
               <button
                 type="button"
-                onClick={() => onConfirm(appointment.id)}
+                onClick={() => onConfirm(appointment)}
                 className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
                 Confirmar

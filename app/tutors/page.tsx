@@ -112,6 +112,11 @@ export default function TutorsPage() {
     }
   }
 
+  function handleAddPetToTutor(tutor: Tutor) {
+    setCreatedTutorForPet(tutor);
+    setPetModalOpen(true);
+  }
+
   async function handleUpdateTutor(tutorAtualizado: Tutor) {
     const { error } = await updateTutor(tutorAtualizado);
 
@@ -219,6 +224,7 @@ export default function TutorsPage() {
 
           <TutorTable
             tutors={filteredTutors}
+            onAddPet={handleAddPetToTutor}
             onDelete={handleDeleteTutor}
             onEdit={setEditingTutor}
           />

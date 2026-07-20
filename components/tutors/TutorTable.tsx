@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -19,11 +19,17 @@ import type { Pet, Tutor } from "@/types/domain";
 
 interface TutorTableProps {
   tutors: Tutor[];
+  onAddPet: (tutor: Tutor) => void;
   onDelete: (id: number) => void;
   onEdit: (tutor: Tutor) => void;
 }
 
-export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
+export function TutorTable({
+  tutors,
+  onAddPet,
+  onDelete,
+  onEdit,
+}: TutorTableProps) {
   const [tutorToDelete, setTutorToDelete] = useState<Tutor | null>(null);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
   const [relatedPets, setRelatedPets] = useState<Pet[]>([]);
@@ -196,6 +202,23 @@ export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
               ))}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              if (!selectedTutor) {
+                return;
+              }
+
+              const tutor = selectedTutor;
+              setSelectedTutor(null);
+              onAddPet(tutor);
+            }}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 font-semibold text-white transition hover:bg-violet-800"
+          >
+            <Plus size={18} />
+            Cadastrar novo pet
+          </button>
         </DialogContent>
       </Dialog>
     </>

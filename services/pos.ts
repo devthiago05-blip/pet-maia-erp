@@ -209,6 +209,10 @@ export async function fetchPosQuotes() {
     .limit(30);
 }
 
+export async function deletePosQuote(quoteId: number) {
+  return supabase.from("pos_quotes").delete().eq("id", quoteId);
+}
+
 export async function fetchPosSales() {
   return supabase
     .from("pos_sales")

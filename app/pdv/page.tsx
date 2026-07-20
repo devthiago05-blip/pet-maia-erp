@@ -52,6 +52,7 @@ import {
   createProductPurchase,
   createProducts,
   createSupplier,
+  deletePosQuote,
   deleteProductStocktakeDraft,
   fetchPosCashRegisters,
   fetchPosQuotes,
@@ -705,6 +706,18 @@ export default function PosPage() {
     setView("sales");
   }
 
+  async function handleQuoteDelete(quoteId: number) {
+    const { error } = await deletePosQuote(quoteId);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Orçamento excluído com sucesso!");
+    setQuotes((current) => current.filter((quote) => quote.id !== quoteId));
+  }
+
   async function handleSaleCancel(saleId: number) {
     const { error } = await cancelPosSale(saleId);
 
@@ -954,7 +967,11 @@ export default function PosPage() {
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />
           ) : view === "quotes" ? (
-            <QuotesView quotes={quotes} onConvert={handleQuoteConvert} />
+            <QuotesView
+              quotes={quotes}
+              onConvert={handleQuoteConvert}
+              onDelete={handleQuoteDelete}
+            />
           ) : (
             <SalesView sales={sales} onCancel={handleSaleCancel} />
           )}
@@ -2713,14 +2730,33 @@ function ProductsView({
 function QuotesView({
   quotes,
   onConvert,
+  onDelete,
 }: {
   quotes: PosQuote[];
   onConvert: (
     quoteId: number,
     conversion: PosQuoteConversion,
   ) => Promise<void>;
+  onDelete: (quoteId: number) => Promise<void>;
 }) {
+  const [quoteToDelete, setQuoteToDelete] = useState<PosQuote | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleConfirmDelete() {
+    if (!quoteToDelete) return;
+    setDeleting(true);
+    try {
+      await onDelete(quoteToDelete.id);
+      setQuoteToDelete(null);
+    } catch {
+      return;
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
+    <>
     <div className="overflow-hidden rounded-xl border bg-white">
       <div className="overflow-x-auto">
         <table className="w-full min-w-[720px]">
@@ -2754,6 +2790,7 @@ function QuotesView({
                   <td className="p-4">{formatCurrency(quote.total)}</td>
                   <td className="p-4">{quote.status}</td>
                   <td className="p-4">
+                    <div className="flex flex-wrap items-center gap-3">
                     <PosDocumentModal
                       type="Orçamento"
                       number={quote.id}
@@ -2771,6 +2808,14 @@ function QuotesView({
                           : undefined
                       }
                     />
+                    <button
+                      type="button"
+                      onClick={() => setQuoteToDelete(quote)}
+                      className="font-semibold text-red-600"
+                    >
+                      Excluir
+                    </button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -2779,6 +2824,15 @@ function QuotesView({
         </table>
       </div>
     </div>
+    <ConfirmationDialog
+      isOpen={Boolean(quoteToDelete)}
+      title="Excluir orçamento?"
+      description={quoteToDelete ? `O orçamento #${String(quoteToDelete.id).padStart(6, "0")} e todos os seus itens serão removidos permanentemente.` : ""}
+      confirmText={deleting ? "Excluindo..." : "Excluir orçamento"}
+      onConfirm={() => void handleConfirmDelete()}
+      onCancel={() => { if (!deleting) setQuoteToDelete(null); }}
+    />
+    </>
   );
 }
 

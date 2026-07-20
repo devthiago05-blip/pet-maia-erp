@@ -2,7 +2,6 @@
 
 import {
   AlertTriangle,
-  CalendarClock,
   CalendarDays,
   MessageCircle,
   PawPrint,
@@ -18,13 +17,8 @@ import { StatCard } from "@/components/dashboard/StatCard";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import {
-  deleteAppointment,
-  rescheduleAppointment,
-} from "@/services/appointments";
-import {
   fetchDashboardCounts,
   fetchFinalizedBathAppointmentsForReminders,
-  fetchOverdueOpenAppointments,
   fetchPendingAppointmentRequests,
   fetchPetsForBathReminders,
   fetchRecentAppointments,
@@ -249,13 +243,6 @@ export default function HomePage() {
   const [pendingGroomerPayments, setPendingGroomerPayments] = useState<
     GroomerDailyPayment[]
   >([]);
-  const [overdueAppointments, setOverdueAppointments] = useState<Appointment[]>(
-    [],
-  );
-  const [rescheduleDate, setRescheduleDate] = useState(getTodayDate());
-  const [processingOverdue, setProcessingOverdue] = useState(false);
-  const [confirmOverdueDelete, setConfirmOverdueDelete] = useState(false);
-  const [overdueAlertOpen, setOverdueAlertOpen] = useState(true);
   const [pendingReminderAction, setPendingReminderAction] = useState<{
     reminder: BathReminder;
     action: BathReminderAction;
@@ -264,7 +251,6 @@ export default function HomePage() {
   const [activeDetail, setActiveDetail] = useState<DashboardDetail | null>(
     null,
   );
-  const activeOverdueAppointment = overdueAppointments[0] || null;
 
   useEffect(() => {
     async function loadData() {
@@ -278,7 +264,6 @@ export default function HomePage() {
           weeklyAppointments,
           completed,
           pending,
-          overdue,
           petsForReminders,
           finalizedBathAppointments,
           groomingAlerts,
@@ -291,7 +276,6 @@ export default function HomePage() {
           fetchWeeklyAppointments(),
           fetchWeeklyAppointmentsByStatus("Finalizado"),
           fetchPendingAppointmentRequests(),
-          fetchOverdueOpenAppointments(),
           fetchPetsForBathReminders(),
           fetchFinalizedBathAppointmentsForReminders(),
           fetchGroomingSupplyAlerts(),
@@ -323,7 +307,6 @@ export default function HomePage() {
         setWeeklyAppointmentsList(weeklyAppointmentsData);
         setCompletedAppointmentsList(completedAppointmentsData);
         setPendingAppointmentsList(pendingAppointmentsData);
-        setOverdueAppointments(overdue.data || []);
         setWeeklyPaidRevenueList(weeklyPaidRevenueData);
         setWeeklyPendingRevenueList(weeklyPendingRevenueData);
 
@@ -359,67 +342,6 @@ export default function HomePage() {
     );
   }
 
-  function removeOverdueAppointment(appointment: Appointment) {
-    setOverdueAppointments((current) =>
-      current.filter((item) => item.id !== appointment.id),
-    );
-    if (appointment.status === "Pendente") {
-      setPendingAppointmentsList((current) =>
-        current.filter((item) => item.id !== appointment.id),
-      );
-      setPendingAppointments((current) => Math.max(0, current - 1));
-    }
-    setConfirmOverdueDelete(false);
-    setRescheduleDate(getTodayDate());
-  }
-
-  async function handleRescheduleOverdueAppointment() {
-    if (!activeOverdueAppointment) {
-      return;
-    }
-
-    if (!rescheduleDate || rescheduleDate < getTodayDate()) {
-      toast.error("Escolha uma data de hoje em diante");
-      return;
-    }
-
-    setProcessingOverdue(true);
-    const { error } = await rescheduleAppointment(
-      activeOverdueAppointment.id,
-      rescheduleDate,
-    );
-    setProcessingOverdue(false);
-
-    if (error) {
-      console.error(error);
-      toast.error("Não foi possível reagendar o atendimento");
-      return;
-    }
-
-    toast.success(
-      `Agendamento de ${activeOverdueAppointment.pets?.nome || "pet"} reagendado`,
-    );
-    removeOverdueAppointment(activeOverdueAppointment);
-  }
-
-  async function handleDeleteOverdueAppointment() {
-    if (!activeOverdueAppointment) {
-      return;
-    }
-
-    setProcessingOverdue(true);
-    const { error } = await deleteAppointment(activeOverdueAppointment.id);
-    setProcessingOverdue(false);
-
-    if (error) {
-      console.error(error);
-      toast.error("Não foi possível excluir o agendamento");
-      return;
-    }
-
-    toast.success("Agendamento antigo excluído");
-    removeOverdueAppointment(activeOverdueAppointment);
-  }
 
   function openReminderDestination(
     reminder: BathReminder,
@@ -1060,108 +982,6 @@ Equipe Pet Maia Banho e Tosa.`;
           </div>
         </div>
       </main>
-
-      {overdueAlertOpen && activeOverdueAppointment && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4">
-          <section className="w-full max-w-lg rounded-t-2xl bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-amber-100 p-3 text-amber-700">
-                <CalendarClock size={24} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
-                  Agendamento não encerrado
-                </p>
-                <h2 className="mt-1 text-xl font-black text-slate-900">
-                  {activeOverdueAppointment.pets?.nome || "Pet não informado"}
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  {activeOverdueAppointment.servico} ·{" "}
-                  {formatDateLabel(activeOverdueAppointment.data)} às{" "}
-                  {activeOverdueAppointment.hora || "--:--"}
-                </p>
-              </div>
-            </div>
-
-            <p className="mt-5 text-sm text-slate-600">
-              Este atendimento ficou aberto em um dia anterior. Deseja
-              reagendar ou excluir o agendamento?
-            </p>
-
-            <label className="mt-4 grid gap-2 text-sm font-semibold text-slate-700">
-              Nova data
-              <input
-                type="date"
-                min={getTodayDate()}
-                value={rescheduleDate}
-                onChange={(event) => setRescheduleDate(event.target.value)}
-                className="w-full rounded-xl border px-3 py-3 font-normal outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              />
-            </label>
-
-            {overdueAppointments.length > 1 && (
-              <p className="mt-3 text-xs font-medium text-slate-500">
-                Existem mais {overdueAppointments.length - 1} agendamento(s)
-                antigo(s) para revisar.
-              </p>
-            )}
-
-            {confirmOverdueDelete ? (
-              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
-                <p className="text-sm font-semibold text-red-800">
-                  Confirma a exclusão permanente deste agendamento?
-                </p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmOverdueDelete(false)}
-                    disabled={processingOverdue}
-                    className="rounded-xl border bg-white px-4 py-2 font-semibold text-slate-700 disabled:opacity-50"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDeleteOverdueAppointment}
-                    disabled={processingOverdue}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-2 font-bold text-white disabled:opacity-50"
-                  >
-                    <Trash2 size={17} />
-                    {processingOverdue ? "Excluindo..." : "Confirmar exclusão"}
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-5 grid gap-2 sm:grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setOverdueAlertOpen(false)}
-                  disabled={processingOverdue}
-                  className="rounded-xl border px-4 py-3 font-semibold text-slate-600 disabled:opacity-50"
-                >
-                  Agora não
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmOverdueDelete(true)}
-                  disabled={processingOverdue}
-                  className="rounded-xl border border-red-200 px-4 py-3 font-bold text-red-600 disabled:opacity-50"
-                >
-                  Excluir
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRescheduleOverdueAppointment}
-                  disabled={processingOverdue}
-                  className="rounded-xl bg-violet-700 px-4 py-3 font-bold text-white disabled:opacity-50"
-                >
-                  {processingOverdue ? "Reagendando..." : "Reagendar"}
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
-      )}
 
       {pendingReminderAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

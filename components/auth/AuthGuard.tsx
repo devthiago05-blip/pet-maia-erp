@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 
+import { OverdueAppointmentsAlert } from "@/components/appointments/OverdueAppointmentsAlert";
 import { AccessProvider } from "@/components/auth/AccessContext";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 import {
@@ -147,6 +148,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   return (
     <AccessProvider profile={profile} permissions={permissions}>
       {children}
+      <OverdueAppointmentsAlert />
       <MobileBottomNav />
     </AccessProvider>
   );

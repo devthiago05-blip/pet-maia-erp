@@ -1,11 +1,12 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Barcode, Plus, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency } from "@/lib/formatters";
 import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
+import { lookupProductBarcode } from "@/services/product-lookup";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface ProductModalProps {
@@ -60,6 +61,7 @@ function createProductForm(product?: Product) {
     origemMercadoria: product?.origem_mercadoria || "0",
     csosn: product?.csosn || "",
     unidadeComercial: product?.unidade_comercial || "UN",
+    imageUrl: product?.image_url || "",
   };
 }
 
@@ -102,6 +104,9 @@ export function ProductModal({
   const [origemMercadoria, setOrigemMercadoria] = useState(() => createProductForm(product).origemMercadoria);
   const [csosn, setCsosn] = useState(() => createProductForm(product).csosn);
   const [unidadeComercial, setUnidadeComercial] = useState(() => createProductForm(product).unidadeComercial);
+  const [imageUrl, setImageUrl] = useState(() => createProductForm(product).imageUrl);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupSource, setLookupSource] = useState("");
   const [saving, setSaving] = useState(false);
 
   const loadForm = useCallback((nextProduct?: Product) => {
@@ -116,6 +121,8 @@ export function ProductModal({
     setOrigemMercadoria(nextForm.origemMercadoria);
     setCsosn(nextForm.csosn);
     setUnidadeComercial(nextForm.unidadeComercial);
+    setImageUrl(nextForm.imageUrl);
+    setLookupSource("");
   }, []);
 
   useEffect(() => {
@@ -198,6 +205,40 @@ export function ProductModal({
     ]);
   }
 
+  async function handleBarcodeLookup() {
+    const code = variations[0]?.barcode.replace(/\D/g, "") || "";
+    if (!/^\d{8,14}$/.test(code)) {
+      toast.error("Informe primeiro um código de barras com 8 a 14 dígitos");
+      return;
+    }
+    setLookingUp(true);
+    try {
+      const result = await lookupProductBarcode(code);
+      if (!result.found) {
+        toast.info("Código não encontrado na base pública. Continue o cadastro manual.");
+        return;
+      }
+      const suggestedName = [result.name, result.brand].filter(Boolean).join(" - ");
+      if (suggestedName) setNome(suggestedName);
+      if (result.imageUrl) setImageUrl(result.imageUrl);
+      if (result.ncmSuggestion) {
+        setNcm(result.ncmSuggestion);
+        toast.success(`Produto encontrado. NCM ${result.ncmSuggestion} sugerido - confirme com a contabilidade.`);
+      } else {
+        toast.success("Produto encontrado. Confira os dados preenchidos.");
+      }
+      const matchingCategory = categories.find((category) =>
+        result.categories?.toLowerCase().includes(category.nome.toLowerCase()),
+      );
+      if (matchingCategory) setCategoryId(String(matchingCategory.id));
+      setLookupSource(result.source || "Base pública");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro na consulta");
+    } finally {
+      setLookingUp(false);
+    }
+  }
+
   async function handleSave() {
     if (!nome.trim()) {
       toast.error("Informe o nome do produto");
@@ -278,6 +319,7 @@ export function ProductModal({
         origem_mercadoria: origemMercadoria,
         csosn,
         unidade_comercial: unidadeComercial,
+        image_url: imageUrl || undefined,
         ativo,
       }),
     );
@@ -343,6 +385,27 @@ export function ProductModal({
                 />
                 Produto ativo
               </label>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                <div className="flex-1">
+                  <p className="flex items-center gap-2 font-bold text-slate-900"><Barcode size={18} /> Preenchimento pelo código de barras</p>
+                  <p className="mt-1 text-sm text-slate-500">Digite ou escaneie o GTIN/EAN para consultar a base pública.</p>
+                </div>
+                <ProductInput label="Código de barras" value={variations[0]?.barcode || ""} onChange={(value) => updateVariation(variations[0].id, "barcode", value.replace(/\D/g, "").slice(0, 14))} />
+                <button type="button" onClick={handleBarcodeLookup} disabled={lookingUp} className="inline-flex items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60">
+                  <Search size={17} /> {lookingUp ? "Consultando..." : "Buscar informações"}
+                </button>
+              </div>
+              {(imageUrl || lookupSource) && <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
+                {imageUrl && <>
+                  {/* A origem da imagem varia conforme o produto retornado pela base pública. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="Produto encontrado" className="h-16 w-16 rounded-lg object-contain" />
+                </>}
+                <div className="text-sm"><p className="font-semibold">Dados sugeridos - revise antes de salvar</p>{lookupSource && <p className="text-slate-500">Fonte: {lookupSource}</p>}</div>
+              </div>}
             </div>
 
             <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">

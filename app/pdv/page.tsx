@@ -26,6 +26,7 @@ import {
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
+import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
@@ -40,6 +41,7 @@ import {
   archiveProduct,
   cancelPosSale,
   closePosCashRegister,
+  completeProductStocktake,
   convertPosQuote,
   convertPosQuoteWithPayments,
   createPosQuote,
@@ -179,7 +181,13 @@ export default function PosPage() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [view, setView] = useState<
-    "sale" | "cash" | "products" | "purchases" | "quotes" | "sales"
+    | "sale"
+    | "cash"
+    | "products"
+    | "stocktake"
+    | "purchases"
+    | "quotes"
+    | "sales"
   >("sale");
   const [search, setSearch] = useState("");
   const [tutorId, setTutorId] = useState("");
@@ -298,6 +306,28 @@ export default function PosPage() {
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
     setLoading(false);
+  }
+
+  async function handleCompleteStocktake(input: {
+    items: Array<{ product_id: number; counted_quantity: number }>;
+    notes: string;
+  }) {
+    setProcessing(true);
+    const { data, error } = await completeProductStocktake(input);
+    setProcessing(false);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao finalizar balanço");
+      return false;
+    }
+
+    const result = data as { changed_count?: number } | null;
+    toast.success(
+      `Balanço finalizado! ${result?.changed_count ?? 0} produto(s) ajustado(s).`,
+    );
+    await loadData();
+    return true;
   }
 
   useMountEffect(() => {
@@ -778,6 +808,7 @@ export default function PosPage() {
               ["sale", "Venda"],
               ["cash", "Caixa"],
               ["products", "Produtos"],
+              ["stocktake", "Balanço"],
               ["purchases", "Compras"],
               ["quotes", "Orçamentos"],
               ["sales", "Vendas"],
@@ -854,6 +885,12 @@ export default function PosPage() {
               sales={sales}
               onSave={handleProductSave}
               onDelete={handleProductDelete}
+            />
+          ) : view === "stocktake" ? (
+            <StocktakeView
+              products={products}
+              processing={processing}
+              onComplete={handleCompleteStocktake}
             />
           ) : view === "purchases" ? (
             <PurchasesView purchases={purchases} suppliers={suppliers} />

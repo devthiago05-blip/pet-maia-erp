@@ -17,6 +17,19 @@ export async function fetchProducts() {
   return supabase.from("products").select("*").order("nome");
 }
 
+export async function completeProductStocktake({
+  items,
+  notes,
+}: {
+  items: Array<{ product_id: number; counted_quantity: number }>;
+  notes: string;
+}) {
+  return supabase.rpc("complete_product_stocktake", {
+    items,
+    notes: notes.trim() || null,
+  });
+}
+
 export async function fetchProductCategories() {
   return supabase
     .from("product_categories")

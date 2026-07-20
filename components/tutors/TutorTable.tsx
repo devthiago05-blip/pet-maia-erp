@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import type { Tutor } from "@/types/domain";
 
@@ -44,7 +45,7 @@ export function TutorTable({ tutors, onDelete, onEdit }: TutorTableProps) {
                   <td className="p-3 sm:p-4">{tutor.nome}</td>
                   <td className="p-3 sm:p-4">{tutor.telefone}</td>
                   <td className="max-w-64 truncate p-3 sm:p-4">
-                    {tutor.endereco || "-"}
+                    <MapsRouteLink address={tutor.endereco} compact />
                   </td>
                   <td className="p-3 sm:p-4">{tutor.pets}</td>
                   <td className="p-3 sm:p-4">

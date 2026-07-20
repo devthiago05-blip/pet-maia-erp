@@ -80,6 +80,13 @@ export async function updateAppointmentTime(id: number, hora: string) {
   return supabase.from("appointments").update({ hora }).eq("id", id);
 }
 
+export async function rescheduleAppointment(id: number, data: string) {
+  return supabase
+    .from("appointments")
+    .update({ data, status: "Agendado" satisfies AppointmentStatus })
+    .eq("id", id);
+}
+
 export async function deleteAppointment(id: number) {
   return supabase.from("appointments").delete().eq("id", id);
 }

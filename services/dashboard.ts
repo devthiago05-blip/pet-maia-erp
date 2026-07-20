@@ -120,6 +120,30 @@ export async function fetchPendingAppointmentRequests() {
     .order("data", { ascending: true })
     .order("hora", { ascending: true });
 }
+
+export async function fetchOverdueOpenAppointments() {
+  return supabase
+    .from("appointments")
+    .select(
+      `
+      *,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
+    .lt("data", formatDateOnly(new Date()))
+    .neq("status", "Finalizado")
+    .neq("status", "Cancelado")
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true })
+    .limit(20);
+}
 export async function fetchPetsForBathReminders() {
   return supabase
     .from("pets")

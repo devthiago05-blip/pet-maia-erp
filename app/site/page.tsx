@@ -24,6 +24,14 @@ import {
   updateSiteAccessory,
   uploadSiteAccessoryImage,
 } from "@/services/site-accessories";
+import {
+  archiveSitePetImage,
+  createSitePetImage,
+  fetchSitePetImages,
+  type SitePetImage,
+  updateSitePetImage,
+  uploadSitePetImage,
+} from "@/services/site-pet-images";
 import type { Product } from "@/types/domain";
 
 interface AccessoryFormState {
@@ -41,6 +49,28 @@ const emptyForm: AccessoryFormState = {
   kind: "Bandana",
   nome: "",
   estoque: "0",
+  imageFile: null,
+  imagePreview: "",
+  imageUrl: "",
+};
+
+interface PetImageFormState {
+  id: number | null;
+  name: string;
+  detail: string;
+  sortOrder: string;
+  active: boolean;
+  imageFile: File | null;
+  imagePreview: string;
+  imageUrl: string;
+}
+
+const emptyPetImageForm: PetImageFormState = {
+  id: null,
+  name: "",
+  detail: "",
+  sortOrder: "100",
+  active: true,
   imageFile: null,
   imagePreview: "",
   imageUrl: "",
@@ -75,9 +105,14 @@ function splitAccessories(products: Product[]) {
 
 export default function SitePage() {
   const [accessories, setAccessories] = useState<Product[]>([]);
+  const [petImages, setPetImages] = useState<SitePetImage[]>([]);
   const [form, setForm] = useState<AccessoryFormState>(emptyForm);
+  const [petImageForm, setPetImageForm] =
+    useState<PetImageFormState>(emptyPetImageForm);
   const [loading, setLoading] = useState(true);
+  const [petImagesLoading, setPetImagesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [petImageSaving, setPetImageSaving] = useState(false);
 
   const groupedAccessories = useMemo(
     () => splitAccessories(accessories),
@@ -87,6 +122,7 @@ export default function SitePage() {
   const noStockCount = accessories.filter(
     (product) => product.ativo && product.estoque <= 0,
   ).length;
+  const visiblePetImagesCount = petImages.filter((image) => image.active).length;
 
   async function loadAccessories() {
     setLoading(true);
@@ -104,12 +140,36 @@ export default function SitePage() {
     setLoading(false);
   }
 
+  async function loadPetImages() {
+    setPetImagesLoading(true);
+    const { data, error } = await fetchSitePetImages();
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao carregar imagens pets");
+      setPetImages([]);
+      setPetImagesLoading(false);
+      return;
+    }
+
+    setPetImages(data || []);
+    setPetImagesLoading(false);
+  }
+
+  async function refreshSiteContent() {
+    await Promise.all([loadAccessories(), loadPetImages()]);
+  }
+
   useMountEffect(() => {
-    loadAccessories();
+    refreshSiteContent();
   });
 
   function resetForm() {
     setForm(emptyForm);
+  }
+
+  function resetPetImageForm() {
+    setPetImageForm(emptyPetImageForm);
   }
 
   function updateForm<K extends keyof AccessoryFormState>(
@@ -117,6 +177,13 @@ export default function SitePage() {
     value: AccessoryFormState[K],
   ) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function updatePetImageForm<K extends keyof PetImageFormState>(
+    field: K,
+    value: PetImageFormState[K],
+  ) {
+    setPetImageForm((current) => ({ ...current, [field]: value }));
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -140,6 +207,27 @@ export default function SitePage() {
     }));
   }
 
+  function handlePetImageFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] || null;
+
+    if (!file) {
+      updatePetImageForm("imageFile", null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Selecione uma imagem valida");
+      event.target.value = "";
+      return;
+    }
+
+    setPetImageForm((current) => ({
+      ...current,
+      imageFile: file,
+      imagePreview: URL.createObjectURL(file),
+    }));
+  }
+
   function startEdit(product: Product) {
     setForm({
       id: product.id,
@@ -149,6 +237,19 @@ export default function SitePage() {
       imageFile: null,
       imagePreview: product.image_url || "",
       imageUrl: product.image_url || "",
+    });
+  }
+
+  function startEditPetImage(image: SitePetImage) {
+    setPetImageForm({
+      id: image.id,
+      name: image.name || "",
+      detail: image.detail || "",
+      sortOrder: String(image.sort_order ?? 100),
+      active: image.active,
+      imageFile: null,
+      imagePreview: image.image_url || "",
+      imageUrl: image.image_url || "",
     });
   }
 
@@ -214,6 +315,69 @@ export default function SitePage() {
     await loadAccessories();
   }
 
+  async function handlePetImageSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const sortOrder = Number(petImageForm.sortOrder);
+
+    if (!petImageForm.name.trim()) {
+      toast.error("Informe o nome do pet");
+      return;
+    }
+
+    if (!Number.isInteger(sortOrder) || sortOrder < 0) {
+      toast.error("Informe uma ordem valida");
+      return;
+    }
+
+    setPetImageSaving(true);
+
+    let imageUrl = petImageForm.imageUrl;
+
+    if (petImageForm.imageFile) {
+      const uploadResponse = await uploadSitePetImage(petImageForm.imageFile);
+
+      if (uploadResponse.error) {
+        console.error(uploadResponse.error);
+        toast.error(uploadResponse.error.message || "Erro ao enviar foto");
+        setPetImageSaving(false);
+        return;
+      }
+
+      imageUrl = uploadResponse.data || "";
+    }
+
+    if (!imageUrl) {
+      toast.error("Adicione uma foto do pet");
+      setPetImageSaving(false);
+      return;
+    }
+
+    const payload = {
+      name: petImageForm.name,
+      detail: petImageForm.detail,
+      sort_order: sortOrder,
+      active: petImageForm.active,
+      image_url: imageUrl,
+    };
+
+    const { error } = petImageForm.id
+      ? await updateSitePetImage(petImageForm.id, payload)
+      : await createSitePetImage(payload);
+
+    if (error) {
+      console.error(error);
+      toast.error(error.message || "Erro ao salvar imagem pet");
+      setPetImageSaving(false);
+      return;
+    }
+
+    toast.success(petImageForm.id ? "Imagem pet atualizada" : "Imagem pet cadastrada");
+    resetPetImageForm();
+    setPetImageSaving(false);
+    await loadPetImages();
+  }
+
   async function handleArchive(product: Product) {
     const { error } = await archiveSiteAccessory(product.id);
 
@@ -225,6 +389,19 @@ export default function SitePage() {
 
     toast.success("Item ocultado do site");
     await loadAccessories();
+  }
+
+  async function handleArchivePetImage(image: SitePetImage) {
+    const { error } = await archiveSitePetImage(image.id);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao ocultar imagem pet");
+      return;
+    }
+
+    toast.success("Imagem pet ocultada do site");
+    await loadPetImages();
   }
 
   return (
@@ -241,13 +418,13 @@ export default function SitePage() {
                 Site
               </h1>
               <p className="text-slate-500">
-                Bandanas e lacinhos do agendamento
+                Bandanas, lacinhos e imagens pets do site
               </p>
             </div>
 
             <button
               type="button"
-              onClick={loadAccessories}
+              onClick={refreshSiteContent}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
             >
               <RefreshCw size={18} />
@@ -255,13 +432,155 @@ export default function SitePage() {
             </button>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <Metric
               title="Itens cadastrados"
               value={String(accessories.length)}
             />
             <Metric title="Aparecendo no site" value={String(visibleCount)} />
             <Metric title="Sem estoque" value={String(noStockCount)} />
+            <Metric
+              title="Imagens pets"
+              value={`${visiblePetImagesCount}/${petImages.length}`}
+            />
+          </div>
+
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Imagens pets
+              </h2>
+              <p className="text-sm text-slate-500">
+                Fotos cadastradas aqui aparecem na area Clientes do site.
+              </p>
+            </div>
+
+            <form
+              onSubmit={handlePetImageSubmit}
+              className="grid gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[1fr_220px]"
+            >
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <label className="grid gap-2 text-sm font-medium">
+                  Nome do pet
+                  <input
+                    value={petImageForm.name}
+                    onChange={(event) =>
+                      updatePetImageForm("name", event.target.value)
+                    }
+                    placeholder="Ex: Estela"
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium xl:col-span-2">
+                  Legenda
+                  <input
+                    value={petImageForm.detail}
+                    onChange={(event) =>
+                      updatePetImageForm("detail", event.target.value)
+                    }
+                    placeholder="Ex: Banho e lacinho"
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Ordem
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={petImageForm.sortOrder}
+                    onChange={(event) =>
+                      updatePetImageForm("sortOrder", event.target.value)
+                    }
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium md:col-span-2 xl:col-span-3">
+                  Foto pet
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handlePetImageFileChange}
+                    className="rounded-xl border bg-white p-3 text-sm font-normal file:mr-3 file:rounded-lg file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:font-semibold file:text-[#8A0EEA]"
+                  />
+                </label>
+
+                <label className="flex items-center gap-3 rounded-xl border bg-slate-50 p-3 text-sm font-medium">
+                  <input
+                    type="checkbox"
+                    checked={petImageForm.active}
+                    onChange={(event) =>
+                      updatePetImageForm("active", event.target.checked)
+                    }
+                    className="h-5 w-5 accent-[#8A0EEA]"
+                  />
+                  Mostrar no site
+                </label>
+
+                <div className="flex flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
+                  <button
+                    type="submit"
+                    disabled={petImageSaving}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] px-4 py-3 font-semibold text-white transition hover:bg-purple-700 disabled:opacity-60"
+                  >
+                    <Save size={18} />
+                    {petImageSaving
+                      ? "Salvando..."
+                      : petImageForm.id
+                        ? "Salvar imagem"
+                        : "Cadastrar imagem"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={resetPetImageForm}
+                    className="rounded-xl border px-4 py-3 font-semibold text-slate-600 transition hover:bg-slate-50"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid min-h-52 place-items-center overflow-hidden rounded-xl border bg-slate-50">
+                {petImageForm.imagePreview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={petImageForm.imagePreview}
+                    alt="Previa pet"
+                    className="h-full max-h-64 w-full object-cover"
+                  />
+                ) : (
+                  <div className="grid place-items-center gap-2 p-6 text-center text-sm text-slate-500">
+                    <ImagePlus className="text-slate-400" size={34} />
+                    Foto do pet
+                  </div>
+                )}
+              </div>
+            </form>
+
+            {petImagesLoading ? (
+              <div className="rounded-xl border bg-white p-6 text-sm text-slate-500">
+                Carregando imagens pets...
+              </div>
+            ) : (
+              <PetImageSection
+                images={petImages}
+                onEdit={startEditPetImage}
+                onArchive={handleArchivePetImage}
+              />
+            )}
+          </section>
+
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">
+              Bandanas e lacinhos
+            </h2>
+            <p className="text-sm text-slate-500">
+              Itens com foto e estoque aparecem no agendamento do site.
+            </p>
           </div>
 
           <form
@@ -435,6 +754,117 @@ function AccessorySection({
         </div>
       )}
     </section>
+  );
+}
+
+function PetImageSection({
+  images,
+  onEdit,
+  onArchive,
+}: {
+  images: SitePetImage[];
+  onEdit: (image: SitePetImage) => void;
+  onArchive: (image: SitePetImage) => void;
+}) {
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="font-bold text-slate-900">Pets no site</h3>
+        <span className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-500">
+          {images.length}
+        </span>
+      </div>
+
+      {images.length === 0 ? (
+        <div className="rounded-xl border bg-white p-6 text-sm text-slate-500">
+          Nenhuma imagem pet cadastrada.
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {images.map((image) => (
+            <PetImageCard
+              key={image.id}
+              image={image}
+              onEdit={onEdit}
+              onArchive={onArchive}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PetImageCard({
+  image,
+  onEdit,
+  onArchive,
+}: {
+  image: SitePetImage;
+  onEdit: (image: SitePetImage) => void;
+  onArchive: (image: SitePetImage) => void;
+}) {
+  return (
+    <article className="overflow-hidden rounded-xl border bg-white shadow-sm">
+      <div className="aspect-[4/5] bg-slate-100">
+        {image.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image.image_url}
+            alt={image.name}
+            className="h-full w-full object-cover"
+            loading="lazy"
+          />
+        ) : (
+          <div className="grid h-full place-items-center text-slate-400">
+            <Camera size={32} />
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate font-bold text-slate-900">{image.name}</h3>
+            <p className="line-clamp-2 text-sm text-slate-500">
+              {image.detail || "Sem legenda"}
+            </p>
+          </div>
+          <span
+            className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${
+              image.active
+                ? "bg-emerald-50 text-emerald-700"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            {image.active ? "No site" : "Oculto"}
+          </span>
+        </div>
+
+        <p className="text-xs font-semibold text-slate-500">
+          Ordem: {image.sort_order}
+        </p>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onEdit(image)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
+          >
+            <Pencil size={16} />
+            Editar
+          </button>
+          <button
+            type="button"
+            onClick={() => onArchive(image)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2 size={16} />
+            Ocultar
+          </button>
+        </div>
+      </div>
+    </article>
   );
 }
 

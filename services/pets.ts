@@ -17,6 +17,14 @@ export async function fetchPets() {
     .order("nome", { ascending: true });
 }
 
+export async function fetchPetsByTutorId(tutorId: number) {
+  return supabase
+    .from("pets")
+    .select("id, nome, especie, raca, porte, sexo, idade, tutor_id")
+    .eq("tutor_id", tutorId)
+    .order("nome", { ascending: true });
+}
+
 export async function fetchPetById(id: number) {
   return supabase
     .from("pets")

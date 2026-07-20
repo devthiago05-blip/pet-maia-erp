@@ -9,6 +9,7 @@ import type {
   ProductStocktake,
   ProductStocktakeDraft,
   PurchaseOrder,
+  SuspendedPosSale,
 } from "@/types/domain";
 
 export interface PosCartItem {
@@ -298,6 +299,31 @@ export async function fetchPosSales() {
     )
     .order("created_at", { ascending: false })
     .limit(500);
+}
+
+export async function fetchSuspendedPosSales() {
+  return supabase.from("suspended_pos_sales").select(`
+    *, tutors(nome),
+    suspended_pos_sale_items(*, products(id,nome,sku,tamanho,cor,sabor))
+  `).order("created_at", { ascending: false }).returns<SuspendedPosSale[]>();
+}
+
+export function suspendPosSale(input: {
+  tutorId: number | null;
+  customerName: string;
+  notes: string;
+  items: Array<{ product_id: number; quantity: number }>;
+}) {
+  return supabase.rpc("suspend_pos_sale", {
+    selected_tutor_id: input.tutorId,
+    selected_customer_name: input.customerName,
+    selected_notes: input.notes,
+    items: input.items,
+  });
+}
+
+export function deleteSuspendedPosSale(id: number) {
+  return supabase.rpc("delete_suspended_pos_sale", { selected_sale_id: id });
 }
 
 export async function fetchPosCashRegisters() {

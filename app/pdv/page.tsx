@@ -34,6 +34,7 @@ import {
 import { ReplenishmentPanel } from "@/components/pos/ReplenishmentPanel";
 import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
+import { SuspendedSalesPanel } from "@/components/pos/SuspendedSalesPanel";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { financialPaymentMethods } from "@/lib/financial-options";
@@ -61,6 +62,7 @@ import {
   createSupplier,
   deletePosQuote,
   deleteProductStocktakeDraft,
+  deleteSuspendedPosSale,
   fetchPosCashRegisters,
   fetchPosQuotes,
   fetchPosSales,
@@ -71,10 +73,12 @@ import {
   fetchProductStocktakes,
   fetchPurchaseOrders,
   fetchSuppliers,
+  fetchSuspendedPosSales,
   openPosCashRegister,
   receivePurchaseOrder,
   saveProductStocktakeDraft,
   setPurchaseOrderStatus,
+  suspendPosSale,
   updatePosQuote,
   updateProduct,
 } from "@/services/pos";
@@ -94,6 +98,7 @@ import type {
   ProductStocktakeDraft,
   PurchaseOrder,
   Supplier,
+  SuspendedPosSale,
   Tutor,
 } from "@/types/domain";
 
@@ -195,6 +200,7 @@ export default function PosPage() {
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [quotes, setQuotes] = useState<PosQuote[]>([]);
   const [sales, setSales] = useState<PosSale[]>([]);
+  const [suspendedSales, setSuspendedSales] = useState<SuspendedPosSale[]>([]);
   const [cashRegisters, setCashRegisters] = useState<PosCashRegister[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
@@ -287,6 +293,7 @@ export default function PosPage() {
       categoriesResponse,
       quotesResponse,
       salesResponse,
+      suspendedSalesResponse,
       cashRegistersResponse,
       tutorsResponse,
       suppliersResponse,
@@ -299,6 +306,7 @@ export default function PosPage() {
       fetchProductCategories(),
       fetchPosQuotes(),
       fetchPosSales(),
+      fetchSuspendedPosSales(),
       fetchPosCashRegisters(),
       fetchTutors(),
       fetchSuppliers(),
@@ -313,6 +321,7 @@ export default function PosPage() {
       categoriesResponse.error ||
       quotesResponse.error ||
       salesResponse.error ||
+      suspendedSalesResponse.error ||
       cashRegistersResponse.error ||
       tutorsResponse.error ||
       suppliersResponse.error ||
@@ -334,6 +343,7 @@ export default function PosPage() {
     setCategories(categoriesResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
     setSales((salesResponse.data || []) as PosSale[]);
+    setSuspendedSales((suspendedSalesResponse.data || []) as SuspendedPosSale[]);
     setCashRegisters((cashRegistersResponse.data || []) as PosCashRegister[]);
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
@@ -621,6 +631,49 @@ export default function PosPage() {
     setPaymentMethod("PIX");
     setSplitPayments(false);
     setPayments([{ id: "payment-1", method: "PIX", amount: "" }]);
+  }
+
+  async function handleSuspendSale(notes: string) {
+    if (cart.length === 0) { toast.error("Adicione produtos ao carrinho"); throw new Error("empty cart"); }
+    const customer = getCustomer();
+    setProcessing(true);
+    const { error } = await suspendPosSale({
+      ...customer,
+      notes,
+      items: cart.map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+    });
+    setProcessing(false);
+    if (error) { toast.error(error.message); throw error; }
+    clearSale();
+    toast.success("Venda suspensa. O PDV está livre para outro atendimento!");
+    await loadData();
+  }
+
+  async function handleRecoverSuspendedSale(sale: SuspendedPosSale) {
+    if (cart.length > 0) { toast.error("Suspenda ou limpe o carrinho atual antes de recuperar outro"); return; }
+    const recovered = (sale.suspended_pos_sale_items || []).flatMap((item) => {
+      const product = products.find((candidate) => candidate.id === item.product_id && candidate.ativo);
+      if (!product || product.estoque <= 0) return [];
+      return [{ product, quantity: Math.min(item.quantity, product.estoque) }];
+    });
+    if (recovered.length === 0) { toast.error("Os produtos desta venda estão sem estoque"); return; }
+    const { error } = await deleteSuspendedPosSale(sale.id);
+    if (error) { toast.error(error.message); return; }
+    setCart(recovered);
+    setTutorId(sale.tutor_id ? String(sale.tutor_id) : "");
+    setCustomerName(sale.tutor_id ? "" : sale.customer_name);
+    setView("sale");
+    setSuspendedSales((current) => current.filter((item) => item.id !== sale.id));
+    if (recovered.some((item) => (sale.suspended_pos_sale_items || []).find((saved) => saved.product_id === item.product.id)?.quantity !== item.quantity)) toast.warning("Algumas quantidades foram ajustadas ao estoque disponível");
+    toast.success("Venda recuperada no carrinho!");
+  }
+
+  async function handleDeleteSuspendedSale(sale: SuspendedPosSale) {
+    if (!window.confirm(`Excluir a venda suspensa de ${sale.tutors?.nome || sale.customer_name}?`)) return;
+    const { error } = await deleteSuspendedPosSale(sale.id);
+    if (error) { toast.error(error.message); return; }
+    setSuspendedSales((current) => current.filter((item) => item.id !== sale.id));
+    toast.success("Venda suspensa excluída");
   }
 
   async function handleProductSave(
@@ -968,6 +1021,7 @@ export default function PosPage() {
               paymentDifference={paymentDifference}
               expirationDate={expirationDate}
               tutors={tutors}
+              suspendedSales={suspendedSales}
               total={cartTotal}
               processing={processing}
               onSearch={setSearch}
@@ -985,6 +1039,9 @@ export default function PosPage() {
               onQuote={handleQuote}
               onSale={handleSale}
               onClear={clearSale}
+              onSuspend={handleSuspendSale}
+              onRecoverSuspended={handleRecoverSuspendedSale}
+              onDeleteSuspended={handleDeleteSuspendedSale}
             />
           ) : view === "cash" ? (
             <CashRegisterView
@@ -2018,6 +2075,7 @@ function SaleView({
   paymentDifference,
   expirationDate,
   tutors,
+  suspendedSales,
   total,
   processing,
   onSearch,
@@ -2035,6 +2093,9 @@ function SaleView({
   onQuote,
   onSale,
   onClear,
+  onSuspend,
+  onRecoverSuspended,
+  onDeleteSuspended,
 }: {
   groups: ProductGroup[];
   cart: CartItem[];
@@ -2048,6 +2109,7 @@ function SaleView({
   paymentDifference: number;
   expirationDate: string;
   tutors: Tutor[];
+  suspendedSales: SuspendedPosSale[];
   total: number;
   processing: boolean;
   onSearch: (value: string) => void;
@@ -2069,6 +2131,9 @@ function SaleView({
   onQuote: () => void;
   onSale: () => void;
   onClear: () => void;
+  onSuspend: (notes: string) => Promise<void>;
+  onRecoverSuspended: (sale: SuspendedPosSale) => Promise<void>;
+  onDeleteSuspended: (sale: SuspendedPosSale) => Promise<void>;
 }) {
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [stockFilter, setStockFilter] = useState("disponiveis");
@@ -2102,6 +2167,15 @@ function SaleView({
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       <section className="space-y-4">
+        <SuspendedSalesPanel
+          sales={suspendedSales}
+          cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+          customerName={tutors.find((tutor) => String(tutor.id) === tutorId)?.nome || customerName || "Consumidor"}
+          processing={processing}
+          onSuspend={onSuspend}
+          onRecover={onRecoverSuspended}
+          onDelete={onDeleteSuspended}
+        />
         <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
           <Search size={18} className="text-slate-400" />
           <input

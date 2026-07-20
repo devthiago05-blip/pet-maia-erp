@@ -633,6 +633,25 @@ export interface PosSalePayment {
   created_at: string;
 }
 
+export interface SuspendedPosSaleItem {
+  id: number;
+  suspended_sale_id: number;
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+  products?: Pick<Product, "id" | "nome" | "sku" | "tamanho" | "cor" | "sabor">;
+}
+
+export interface SuspendedPosSale {
+  id: number;
+  tutor_id?: number;
+  customer_name: string;
+  notes?: string;
+  created_at: string;
+  tutors?: Pick<Tutor, "nome">;
+  suspended_pos_sale_items?: SuspendedPosSaleItem[];
+}
+
 export type PosCashRegisterStatus = "Aberto" | "Fechado";
 export type PosCashMovementType =
   | "abertura"

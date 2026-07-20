@@ -30,6 +30,13 @@ export interface ClinicSettings {
   pix_key?: string;
   pix_recipient_name?: string;
   pix_city?: string;
+  inscricao_estadual?: string;
+  uf?: string;
+  codigo_municipio_ibge?: string;
+  regime_tributario?: string;
+  fiscal_environment?: "homologacao" | "producao";
+  nfce_series?: number;
+  nfce_next_number?: number;
   updated_at?: string;
 }
 

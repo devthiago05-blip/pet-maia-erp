@@ -17,6 +17,13 @@ export async function updateClinicSettings(settings: ClinicSettings) {
       pix_key: settings.pix_key || null,
       pix_recipient_name: settings.pix_recipient_name || null,
       pix_city: settings.pix_city || null,
+      inscricao_estadual: settings.inscricao_estadual || null,
+      uf: settings.uf || "CE",
+      codigo_municipio_ibge: settings.codigo_municipio_ibge || null,
+      regime_tributario: settings.regime_tributario || null,
+      fiscal_environment: settings.fiscal_environment || "homologacao",
+      nfce_series: Number(settings.nfce_series || 1),
+      nfce_next_number: Number(settings.nfce_next_number || 1),
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

@@ -26,6 +26,8 @@ import {
 } from "@/services/tutors";
 import type { NewPetInput, NewTutorInput, Tutor } from "@/types/domain";
 
+type PetFilter = "all" | "with-pets" | "without-pets";
+
 export default function TutorsPage() {
   const searchParams = useSearchParams();
   const [tutors, setTutors] = useState<Tutor[]>([]);
@@ -34,14 +36,45 @@ export default function TutorsPage() {
     null,
   );
   const [petModalOpen, setPetModalOpen] = useState(false);
+  const [petFilter, setPetFilter] = useState<PetFilter>("all");
   const [search, setSearch] = useState(searchParams.get("search") || "");
 
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredTutors = tutors.filter((tutor) =>
+  const searchedTutors = tutors.filter((tutor) =>
     [tutor.nome, tutor.telefone, tutor.email, tutor.endereco].some((value) =>
       value?.toLowerCase().includes(normalizedSearch),
     ),
   );
+  const filteredTutors = searchedTutors.filter((tutor) => {
+    const petCount = tutor.pets ?? 0;
+
+    if (petFilter === "with-pets") {
+      return petCount > 0;
+    }
+
+    if (petFilter === "without-pets") {
+      return petCount === 0;
+    }
+
+    return true;
+  });
+  const tutorFilterOptions: Array<{
+    value: PetFilter;
+    label: string;
+    count: number;
+  }> = [
+    { value: "all", label: "Todos", count: tutors.length },
+    {
+      value: "with-pets",
+      label: "Com pets",
+      count: tutors.filter((tutor) => (tutor.pets ?? 0) > 0).length,
+    },
+    {
+      value: "without-pets",
+      label: "Sem pets",
+      count: tutors.filter((tutor) => (tutor.pets ?? 0) === 0).length,
+    },
+  ];
   const tutorsForPetModal =
     createdTutorForPet &&
     !tutors.some((tutor) => tutor.id === createdTutorForPet.id)
@@ -220,6 +253,46 @@ export default function TutorsPage() {
                 hideTrigger
               />
             )}
+          </div>
+
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+              className="inline-flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 sm:w-auto"
+              aria-label="Filtrar tutores por pets"
+            >
+              {tutorFilterOptions.map((option) => {
+                const active = petFilter === option.value;
+
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPetFilter(option.value)}
+                    aria-pressed={active}
+                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      active
+                        ? "bg-violet-700 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {option.label}
+                    <span
+                      className={`ml-2 rounded-full px-2 py-0.5 text-xs ${
+                        active
+                          ? "bg-white/20 text-white"
+                          : "bg-slate-100 text-slate-500"
+                      }`}
+                    >
+                      {option.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <p className="text-sm text-slate-500">
+              {filteredTutors.length} tutor(es) encontrado(s)
+            </p>
           </div>
 
           <TutorTable

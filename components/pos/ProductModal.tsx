@@ -1,12 +1,23 @@
 "use client";
 
-import { Barcode, Camera, Plus, Search, Trash2 } from "lucide-react";
+import {
+  Barcode,
+  Camera,
+  ChevronDown,
+  Plus,
+  ReceiptText,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { BarcodeScannerModal } from "@/components/pos/BarcodeScannerModal";
 import { formatCurrency } from "@/lib/formatters";
-import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
+import {
+  normalizeFiscalCode,
+  validateProductFiscalFields,
+} from "@/lib/product-fiscal";
 import { lookupProductBarcode } from "@/services/product-lookup";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
@@ -102,14 +113,21 @@ export function ProductModal({
   const [ativo, setAtivo] = useState(() => createProductForm(product).ativo);
   const [ncm, setNcm] = useState(() => createProductForm(product).ncm);
   const [cfop, setCfop] = useState(() => createProductForm(product).cfop);
-  const [origemMercadoria, setOrigemMercadoria] = useState(() => createProductForm(product).origemMercadoria);
+  const [origemMercadoria, setOrigemMercadoria] = useState(
+    () => createProductForm(product).origemMercadoria,
+  );
   const [csosn, setCsosn] = useState(() => createProductForm(product).csosn);
-  const [unidadeComercial, setUnidadeComercial] = useState(() => createProductForm(product).unidadeComercial);
-  const [imageUrl, setImageUrl] = useState(() => createProductForm(product).imageUrl);
+  const [unidadeComercial, setUnidadeComercial] = useState(
+    () => createProductForm(product).unidadeComercial,
+  );
+  const [imageUrl, setImageUrl] = useState(
+    () => createProductForm(product).imageUrl,
+  );
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupSource, setLookupSource] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fiscalOpen, setFiscalOpen] = useState(false);
 
   const loadForm = useCallback((nextProduct?: Product) => {
     const nextForm = createProductForm(nextProduct);
@@ -125,6 +143,7 @@ export function ProductModal({
     setUnidadeComercial(nextForm.unidadeComercial);
     setImageUrl(nextForm.imageUrl);
     setLookupSource("");
+    setFiscalOpen(false);
   }, []);
 
   useEffect(() => {
@@ -208,7 +227,8 @@ export function ProductModal({
   }
 
   async function handleBarcodeLookup(detectedCode?: string) {
-    const code = detectedCode || variations[0]?.barcode.replace(/\D/g, "") || "";
+    const code =
+      detectedCode || variations[0]?.barcode.replace(/\D/g, "") || "";
     if (!/^\d{8,14}$/.test(code)) {
       toast.error("Informe primeiro um código de barras com 8 a 14 dígitos");
       return;
@@ -217,15 +237,21 @@ export function ProductModal({
     try {
       const result = await lookupProductBarcode(code);
       if (!result.found) {
-        toast.info("Código não encontrado na base pública. Continue o cadastro manual.");
+        toast.info(
+          "Código não encontrado na base pública. Continue o cadastro manual.",
+        );
         return;
       }
-      const suggestedName = [result.name, result.brand].filter(Boolean).join(" - ");
+      const suggestedName = [result.name, result.brand]
+        .filter(Boolean)
+        .join(" - ");
       if (suggestedName) setNome(suggestedName);
       if (result.imageUrl) setImageUrl(result.imageUrl);
       if (result.ncmSuggestion) {
         setNcm(result.ncmSuggestion);
-        toast.success(`Produto encontrado. NCM ${result.ncmSuggestion} sugerido - confirme com a contabilidade.`);
+        toast.success(
+          `Produto encontrado. NCM ${result.ncmSuggestion} sugerido - confirme com a contabilidade.`,
+        );
       } else {
         toast.success("Produto encontrado. Confira os dados preenchidos.");
       }
@@ -252,7 +278,13 @@ export function ProductModal({
       return;
     }
 
-    const fiscalFields = { ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial };
+    const fiscalFields = {
+      ncm,
+      cfop,
+      origem_mercadoria: origemMercadoria,
+      csosn,
+      unidade_comercial: unidadeComercial,
+    };
     const fiscalError = validateProductFiscalFields(fiscalFields, false);
     const fiscalPending = validateProductFiscalFields(fiscalFields) !== null;
     if (fiscalError) {
@@ -331,7 +363,10 @@ export function ProductModal({
     setSaving(true);
     try {
       await onSave(products);
-      if (fiscalPending) toast.warning("Produto salvo. Complete a tributação antes de emitir NFC-e.");
+      if (fiscalPending)
+        toast.warning(
+          "Produto salvo. Complete a tributação antes de emitir NFC-e.",
+        );
       loadForm();
       setOpen(false);
     } catch {
@@ -395,37 +430,168 @@ export function ProductModal({
             <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
               <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
                 <div className="flex-1">
-                  <p className="flex items-center gap-2 font-bold text-slate-900"><Barcode size={18} /> Preenchimento pelo código de barras</p>
-                  <p className="mt-1 text-sm text-slate-500">Digite ou escaneie o GTIN/EAN para consultar a base pública.</p>
+                  <p className="flex items-center gap-2 font-bold text-slate-900">
+                    <Barcode size={18} /> Preenchimento pelo código de barras
+                  </p>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Digite ou escaneie o GTIN/EAN para consultar a base pública.
+                  </p>
                 </div>
-                <ProductInput label="Código de barras" value={variations[0]?.barcode || ""} onChange={(value) => updateVariation(variations[0].id, "barcode", value.replace(/\D/g, "").slice(0, 14))} />
+                <ProductInput
+                  label="Código de barras"
+                  value={variations[0]?.barcode || ""}
+                  onChange={(value) =>
+                    updateVariation(
+                      variations[0].id,
+                      "barcode",
+                      value.replace(/\D/g, "").slice(0, 14),
+                    )
+                  }
+                />
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => setScannerOpen(true)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-700 bg-white px-3 py-3 font-semibold text-sky-700"><Camera size={18} /><span className="sm:hidden xl:inline">Câmera</span></button>
-                  <button type="button" onClick={() => void handleBarcodeLookup()} disabled={lookingUp} className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60">
-                    <Search size={17} /> {lookingUp ? "Consultando..." : "Buscar informações"}
+                  <button
+                    type="button"
+                    onClick={() => setScannerOpen(true)}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-700 bg-white px-3 py-3 font-semibold text-sky-700"
+                  >
+                    <Camera size={18} />
+                    <span className="sm:hidden xl:inline">Câmera</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void handleBarcodeLookup()}
+                    disabled={lookingUp}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60"
+                  >
+                    <Search size={17} />{" "}
+                    {lookingUp ? "Consultando..." : "Buscar informações"}
                   </button>
                 </div>
               </div>
-              {(imageUrl || lookupSource) && <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
-                {imageUrl && <>
-                  {/* A origem da imagem varia conforme o produto retornado pela base pública. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Produto encontrado" className="h-16 w-16 rounded-lg object-contain" />
-                </>}
-                <div className="text-sm"><p className="font-semibold">Dados sugeridos - revise antes de salvar</p>{lookupSource && <p className="text-slate-500">Fonte: {lookupSource}</p>}</div>
-              </div>}
+              {(imageUrl || lookupSource) && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
+                  {imageUrl && (
+                    <>
+                      {/* A origem da imagem varia conforme o produto retornado pela base pública. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={imageUrl}
+                        alt="Produto encontrado"
+                        className="h-16 w-16 rounded-lg object-contain"
+                      />
+                    </>
+                  )}
+                  <div className="text-sm">
+                    <p className="font-semibold">
+                      Dados sugeridos - revise antes de salvar
+                    </p>
+                    {lookupSource && (
+                      <p className="text-slate-500">Fonte: {lookupSource}</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
-              <h3 className="font-bold text-slate-900">Dados fiscais para NFC-e</h3>
-              <p className="mt-1 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">Preenchimento opcional agora. NCM, CFOP e tributação serão necessários antes de emitir NFC-e.</p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <ProductInput label="NCM (8 dígitos)" value={ncm} onChange={(value) => setNcm(normalizeFiscalCode(value, 8))} />
-                <ProductInput label="CFOP (4 dígitos)" value={cfop} onChange={(value) => setCfop(normalizeFiscalCode(value, 4))} />
-                <label className="grid gap-2 text-sm font-medium">Origem<select value={origemMercadoria} onChange={(event) => setOrigemMercadoria(event.target.value)} className="rounded-xl border bg-white p-3 font-normal"><option value="0">0 - Nacional</option><option value="1">1 - Importação direta</option><option value="2">2 - Estrangeira, mercado interno</option><option value="3">3 - Nacional, importado &gt; 40%</option><option value="4">4 - Processo básico</option><option value="5">5 - Nacional, importado ≤ 40%</option><option value="6">6 - Importado, sem similar</option><option value="7">7 - Interno, sem similar</option><option value="8">8 - Nacional, importado &gt; 70%</option></select></label>
-                <ProductInput label="CSOSN / CST" value={csosn} onChange={(value) => setCsosn(normalizeFiscalCode(value, 3))} />
-                <ProductInput label="Unidade" value={unidadeComercial} onChange={(value) => setUnidadeComercial(value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 6))} />
-              </div>
+            <div className="mt-5 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50/50">
+              <button
+                type="button"
+                onClick={() => setFiscalOpen((current) => !current)}
+                aria-expanded={fiscalOpen}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-purple-50"
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <span className="rounded-xl bg-white p-2 text-[#8A0EEA]">
+                    <ReceiptText size={20} />
+                  </span>
+                  <span>
+                    <strong className="block text-slate-900">
+                      Dados fiscais para NFC-e
+                    </strong>
+                    <small className="block text-slate-500">
+                      {ncm || cfop || csosn
+                        ? "Existem informações fiscais preenchidas"
+                        : "Opcional agora; necessário somente para emitir NFC-e"}
+                    </small>
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#8A0EEA]">
+                  {fiscalOpen ? "Ocultar" : "Mostrar"}
+                  <ChevronDown
+                    size={18}
+                    className={`transition ${fiscalOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
+              </button>
+              {fiscalOpen && (
+                <div className="border-t border-purple-100 p-4">
+                  <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                    Preenchimento opcional agora. NCM, CFOP e tributação serão
+                    necessários antes de emitir NFC-e.
+                  </p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <ProductInput
+                      label="NCM (8 dígitos)"
+                      value={ncm}
+                      onChange={(value) =>
+                        setNcm(normalizeFiscalCode(value, 8))
+                      }
+                    />
+                    <ProductInput
+                      label="CFOP (4 dígitos)"
+                      value={cfop}
+                      onChange={(value) =>
+                        setCfop(normalizeFiscalCode(value, 4))
+                      }
+                    />
+                    <label className="grid gap-2 text-sm font-medium">
+                      Origem
+                      <select
+                        value={origemMercadoria}
+                        onChange={(event) =>
+                          setOrigemMercadoria(event.target.value)
+                        }
+                        className="rounded-xl border bg-white p-3 font-normal"
+                      >
+                        <option value="0">0 - Nacional</option>
+                        <option value="1">1 - Importação direta</option>
+                        <option value="2">
+                          2 - Estrangeira, mercado interno
+                        </option>
+                        <option value="3">
+                          3 - Nacional, importado &gt; 40%
+                        </option>
+                        <option value="4">4 - Processo básico</option>
+                        <option value="5">5 - Nacional, importado ≤ 40%</option>
+                        <option value="6">6 - Importado, sem similar</option>
+                        <option value="7">7 - Interno, sem similar</option>
+                        <option value="8">
+                          8 - Nacional, importado &gt; 70%
+                        </option>
+                      </select>
+                    </label>
+                    <ProductInput
+                      label="CSOSN / CST"
+                      value={csosn}
+                      onChange={(value) =>
+                        setCsosn(normalizeFiscalCode(value, 3))
+                      }
+                    />
+                    <ProductInput
+                      label="Unidade"
+                      value={unidadeComercial}
+                      onChange={(value) =>
+                        setUnidadeComercial(
+                          value
+                            .replace(/[^A-Za-z]/g, "")
+                            .toUpperCase()
+                            .slice(0, 6),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-6 flex items-center justify-between gap-4">

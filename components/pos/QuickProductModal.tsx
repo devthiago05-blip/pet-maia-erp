@@ -1,10 +1,13 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { normalizeFiscalCode, validateProductFiscalFields } from "@/lib/product-fiscal";
+import {
+  normalizeFiscalCode,
+  validateProductFiscalFields,
+} from "@/lib/product-fiscal";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface QuickProductModalProps {
@@ -56,6 +59,7 @@ export function QuickProductModal({
     createQuickVariation(),
   ]);
   const [saving, setSaving] = useState(false);
+  const [fiscalOpen, setFiscalOpen] = useState(false);
 
   function reset() {
     setNome("");
@@ -68,6 +72,7 @@ export function QuickProductModal({
     setCsosn("");
     setUnidadeComercial("UN");
     setVariations([createQuickVariation()]);
+    setFiscalOpen(false);
   }
 
   function updateVariation(
@@ -110,10 +115,19 @@ export function QuickProductModal({
       return;
     }
 
-    const fiscalFields = { ncm, cfop, origem_mercadoria: origemMercadoria, csosn, unidade_comercial: unidadeComercial };
+    const fiscalFields = {
+      ncm,
+      cfop,
+      origem_mercadoria: origemMercadoria,
+      csosn,
+      unidade_comercial: unidadeComercial,
+    };
     const fiscalError = validateProductFiscalFields(fiscalFields, false);
     const fiscalPending = validateProductFiscalFields(fiscalFields) !== null;
-    if (fiscalError) { toast.error(fiscalError); return; }
+    if (fiscalError) {
+      toast.error(fiscalError);
+      return;
+    }
 
     const selectedCategory = categories.find(
       (category) => String(category.id) === categoryId,
@@ -189,7 +203,10 @@ export function QuickProductModal({
     setSaving(true);
     try {
       await onSave(products);
-      if (fiscalPending) toast.warning("Produto salvo. Complete a tributação antes de emitir NFC-e.");
+      if (fiscalPending)
+        toast.warning(
+          "Produto salvo. Complete a tributação antes de emitir NFC-e.",
+        );
       reset();
       setOpen(false);
     } catch {
@@ -231,16 +248,98 @@ export function QuickProductModal({
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
-              <h3 className="font-bold">Dados fiscais para NFC-e</h3>
-              <p className="mt-1 text-sm text-slate-500">Use os dados confirmados pela contabilidade.</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-                <QuickInput label="NCM" value={ncm} onChange={(value) => setNcm(normalizeFiscalCode(value, 8))} />
-                <QuickInput label="CFOP" value={cfop} onChange={(value) => setCfop(normalizeFiscalCode(value, 4))} />
-                <label className="grid gap-2 text-sm font-medium">Origem<select value={origemMercadoria} onChange={(event) => setOrigemMercadoria(event.target.value)} className="rounded-xl border bg-white p-3 font-normal"><option value="0">0 - Nacional</option><option value="1">1 - Importação direta</option><option value="2">2 - Mercado interno</option><option value="3">3 - Nacional, importado &gt; 40%</option><option value="4">4 - Processo básico</option><option value="5">5 - Nacional, importado ≤ 40%</option><option value="6">6 - Importado, sem similar</option><option value="7">7 - Interno, sem similar</option><option value="8">8 - Nacional, importado &gt; 70%</option></select></label>
-                <QuickInput label="CSOSN / CST" value={csosn} onChange={(value) => setCsosn(normalizeFiscalCode(value, 3))} />
-                <QuickInput label="Unidade" value={unidadeComercial} onChange={(value) => setUnidadeComercial(value.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 6))} />
-              </div>
+            <div className="mt-4 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50/50">
+              <button
+                type="button"
+                onClick={() => setFiscalOpen((current) => !current)}
+                aria-expanded={fiscalOpen}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-purple-50"
+              >
+                <span className="flex items-center gap-3">
+                  <span className="rounded-xl bg-white p-2 text-[#8A0EEA]">
+                    <ReceiptText size={20} />
+                  </span>
+                  <span>
+                    <strong className="block">Dados fiscais para NFC-e</strong>
+                    <small className="block text-slate-500">
+                      Preencha apenas quando for configurar a emissão fiscal
+                    </small>
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#8A0EEA]">
+                  {fiscalOpen ? "Ocultar" : "Mostrar"}
+                  <ChevronDown
+                    size={18}
+                    className={`transition ${fiscalOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
+              </button>
+              {fiscalOpen && (
+                <div className="border-t border-purple-100 p-4">
+                  <p className="text-sm text-slate-500">
+                    Use os dados confirmados pela contabilidade.
+                  </p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <QuickInput
+                      label="NCM"
+                      value={ncm}
+                      onChange={(value) =>
+                        setNcm(normalizeFiscalCode(value, 8))
+                      }
+                    />
+                    <QuickInput
+                      label="CFOP"
+                      value={cfop}
+                      onChange={(value) =>
+                        setCfop(normalizeFiscalCode(value, 4))
+                      }
+                    />
+                    <label className="grid gap-2 text-sm font-medium">
+                      Origem
+                      <select
+                        value={origemMercadoria}
+                        onChange={(event) =>
+                          setOrigemMercadoria(event.target.value)
+                        }
+                        className="rounded-xl border bg-white p-3 font-normal"
+                      >
+                        <option value="0">0 - Nacional</option>
+                        <option value="1">1 - Importação direta</option>
+                        <option value="2">2 - Mercado interno</option>
+                        <option value="3">
+                          3 - Nacional, importado &gt; 40%
+                        </option>
+                        <option value="4">4 - Processo básico</option>
+                        <option value="5">5 - Nacional, importado ≤ 40%</option>
+                        <option value="6">6 - Importado, sem similar</option>
+                        <option value="7">7 - Interno, sem similar</option>
+                        <option value="8">
+                          8 - Nacional, importado &gt; 70%
+                        </option>
+                      </select>
+                    </label>
+                    <QuickInput
+                      label="CSOSN / CST"
+                      value={csosn}
+                      onChange={(value) =>
+                        setCsosn(normalizeFiscalCode(value, 3))
+                      }
+                    />
+                    <QuickInput
+                      label="Unidade"
+                      value={unidadeComercial}
+                      onChange={(value) =>
+                        setUnidadeComercial(
+                          value
+                            .replace(/[^A-Za-z]/g, "")
+                            .toUpperCase()
+                            .slice(0, 6),
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">

@@ -78,6 +78,19 @@ export function OverdueAppointmentsAlert() {
     setRescheduleDate(formatDateInput(new Date()));
   }
 
+  function handleReviewLater() {
+    if (!activeAppointment) {
+      return;
+    }
+
+    if (appointments.length > 1) {
+      removeAppointment(activeAppointment.id);
+      return;
+    }
+
+    setDismissed(true);
+  }
+
   async function handleReschedule() {
     if (!activeAppointment) {
       return;
@@ -205,11 +218,11 @@ export function OverdueAppointmentsAlert() {
           <div className="mt-5 grid gap-2 sm:grid-cols-3">
             <button
               type="button"
-              onClick={() => setDismissed(true)}
+              onClick={handleReviewLater}
               disabled={processing}
               className="rounded-xl border px-4 py-3 font-semibold text-slate-600 disabled:opacity-50"
             >
-              Agora não
+              {appointments.length > 1 ? "Ver próximo" : "Agora não"}
             </button>
             <button
               type="button"

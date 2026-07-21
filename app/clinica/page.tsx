@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  AlertTriangle,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
@@ -567,6 +568,7 @@ export default function ClinicPage() {
             returns={weeklyReturns}
             vaccines={vaccineAlerts}
             tasks={clinicalTasks}
+            hospitalizations={hospitalizations}
             onReturnConfirmation={handleReturnConfirmation}
             onVaccinationConfirmation={handleVaccinationConfirmation}
             onTaskToggle={handleToggleClinicalTask}
@@ -699,6 +701,7 @@ function DailyVetDashboard({
   returns,
   vaccines,
   tasks,
+  hospitalizations,
   onReturnConfirmation,
   onVaccinationConfirmation,
   onTaskToggle,
@@ -706,6 +709,7 @@ function DailyVetDashboard({
   returns: ReturnQueueItem[];
   vaccines: VaccineQueueItem[];
   tasks: ClinicalTask[];
+  hospitalizations: ClinicalHospitalization[];
   onReturnConfirmation: (
     recordId: number,
     confirmed: boolean,
@@ -780,6 +784,22 @@ function DailyVetDashboard({
   const confirmedTodayCount = items.filter(
     (item) => item.daysDiff === 0 && item.confirmed,
   ).length;
+  const overdueMedications = hospitalizations
+    .filter((item) => item.status === "Internado")
+    .flatMap((item) =>
+      (item.clinical_hospitalization_medications || [])
+        .filter(
+          (medication) =>
+            medication.status === "Pendente" &&
+            new Date(medication.scheduled_at) < new Date(),
+        )
+        .map((medication) => ({
+          ...medication,
+          petId: item.pet_id,
+          petName: item.pets?.nome || "Paciente",
+        })),
+    )
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at));
 
   return (
     <section className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
@@ -808,6 +828,30 @@ function DailyVetDashboard({
       </div>
 
       <div className="p-4 sm:p-6">
+        {overdueMedications.length > 0 && (
+          <div className="mb-4 rounded-xl border border-rose-300 bg-rose-50 p-4">
+            <div className="flex items-center gap-2 font-bold text-rose-800">
+              <AlertTriangle size={19} />
+              {overdueMedications.length} medicamento(s) atrasado(s)
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {overdueMedications.slice(0, 6).map((medication) => (
+                <Link
+                  key={medication.id}
+                  href={`/pets/${medication.petId}`}
+                  className="rounded-lg bg-white p-3 text-sm shadow-sm transition hover:ring-1 hover:ring-rose-300"
+                >
+                  <strong>{medication.petName}</strong> ·{" "}
+                  {medication.medication} {medication.dose}
+                  <p className="text-xs text-rose-700">
+                    Previsto para{" "}
+                    {new Date(medication.scheduled_at).toLocaleString("pt-BR")}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="font-bold">Ações prioritárias</h3>
           <span className="text-xs text-slate-500">

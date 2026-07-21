@@ -200,7 +200,7 @@ function PetPrintView({ pets }: { pets: Pet[] }) {
                     <img
                       src={pet.photo_url}
                       alt={pet.nome}
-                      className="h-14 w-14 rounded-lg object-cover"
+                      className="h-14 w-14 rounded-lg bg-slate-50 object-contain p-0.5"
                     />
                   ) : (
                     "-"

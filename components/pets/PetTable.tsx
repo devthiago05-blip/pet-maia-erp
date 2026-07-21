@@ -52,7 +52,7 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                   <img
                     src={pet.photo_url}
                     alt={pet.nome}
-                    className="h-14 w-14 shrink-0 rounded-xl object-cover"
+                    className="h-14 w-14 shrink-0 rounded-xl bg-slate-50 object-contain p-0.5"
                   />
                 ) : (
                   <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-lg font-bold text-[#8A0EEA]">
@@ -131,7 +131,7 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                         <img
                           src={pet.photo_url}
                           alt={pet.nome}
-                          className="h-10 w-10 rounded-lg object-cover"
+                          className="h-10 w-10 rounded-lg bg-slate-50 object-contain p-0.5"
                         />
                       ) : (
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-50 text-xs font-bold text-[#8A0EEA]">

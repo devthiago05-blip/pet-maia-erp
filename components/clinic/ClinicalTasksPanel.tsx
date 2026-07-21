@@ -16,6 +16,33 @@ const taskTypes: ClinicalTask["task_type"][] = [
   "Outro",
 ];
 
+const quickTaskTemplates: Array<{
+  label: string;
+  taskType: ClinicalTask["task_type"];
+  title: string;
+}> = [
+  {
+    label: "Ligação pós-operatória",
+    taskType: "Pós-operatório",
+    title: "Ligar para acompanhar recuperação pós-operatória",
+  },
+  {
+    label: "Conferir exame",
+    taskType: "Exame",
+    title: "Conferir resultado do exame e avisar o tutor",
+  },
+  {
+    label: "Trocar curativo",
+    taskType: "Curativo",
+    title: "Realizar troca de curativo",
+  },
+  {
+    label: "Acompanhar medicação",
+    taskType: "Medicação",
+    title: "Confirmar adaptação e administração da medicação",
+  },
+];
+
 export function ClinicalTasksPanel({
   tasks,
   patients,
@@ -117,6 +144,24 @@ export function ClinicalTasksPanel({
           onSubmit={handleSubmit}
           className="mt-4 grid gap-3 rounded-xl border bg-slate-50 p-4 md:grid-cols-2 xl:grid-cols-3"
         >
+          <div className="md:col-span-2 xl:col-span-3">
+            <p className="mb-2 text-sm font-medium">Modelos rápidos</p>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {quickTaskTemplates.map((template) => (
+                <button
+                  key={template.label}
+                  type="button"
+                  onClick={() => {
+                    setTaskType(template.taskType);
+                    setTitle(template.title);
+                  }}
+                  className="whitespace-nowrap rounded-full border bg-white px-3 py-2 text-sm text-[#8A0EEA] transition hover:bg-purple-50"
+                >
+                  {template.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <Field label="Pet">
             <select
               value={petId}

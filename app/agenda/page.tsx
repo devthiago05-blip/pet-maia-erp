@@ -127,8 +127,14 @@ export default function AgendaPage() {
     useState<Appointment | null>(null);
 
   useEffect(() => {
-    if (!requestedAppointmentId || openedNotificationRef.current === requestedAppointmentId) return;
-    const appointment = appointments.find((item) => String(item.id) === requestedAppointmentId);
+    if (
+      !requestedAppointmentId ||
+      openedNotificationRef.current === requestedAppointmentId
+    )
+      return;
+    const appointment = appointments.find(
+      (item) => String(item.id) === requestedAppointmentId,
+    );
     if (!appointment) return;
     openedNotificationRef.current = requestedAppointmentId;
     const timeout = window.setTimeout(() => {
@@ -746,7 +752,7 @@ function AppointmentPrintView({
                     <img
                       src={appointment.pets.photo_url}
                       alt={appointment.pets?.nome || "Pet"}
-                      className="h-14 w-14 rounded-lg object-cover"
+                      className="h-14 w-14 rounded-lg bg-slate-50 object-contain p-0.5"
                     />
                   ) : (
                     "-"

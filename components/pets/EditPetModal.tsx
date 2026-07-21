@@ -200,7 +200,7 @@ export function EditPetModal({
               <img
                 src={photoPreview}
                 alt="Previa do pet"
-                className="h-44 w-full object-cover"
+                className="h-44 w-full bg-slate-50 object-contain p-1"
               />
             </div>
           )}

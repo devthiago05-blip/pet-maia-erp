@@ -382,6 +382,11 @@ export interface ClinicalExam {
   notes?: string;
   professional_name: string;
   created_at: string;
+  pets?: {
+    id: number;
+    nome: string;
+    tutors?: { nome: string; telefone?: string };
+  };
 }
 
 export interface ClinicalExamInput {

@@ -3,6 +3,7 @@ import type {
   ClinicalAttachment,
   ClinicalDocumentInput,
   ClinicalDocumentTemplateInput,
+  ClinicalExam,
   ClinicalExamInput,
   ClinicalHospitalization,
   ClinicalTask,
@@ -597,6 +598,35 @@ export async function fetchClinicalExamsByPet(petId: number) {
     .select("*")
     .eq("pet_id", petId)
     .order("request_date", { ascending: false });
+}
+
+export async function fetchClinicExams() {
+  return supabase
+    .from("clinical_exams")
+    .select("*, pets(id,nome,tutors(nome,telefone))")
+    .order("request_date", { ascending: false })
+    .returns<ClinicalExam[]>();
+}
+
+export async function updateClinicalExamStage(
+  id: number,
+  status: ClinicalExam["status"],
+) {
+  const today = new Date().toLocaleDateString("en-CA");
+  const values: Record<string, string> = {
+    status,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (status === "Coletado") values.collection_date = today;
+  if (status === "Concluído") values.result_date = today;
+
+  return supabase
+    .from("clinical_exams")
+    .update(values)
+    .eq("id", id)
+    .select("*, pets(id,nome,tutors(nome,telefone))")
+    .single<ClinicalExam>();
 }
 
 export async function saveClinicalExam(input: ClinicalExamInput) {

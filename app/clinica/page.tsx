@@ -20,6 +20,7 @@ import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal
 import { ClinicalDocumentTemplateManager } from "@/components/clinic/ClinicalDocumentTemplateManager";
 import { ClinicalTasksPanel } from "@/components/clinic/ClinicalTasksPanel";
 import { HospitalizationPanel } from "@/components/clinic/HospitalizationPanel";
+import { LaboratoryExamPanel } from "@/components/clinic/LaboratoryExamPanel";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -37,14 +38,17 @@ import {
   dischargeClinicalHospitalization,
   fetchClinicalHospitalizations,
   fetchClinicalTasks,
+  fetchClinicExams,
   fetchClinicPatients,
   saveClinicalPrescription,
   setClinicalReturnConfirmation,
   setClinicalTaskCompleted,
   setVaccinationConfirmation,
+  updateClinicalExamStage,
 } from "@/services/clinical";
 import type {
   ClinicalDocumentInput,
+  ClinicalExam,
   ClinicalHospitalization,
   ClinicalTask,
   ClinicPatientOverview,
@@ -121,18 +125,24 @@ export default function ClinicPage() {
   const [hospitalizations, setHospitalizations] = useState<
     ClinicalHospitalization[]
   >([]);
+  const [clinicalExams, setClinicalExams] = useState<ClinicalExam[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   useMountEffect(() => {
     async function loadPatients() {
-      const [patientsResponse, tasksResponse, hospitalizationsResponse] =
-        await Promise.all([
-          fetchClinicPatients(),
-          fetchClinicalTasks(),
-          fetchClinicalHospitalizations(),
-        ]);
+      const [
+        patientsResponse,
+        tasksResponse,
+        hospitalizationsResponse,
+        examsResponse,
+      ] = await Promise.all([
+        fetchClinicPatients(),
+        fetchClinicalTasks(),
+        fetchClinicalHospitalizations(),
+        fetchClinicExams(),
+      ]);
       const { data, error } = patientsResponse;
 
       if (error) {
@@ -196,6 +206,12 @@ export default function ClinicPage() {
       }
       if (!hospitalizationsResponse.error)
         setHospitalizations(hospitalizationsResponse.data || []);
+      if (examsResponse.error) {
+        console.error(examsResponse.error);
+        toast.error("Não foi possível carregar os exames da clínica.");
+      } else {
+        setClinicalExams(examsResponse.data || []);
+      }
       setLoading(false);
     }
 
@@ -531,6 +547,26 @@ export default function ClinicPage() {
     return true;
   }
 
+  async function handleExamStageChange(
+    examId: number,
+    status: ClinicalExam["status"],
+  ) {
+    const { data, error } = await updateClinicalExamStage(examId, status);
+    if (error) {
+      toast.error("Não foi possível atualizar o exame.");
+      return false;
+    }
+    setClinicalExams((current) =>
+      current.map((exam) => (exam.id === examId ? data : exam)),
+    );
+    toast.success(
+      status === "Coletado"
+        ? "Coleta confirmada!"
+        : "Resultado disponibilizado!",
+    );
+    return true;
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -592,6 +628,11 @@ export default function ClinicPage() {
             onDischarge={handleDischarge}
             onMedication={handleMedication}
             onAdminister={handleAdminister}
+          />
+
+          <LaboratoryExamPanel
+            exams={clinicalExams}
+            onStageChange={handleExamStageChange}
           />
 
           <ClinicDocumentWorkspace

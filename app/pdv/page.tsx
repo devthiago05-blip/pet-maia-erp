@@ -529,6 +529,28 @@ export default function PosPage() {
     );
   }
 
+  function handleSplitPayments(enabled: boolean) {
+    setSplitPayments(enabled);
+
+    if (enabled) {
+      setPayments([
+        {
+          id: `payment-${Date.now()}-1`,
+          method: paymentMethod,
+          amount: saleTotal > 0 ? saleTotal.toFixed(2) : "",
+        },
+        {
+          id: `payment-${Date.now()}-2`,
+          method: paymentMethod === "PIX" ? "Dinheiro" : "PIX",
+          amount: "",
+        },
+      ]);
+      return;
+    }
+
+    setPayments([{ id: "payment-1", method: paymentMethod, amount: "" }]);
+  }
+
   function addPaymentSplit() {
     setPayments((current) => [
       ...current,
@@ -1168,7 +1190,7 @@ export default function PosPage() {
               onSurcharge={setSurcharge}
               onAdjustmentReason={setAdjustmentReason}
               onPaymentMethod={setPaymentMethod}
-              onSplitPayments={setSplitPayments}
+              onSplitPayments={handleSplitPayments}
               onPaymentSplit={updatePaymentSplit}
               onAddPaymentSplit={addPaymentSplit}
               onRemovePaymentSplit={removePaymentSplit}
@@ -2557,81 +2579,124 @@ function SaleView({
               className="rounded-xl border p-3"
             />
           )}
-          <select
-            value={paymentMethod}
-            onChange={(event) => onPaymentMethod(event.target.value)}
-            className="rounded-xl border p-3"
+          {!splitPayments && (
+            <select
+              value={paymentMethod}
+              onChange={(event) => onPaymentMethod(event.target.value)}
+              className="rounded-xl border p-3"
+            >
+              {financialPaymentMethods.map((method) => (
+                <option key={method}>{method}</option>
+              ))}
+            </select>
+          )}
+          <div
+            className={`rounded-xl border p-3 ${splitPayments ? "border-purple-200 bg-purple-50/50" : ""}`}
           >
-            {financialPaymentMethods.map((method) => (
-              <option key={method}>{method}</option>
-            ))}
-          </select>
-          <div className="rounded-xl border p-3">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">Pagamento dividido</span>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={splitPayments}
-                  onChange={(event) => onSplitPayments(event.target.checked)}
-                  className="size-4 accent-[#8A0EEA]"
-                />
-                Ativar
-              </label>
-            </div>
+            <button
+              type="button"
+              onClick={() => onSplitPayments(!splitPayments)}
+              className={`flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1 text-left text-sm font-bold transition ${
+                splitPayments ? "text-[#8A0EEA]" : "text-slate-700"
+              }`}
+            >
+              <span>
+                {splitPayments
+                  ? "Pagamento com mais de uma forma"
+                  : "Cliente vai usar mais de uma forma?"}
+              </span>
+              <span className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-xs shadow-sm">
+                {splitPayments ? "Usar apenas uma" : "Dividir pagamento"}
+              </span>
+            </button>
 
             {splitPayments && (
               <div className="mt-3 space-y-2">
-                {payments.map((payment) => (
-                  <div
-                    key={payment.id}
-                    className="grid gap-2 sm:grid-cols-[1fr_120px_auto]"
-                  >
-                    <select
-                      value={payment.method}
-                      onChange={(event) =>
-                        onPaymentSplit(payment.id, "method", event.target.value)
-                      }
-                      className="rounded-lg border p-2 text-sm"
+                {payments.map((payment) => {
+                  const otherPaymentsTotal = payments.reduce(
+                    (sum, item) =>
+                      item.id === payment.id
+                        ? sum
+                        : sum + Number(item.amount || 0),
+                    0,
+                  );
+                  const remaining = Math.max(0, total - otherPaymentsTotal);
+
+                  return (
+                    <div
+                      key={payment.id}
+                      className="grid gap-2 sm:grid-cols-[1fr_110px_auto_auto]"
                     >
-                      {financialPaymentMethods.map((method) => (
-                        <option key={method}>{method}</option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={payment.amount}
-                      onChange={(event) =>
-                        onPaymentSplit(payment.id, "amount", event.target.value)
-                      }
-                      placeholder="Valor"
-                      className="rounded-lg border p-2 text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => onRemovePaymentSplit(payment.id)}
-                      disabled={payments.length === 1}
-                      className="rounded-lg border px-3 text-sm text-red-600 disabled:opacity-40"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                ))}
+                      <select
+                        value={payment.method}
+                        onChange={(event) =>
+                          onPaymentSplit(
+                            payment.id,
+                            "method",
+                            event.target.value,
+                          )
+                        }
+                        className="rounded-lg border bg-white p-2 text-sm"
+                      >
+                        {financialPaymentMethods.map((method) => (
+                          <option key={method}>{method}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={payment.amount}
+                        onChange={(event) =>
+                          onPaymentSplit(
+                            payment.id,
+                            "amount",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="Valor"
+                        className="rounded-lg border bg-white p-2 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onPaymentSplit(
+                            payment.id,
+                            "amount",
+                            remaining.toFixed(2),
+                          )
+                        }
+                        className="rounded-lg border bg-white px-2 text-xs font-semibold text-[#8A0EEA]"
+                      >
+                        Restante
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRemovePaymentSplit(payment.id)}
+                        disabled={payments.length === 1}
+                        aria-label="Remover forma de pagamento"
+                        className="rounded-lg border bg-white p-2 text-red-600 disabled:opacity-40"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
                 <button
                   type="button"
                   onClick={onAddPaymentSplit}
-                  className="text-sm font-semibold text-[#8A0EEA]"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-[#8A0EEA]"
                 >
-                  Adicionar forma de pagamento
+                  <Plus size={15} /> Adicionar outra forma
                 </button>
                 <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-sm">
                   <span className="text-slate-500">Pago</span>
                   <strong className="text-right">
                     {formatCurrency(paymentTotal)}
                   </strong>
-                  <span className="text-slate-500">Diferenca</span>
+                  <span className="text-slate-500">
+                    {paymentDifference >= 0 ? "Falta" : "Excedeu"}
+                  </span>
                   <strong
                     className={`text-right ${
                       Math.abs(paymentDifference) >= 0.01
@@ -2639,7 +2704,7 @@ function SaleView({
                         : "text-emerald-600"
                     }`}
                   >
-                    {formatCurrency(paymentDifference)}
+                    {formatCurrency(Math.abs(paymentDifference))}
                   </strong>
                 </div>
               </div>

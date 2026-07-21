@@ -77,6 +77,11 @@ export function ProductSelectionModal({
         <p className="mt-2 text-base font-bold text-[#8A0EEA] sm:text-lg">
           {products.length > 1 ? "A partir de " : ""}
           {formatCurrency(minimumPrice)}
+          {products.length === 1 && products[0].sale_unit && (
+            <span className="ml-1 text-xs font-medium text-slate-500">
+              /{products[0].sale_unit}
+            </span>
+          )}
         </p>
       </button>
 

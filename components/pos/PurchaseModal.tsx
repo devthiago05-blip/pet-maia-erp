@@ -228,88 +228,111 @@ export function PurchaseModal({
             </div>
 
             <div className="mt-5 space-y-3">
-              {lines.map((line) => (
-                <div
-                  key={line.id}
-                  className="grid gap-3 rounded-xl border p-3 lg:grid-cols-[minmax(150px,1fr)_minmax(180px,1.4fr)_100px_150px_40px]"
-                >
-                  <select
-                    value={line.productName}
-                    onChange={(event) => {
-                      updateLine(line.id, "productName", event.target.value);
-                      updateLine(line.id, "productId", "");
-                    }}
-                    className="rounded-xl border p-3"
+              {lines.map((line) => {
+                const selectedProduct = products.find(
+                  (product) => String(product.id) === line.productId,
+                );
+                const conversion = Math.max(
+                  1,
+                  Number(selectedProduct?.units_per_purchase || 1),
+                );
+
+                return (
+                  <div
+                    key={line.id}
+                    className="grid gap-3 rounded-xl border p-3 lg:grid-cols-[minmax(150px,1fr)_minmax(180px,1.4fr)_100px_150px_40px]"
                   >
-                    <option value="">Produto</option>
-                    {Array.from(
-                      new Set(
-                        products
-                          .filter((product) => product.ativo)
-                          .map((product) => product.nome),
-                      ),
-                    ).map((name) => (
-                      <option key={name} value={name}>
-                        {name}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={line.productId}
-                    onChange={(event) =>
-                      updateLine(line.id, "productId", event.target.value)
-                    }
-                    className="rounded-xl border p-3"
-                  >
-                    <option value="">Variação</option>
-                    {products
-                      .filter(
-                        (product) =>
-                          product.ativo && product.nome === line.productName,
-                      )
-                      .map((product) => (
-                        <option key={product.id} value={product.id}>
-                          {product.sku} · {formatProductName(product)}
+                    <select
+                      value={line.productName}
+                      onChange={(event) => {
+                        updateLine(line.id, "productName", event.target.value);
+                        updateLine(line.id, "productId", "");
+                      }}
+                      className="rounded-xl border p-3"
+                    >
+                      <option value="">Produto</option>
+                      {Array.from(
+                        new Set(
+                          products
+                            .filter((product) => product.ativo)
+                            .map((product) => product.nome),
+                        ),
+                      ).map((name) => (
+                        <option key={name} value={name}>
+                          {name}
                         </option>
                       ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={line.quantity}
-                    onChange={(event) =>
-                      updateLine(line.id, "quantity", event.target.value)
-                    }
-                    aria-label="Quantidade"
-                    className="rounded-xl border p-3"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={line.unitCost}
-                    onChange={(event) =>
-                      updateLine(line.id, "unitCost", event.target.value)
-                    }
-                    placeholder="Custo unitário"
-                    className="rounded-xl border p-3"
-                  />
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setLines((current) =>
-                        current.filter((item) => item.id !== line.id),
-                      )
-                    }
-                    disabled={lines.length === 1}
-                    aria-label="Remover item"
-                    className="flex items-center justify-center rounded-xl border text-red-600 disabled:opacity-30"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              ))}
+                    </select>
+                    <select
+                      value={line.productId}
+                      onChange={(event) =>
+                        updateLine(line.id, "productId", event.target.value)
+                      }
+                      className="rounded-xl border p-3"
+                    >
+                      <option value="">Variação</option>
+                      {products
+                        .filter(
+                          (product) =>
+                            product.ativo && product.nome === line.productName,
+                        )
+                        .map((product) => (
+                          <option key={product.id} value={product.id}>
+                            {product.sku} · {formatProductName(product)}
+                          </option>
+                        ))}
+                    </select>
+                    <label className="grid gap-1 text-xs font-medium text-slate-500">
+                      Qtd. {selectedProduct?.purchase_unit || "UN"}
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={line.quantity}
+                        onChange={(event) =>
+                          updateLine(line.id, "quantity", event.target.value)
+                        }
+                        aria-label="Quantidade de compra"
+                        className="rounded-xl border p-3 text-sm text-slate-900"
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-medium text-slate-500">
+                      Custo por {selectedProduct?.purchase_unit || "unidade"}
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={line.unitCost}
+                        onChange={(event) =>
+                          updateLine(line.id, "unitCost", event.target.value)
+                        }
+                        placeholder="0,00"
+                        className="rounded-xl border p-3 text-sm text-slate-900"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setLines((current) =>
+                          current.filter((item) => item.id !== line.id),
+                        )
+                      }
+                      disabled={lines.length === 1}
+                      aria-label="Remover item"
+                      className="flex items-center justify-center rounded-xl border text-red-600 disabled:opacity-30"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    {selectedProduct && conversion > 1 && (
+                      <p className="rounded-lg bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 lg:col-span-5">
+                        {line.quantity || 0} {selectedProduct.purchase_unit} ={" "}
+                        {Number(line.quantity || 0) * conversion}{" "}
+                        {selectedProduct.sale_unit} no estoque
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             <button

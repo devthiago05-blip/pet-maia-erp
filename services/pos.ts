@@ -119,6 +119,9 @@ export async function updateProduct(product: Product) {
       origem_mercadoria: product.origem_mercadoria || null,
       csosn: product.csosn || null,
       unidade_comercial: product.unidade_comercial || null,
+      purchase_unit: product.purchase_unit || "UN",
+      sale_unit: product.sale_unit || product.unidade_comercial || "UN",
+      units_per_purchase: Math.max(1, Number(product.units_per_purchase || 1)),
       ativo: product.ativo,
       updated_at: new Date().toISOString(),
     })
@@ -201,7 +204,7 @@ export async function fetchPurchaseOrders() {
     .select(
       `
     *, suppliers(nome,documento,telefone,email,contato),
-    purchase_order_items(*, products(id,nome,sku,tamanho,cor,sabor))
+    purchase_order_items(*, products(id,nome,sku,tamanho,cor,sabor,purchase_unit,sale_unit,units_per_purchase))
   `,
     )
     .order("created_at", { ascending: false })

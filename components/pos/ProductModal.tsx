@@ -73,6 +73,9 @@ function createProductForm(product?: Product) {
     origemMercadoria: product?.origem_mercadoria || "0",
     csosn: product?.csosn || "",
     unidadeComercial: product?.unidade_comercial || "UN",
+    purchaseUnit: product?.purchase_unit || "UN",
+    saleUnit: product?.sale_unit || product?.unidade_comercial || "UN",
+    unitsPerPurchase: String(product?.units_per_purchase || 1),
     imageUrl: product?.image_url || "",
   };
 }
@@ -123,6 +126,15 @@ export function ProductModal({
   const [imageUrl, setImageUrl] = useState(
     () => createProductForm(product).imageUrl,
   );
+  const [purchaseUnit, setPurchaseUnit] = useState(
+    () => createProductForm(product).purchaseUnit,
+  );
+  const [saleUnit, setSaleUnit] = useState(
+    () => createProductForm(product).saleUnit,
+  );
+  const [unitsPerPurchase, setUnitsPerPurchase] = useState(
+    () => createProductForm(product).unitsPerPurchase,
+  );
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupSource, setLookupSource] = useState("");
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -142,6 +154,9 @@ export function ProductModal({
     setCsosn(nextForm.csosn);
     setUnidadeComercial(nextForm.unidadeComercial);
     setImageUrl(nextForm.imageUrl);
+    setPurchaseUnit(nextForm.purchaseUnit);
+    setSaleUnit(nextForm.saleUnit);
+    setUnitsPerPurchase(nextForm.unitsPerPurchase);
     setLookupSource("");
     setFiscalOpen(false);
   }, []);
@@ -330,6 +345,14 @@ export function ProductModal({
       return;
     }
 
+    if (
+      !Number.isInteger(Number(unitsPerPurchase)) ||
+      Number(unitsPerPurchase) < 1
+    ) {
+      toast.error("Informe quantas unidades de venda existem em cada compra");
+      return;
+    }
+
     const selectedCategory = categories.find(
       (category) => String(category.id) === categoryId,
     );
@@ -355,6 +378,9 @@ export function ProductModal({
         origem_mercadoria: origemMercadoria,
         csosn,
         unidade_comercial: unidadeComercial,
+        purchase_unit: purchaseUnit.trim().toUpperCase() || "UN",
+        sale_unit: saleUnit.trim().toUpperCase() || "UN",
+        units_per_purchase: Math.max(1, Number(unitsPerPurchase || 1)),
         image_url: imageUrl || undefined,
         ativo,
       }),
@@ -491,6 +517,57 @@ export function ProductModal({
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+              <h3 className="font-bold text-slate-900">
+                Compra e venda por unidades diferentes
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Use quando comprar uma embalagem e vender suas unidades
+                internas, como caixa e cartela.
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                <ProductInput
+                  label="Unidade de compra"
+                  value={purchaseUnit}
+                  onChange={(value) =>
+                    setPurchaseUnit(
+                      value
+                        .replace(/[^A-Za-zÀ-ÿ]/g, "")
+                        .toUpperCase()
+                        .slice(0, 12),
+                    )
+                  }
+                  placeholder="CAIXA"
+                />
+                <ProductInput
+                  label="Unidade de venda"
+                  value={saleUnit}
+                  onChange={(value) => {
+                    const normalized = value
+                      .replace(/[^A-Za-zÀ-ÿ]/g, "")
+                      .toUpperCase()
+                      .slice(0, 12);
+                    setSaleUnit(normalized);
+                    setUnidadeComercial(normalized || "UN");
+                  }}
+                  placeholder="CARTELA"
+                />
+                <ProductInput
+                  label="Unidades por compra"
+                  type="number"
+                  integer
+                  value={unitsPerPurchase}
+                  onChange={setUnitsPerPurchase}
+                  placeholder="Ex.: 10"
+                />
+              </div>
+              <p className="mt-3 rounded-xl bg-white p-3 text-sm font-medium text-emerald-800">
+                Ao comprar 1 {purchaseUnit || "embalagem"}, entrarão{" "}
+                {Math.max(1, Number(unitsPerPurchase || 1))}{" "}
+                {saleUnit || "unidades"} no estoque.
+              </p>
             </div>
 
             <div className="mt-5 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50/50">
@@ -771,12 +848,14 @@ function ProductInput({
   value,
   type = "text",
   integer = false,
+  placeholder,
   onChange,
 }: {
   label: string;
   value: string;
   type?: string;
   integer?: boolean;
+  placeholder?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -787,6 +866,7 @@ function ProductInput({
         min={type === "number" ? "0" : undefined}
         step={type === "number" ? (integer ? "1" : "0.01") : undefined}
         value={value}
+        placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
         className="min-w-0 rounded-xl border bg-white p-3 font-normal"
       />

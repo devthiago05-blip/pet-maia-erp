@@ -489,6 +489,9 @@ export interface Product {
   origem_mercadoria?: string;
   csosn?: string;
   unidade_comercial?: string;
+  purchase_unit?: string;
+  sale_unit?: string;
+  units_per_purchase?: number;
   ativo: boolean;
   created_at?: string;
 }
@@ -779,7 +782,18 @@ export interface PurchaseOrderItem {
   ordered_quantity: number;
   received_quantity: number;
   unit_cost: number;
-  products?: Pick<Product, "id" | "nome" | "sku" | "tamanho" | "cor" | "sabor">;
+  products?: Pick<
+    Product,
+    | "id"
+    | "nome"
+    | "sku"
+    | "tamanho"
+    | "cor"
+    | "sabor"
+    | "purchase_unit"
+    | "sale_unit"
+    | "units_per_purchase"
+  >;
 }
 
 export interface PurchaseOrder {

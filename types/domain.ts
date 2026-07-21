@@ -352,6 +352,20 @@ export interface ClinicalHospitalization {
     tutors?: { nome: string; telefone?: string };
   };
   clinical_hospitalization_logs?: ClinicalHospitalizationLog[];
+  clinical_hospitalization_medications?: ClinicalHospitalizationMedication[];
+}
+
+export interface ClinicalHospitalizationMedication {
+  id: number;
+  hospitalization_id: number;
+  medication: string;
+  dose: string;
+  route: string;
+  scheduled_at: string;
+  status: "Pendente" | "Administrado";
+  administered_at?: string;
+  administered_by?: string;
+  notes?: string;
 }
 
 export interface ClinicalExam {

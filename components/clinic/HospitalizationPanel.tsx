@@ -18,6 +18,8 @@ export function HospitalizationPanel({
   onAdmit,
   onLog,
   onDischarge,
+  onMedication,
+  onAdminister,
 }: {
   hospitalizations: ClinicalHospitalization[];
   patients: ClinicPatientOverview[];
@@ -39,6 +41,17 @@ export function HospitalizationPanel({
     professionalName?: string;
   }) => Promise<boolean>;
   onDischarge: (id: number) => Promise<boolean>;
+  onMedication: (input: {
+    hospitalizationId: number;
+    medication: string;
+    dose: string;
+    route: string;
+    scheduledAt: string;
+  }) => Promise<boolean>;
+  onAdminister: (
+    hospitalizationId: number,
+    medicationId: number,
+  ) => Promise<boolean>;
 }) {
   const [showAdmission, setShowAdmission] = useState(false);
   const [petId, setPetId] = useState("");
@@ -52,6 +65,11 @@ export function HospitalizationPanel({
   const [heartRate, setHeartRate] = useState("");
   const [respiratoryRate, setRespiratoryRate] = useState("");
   const [saving, setSaving] = useState(false);
+  const [medHospitalId, setMedHospitalId] = useState<number | null>(null);
+  const [medication, setMedication] = useState("");
+  const [dose, setDose] = useState("");
+  const [route, setRoute] = useState("Oral");
+  const [scheduledAt, setScheduledAt] = useState("");
   const active = hospitalizations.filter((item) => item.status === "Internado");
 
   async function admit(event: React.FormEvent) {
@@ -95,6 +113,26 @@ export function HospitalizationPanel({
       setHeartRate("");
       setRespiratoryRate("");
       setSelectedId(null);
+    }
+  }
+
+  async function saveMedication(event: React.FormEvent) {
+    event.preventDefault();
+    if (!medHospitalId || !medication || !dose || !scheduledAt) return;
+    setSaving(true);
+    const ok = await onMedication({
+      hospitalizationId: medHospitalId,
+      medication,
+      dose,
+      route,
+      scheduledAt,
+    });
+    setSaving(false);
+    if (ok) {
+      setMedication("");
+      setDose("");
+      setScheduledAt("");
+      setMedHospitalId(null);
     }
   }
 
@@ -287,6 +325,93 @@ export function HospitalizationPanel({
                   </p>
                 </div>
               )}
+              <div className="mt-3 space-y-2">
+                {[...(item.clinical_hospitalization_medications || [])]
+                  .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+                  .map((med) => {
+                    const late =
+                      med.status === "Pendente" &&
+                      new Date(med.scheduled_at) < new Date();
+                    return (
+                      <div
+                        key={med.id}
+                        className={`flex items-center justify-between gap-2 rounded-lg p-2 text-sm ${med.status === "Administrado" ? "bg-emerald-50" : late ? "bg-rose-50" : "bg-amber-50"}`}
+                      >
+                        <div>
+                          <strong>{med.medication}</strong> · {med.dose} (
+                          {med.route})
+                          <p className="text-xs text-slate-500">
+                            {new Date(med.scheduled_at).toLocaleString("pt-BR")}{" "}
+                            · {late ? "Atrasado" : med.status}
+                          </p>
+                        </div>
+                        {med.status === "Pendente" && (
+                          <button
+                            type="button"
+                            onClick={() => onAdminister(item.id, med.id)}
+                            className="rounded-lg bg-emerald-600 px-2 py-1 text-xs text-white"
+                          >
+                            Administrar
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+              </div>
+              {medHospitalId === item.id && (
+                <form
+                  onSubmit={saveMedication}
+                  className="mt-3 grid grid-cols-2 gap-2 rounded-xl border p-3"
+                >
+                  <input
+                    required
+                    value={medication}
+                    onChange={(e) => setMedication(e.target.value)}
+                    placeholder="Medicamento"
+                    className="rounded-lg border p-2"
+                  />
+                  <input
+                    required
+                    value={dose}
+                    onChange={(e) => setDose(e.target.value)}
+                    placeholder="Dose"
+                    className="rounded-lg border p-2"
+                  />
+                  <input
+                    value={route}
+                    onChange={(e) => setRoute(e.target.value)}
+                    placeholder="Via"
+                    className="rounded-lg border p-2"
+                  />
+                  <input
+                    required
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={(e) => setScheduledAt(e.target.value)}
+                    className="rounded-lg border p-2"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMedHospitalId(null)}
+                    className="rounded-lg border p-2"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    disabled={saving}
+                    className="rounded-lg bg-sky-600 p-2 text-white"
+                  >
+                    Agendar
+                  </button>
+                </form>
+              )}
+              <button
+                type="button"
+                onClick={() => setMedHospitalId(item.id)}
+                className="mt-3 w-full rounded-xl bg-amber-50 p-2 text-sm font-medium text-amber-700"
+              >
+                + Prescrever medicamento
+              </button>
               <div className="mt-3 grid grid-cols-3 gap-2">
                 <button
                   type="button"

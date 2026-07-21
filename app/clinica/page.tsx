@@ -27,6 +27,8 @@ import { formatDate } from "@/lib/formatters";
 import { normalizeBrazilianWhatsAppPhone } from "@/lib/whatsapp";
 import {
   addClinicalHospitalizationLog,
+  addHospitalizationMedication,
+  administerHospitalizationMedication,
   createClinicalDocument,
   createClinicalHospitalization,
   createClinicalTask,
@@ -476,6 +478,58 @@ export default function ClinicPage() {
     return true;
   }
 
+  async function handleMedication(
+    input: Parameters<typeof addHospitalizationMedication>[0],
+  ) {
+    const { data, error } = await addHospitalizationMedication(input);
+    if (error) {
+      toast.error("Não foi possível agendar o medicamento.");
+      return false;
+    }
+    setHospitalizations((c) =>
+      c.map((h) =>
+        h.id === input.hospitalizationId
+          ? {
+              ...h,
+              clinical_hospitalization_medications: [
+                ...(h.clinical_hospitalization_medications || []),
+                data,
+              ],
+            }
+          : h,
+      ),
+    );
+    toast.success("Medicamento agendado!");
+    return true;
+  }
+  async function handleAdminister(
+    hospitalizationId: number,
+    medicationId: number,
+  ) {
+    const { data, error } = await administerHospitalizationMedication(
+      medicationId,
+      profile?.nome || "",
+    );
+    if (error) {
+      toast.error("Não foi possível confirmar a administração.");
+      return false;
+    }
+    setHospitalizations((c) =>
+      c.map((h) =>
+        h.id === hospitalizationId
+          ? {
+              ...h,
+              clinical_hospitalization_medications: (
+                h.clinical_hospitalization_medications || []
+              ).map((m) => (m.id === medicationId ? data : m)),
+            }
+          : h,
+      ),
+    );
+    toast.success("Medicamento administrado!");
+    return true;
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -534,6 +588,8 @@ export default function ClinicPage() {
             onAdmit={handleAdmit}
             onLog={handleHospitalizationLog}
             onDischarge={handleDischarge}
+            onMedication={handleMedication}
+            onAdminister={handleAdminister}
           />
 
           <ClinicDocumentWorkspace

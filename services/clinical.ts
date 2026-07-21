@@ -523,7 +523,7 @@ export async function fetchClinicalHospitalizations() {
   return supabase
     .from("clinical_hospitalizations")
     .select(
-      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*), clinical_hospitalization_medications(*)",
     )
     .order("admission_at", { ascending: false })
     .limit(200)
@@ -545,7 +545,7 @@ export async function createClinicalHospitalization(input: {
       kennel: input.kennel?.trim() || null,
     })
     .select(
-      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*), clinical_hospitalization_medications(*)",
     )
     .single<ClinicalHospitalization>();
 }
@@ -586,7 +586,7 @@ export async function dischargeClinicalHospitalization(id: number) {
     })
     .eq("id", id)
     .select(
-      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*), clinical_hospitalization_medications(*)",
     )
     .single<ClinicalHospitalization>();
 }
@@ -766,4 +766,42 @@ export async function archiveClinicalDocumentTemplate(id: number) {
     .from("clinical_document_templates")
     .update({ active: false, updated_at: new Date().toISOString() })
     .eq("id", id);
+}
+
+export async function addHospitalizationMedication(input: {
+  hospitalizationId: number;
+  medication: string;
+  dose: string;
+  route: string;
+  scheduledAt: string;
+  notes?: string;
+}) {
+  return supabase
+    .from("clinical_hospitalization_medications")
+    .insert({
+      hospitalization_id: input.hospitalizationId,
+      medication: input.medication.trim(),
+      dose: input.dose.trim(),
+      route: input.route.trim(),
+      scheduled_at: input.scheduledAt,
+      notes: input.notes?.trim() || null,
+    })
+    .select("*")
+    .single();
+}
+
+export async function administerHospitalizationMedication(
+  id: number,
+  professionalName: string,
+) {
+  return supabase
+    .from("clinical_hospitalization_medications")
+    .update({
+      status: "Administrado",
+      administered_at: new Date().toISOString(),
+      administered_by: professionalName,
+    })
+    .eq("id", id)
+    .select("*")
+    .single();
 }

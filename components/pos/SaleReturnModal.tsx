@@ -147,9 +147,7 @@ export function SaleReturnModal({
             </label>
             <div className="mt-4 rounded-xl bg-slate-50 p-3">
               <p className="text-sm text-slate-500">
-                {type === "Troca"
-                  ? "Crédito para a nova venda"
-                  : "Valor a devolver"}
+            {type === "Troca" ? "Valor dos itens selecionados" : "Valor a devolver"}
               </p>
               <p className="text-xl font-bold">{formatCurrency(total)}</p>
             </div>

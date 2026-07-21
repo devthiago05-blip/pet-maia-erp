@@ -1,7 +1,6 @@
 import type { FinancialEntryType } from "@/types/domain";
 
 export const financialPaymentMethods = [
-  "Crédito de troca",
   "PIX",
   "Dinheiro",
   "Cartao de debito",

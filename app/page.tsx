@@ -777,7 +777,7 @@ Equipe Pet Maia Banho e Tosa.`;
         <Header />
 
         <div className="p-4 sm:p-6 lg:p-8">
-          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid w-full grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4">
             <StatCard
               title="Pets"
               value={String(pets)}

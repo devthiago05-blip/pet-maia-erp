@@ -51,6 +51,7 @@ import { isProductFiscalReady } from "@/lib/product-fiscal";
 import {
   addPosCashMovement,
   archiveProduct,
+  archiveProducts,
   cancelPosSale,
   closePosCashRegister,
   completeProductStocktake,
@@ -801,6 +802,24 @@ export default function PosPage() {
     await loadData();
   }
 
+  async function handleProductsBulkDelete(productIds: number[]) {
+    const { data, error } = await archiveProducts(productIds);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    const archivedIds = new Set((data || []).map((product) => product.id));
+    setCart((current) =>
+      current.filter((item) => !archivedIds.has(item.product.id)),
+    );
+    toast.success(
+      `${archivedIds.size} produto${archivedIds.size === 1 ? " foi excluído" : "s foram excluídos"} do catálogo`,
+    );
+    await loadData();
+  }
+
   async function handleCategorySave(category: NewProductCategoryInput) {
     const { error } = await createProductCategory(category);
 
@@ -1176,6 +1195,7 @@ export default function PosPage() {
               sales={sales}
               onSave={handleProductSave}
               onDelete={handleProductDelete}
+              onBulkDelete={handleProductsBulkDelete}
             />
           ) : view === "stocktake" ? (
             <StocktakeView
@@ -2962,15 +2982,19 @@ function ProductsView({
   sales,
   onSave,
   onDelete,
+  onBulkDelete,
 }: {
   products: Product[];
   categories: ProductCategory[];
   sales: PosSale[];
   onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
   onDelete: (product: Product) => Promise<void>;
+  onBulkDelete: (productIds: number[]) => Promise<void>;
 }) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<
     "active" | "inactive" | "all"
   >("active");
@@ -2981,6 +3005,44 @@ function ProductsView({
     if (statusFilter === "inactive") return !product.ativo;
     return true;
   });
+  const selectableProducts = visibleProducts.filter((product) => product.ativo);
+  const allVisibleSelected =
+    selectableProducts.length > 0 &&
+    selectableProducts.every((product) =>
+      selectedProductIds.includes(product.id),
+    );
+
+  function toggleProductSelection(productId: number) {
+    setSelectedProductIds((current) =>
+      current.includes(productId)
+        ? current.filter((id) => id !== productId)
+        : [...current, productId],
+    );
+  }
+
+  function toggleAllVisible() {
+    const visibleIds = selectableProducts.map((product) => product.id);
+    setSelectedProductIds((current) =>
+      allVisibleSelected
+        ? current.filter((id) => !visibleIds.includes(id))
+        : Array.from(new Set([...current, ...visibleIds])),
+    );
+  }
+
+  async function handleConfirmBulkDelete() {
+    if (selectedProductIds.length === 0) return;
+
+    setDeleting(true);
+    try {
+      await onBulkDelete(selectedProductIds);
+      setSelectedProductIds([]);
+      setBulkDeleteOpen(false);
+    } catch {
+      return;
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   async function handleConfirmDelete() {
     if (!productToDelete) {
@@ -2990,6 +3052,9 @@ function ProductsView({
     setDeleting(true);
     try {
       await onDelete(productToDelete);
+      setSelectedProductIds((current) =>
+        current.filter((id) => id !== productToDelete.id),
+      );
       setProductToDelete(null);
     } catch {
       return;
@@ -3025,7 +3090,10 @@ function ProductsView({
           <button
             key={value}
             type="button"
-            onClick={() => setStatusFilter(value)}
+            onClick={() => {
+              setStatusFilter(value);
+              setSelectedProductIds([]);
+            }}
             className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition ${
               statusFilter === value
                 ? "bg-[#8A0EEA] text-white"
@@ -3036,6 +3104,28 @@ function ProductsView({
           </button>
         ))}
       </div>
+
+      {selectableProducts.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-700">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={toggleAllVisible}
+              className="size-4 accent-[#8A0EEA]"
+            />
+            Selecionar todos visíveis
+          </label>
+          <button
+            type="button"
+            onClick={() => setBulkDeleteOpen(true)}
+            disabled={selectedProductIds.length === 0}
+            className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Excluir selecionados ({selectedProductIds.length})
+          </button>
+        </div>
+      )}
 
       <div className="space-y-3 md:hidden">
         {visibleProducts.length === 0 ? (
@@ -3052,6 +3142,17 @@ function ProductsView({
                 key={product.id}
                 className={`rounded-2xl border bg-white p-4 shadow-sm ${!product.ativo ? "border-slate-300 opacity-80" : ""}`}
               >
+                {product.ativo && (
+                  <label className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-600">
+                    <input
+                      type="checkbox"
+                      checked={selectedProductIds.includes(product.id)}
+                      onChange={() => toggleProductSelection(product.id)}
+                      className="size-5 accent-[#8A0EEA]"
+                    />
+                    Selecionar
+                  </label>
+                )}
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="break-words font-bold text-slate-900">
@@ -3126,6 +3227,16 @@ function ProductsView({
           <table className="w-full min-w-[840px]">
             <thead className="bg-slate-50">
               <tr>
+                <th className="w-12 p-4 text-left">
+                  <input
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleAllVisible}
+                    disabled={selectableProducts.length === 0}
+                    aria-label="Selecionar todos os produtos visíveis"
+                    className="size-4 accent-[#8A0EEA]"
+                  />
+                </th>
                 <th className="p-4 text-left">Produto</th>
                 <th className="p-4 text-left">Categoria</th>
                 <th className="p-4 text-left">Venda</th>
@@ -3137,7 +3248,7 @@ function ProductsView({
             <tbody>
               {visibleProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-500">
+                  <td colSpan={7} className="p-6 text-center text-slate-500">
                     Nenhum produto encontrado neste filtro.
                   </td>
                 </tr>
@@ -3147,6 +3258,17 @@ function ProductsView({
                     key={product.id}
                     className={`border-t ${!product.ativo ? "bg-slate-50 text-slate-500" : ""}`}
                   >
+                    <td className="p-4">
+                      {product.ativo && (
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={`Selecionar ${formatProductName(product)}`}
+                          className="size-4 accent-[#8A0EEA]"
+                        />
+                      )}
+                    </td>
                     <td className="p-4">
                       <p className="font-medium">
                         {formatProductName(product)}
@@ -3210,6 +3332,16 @@ function ProductsView({
           if (!deleting) {
             setProductToDelete(null);
           }
+        }}
+      />
+      <ConfirmationDialog
+        isOpen={bulkDeleteOpen}
+        title="Excluir produtos selecionados"
+        description={`Deseja retirar ${selectedProductIds.length} produto${selectedProductIds.length === 1 ? "" : "s"} do catálogo? O histórico de compras e vendas será preservado.`}
+        confirmText={deleting ? "Excluindo..." : "Excluir selecionados"}
+        onConfirm={handleConfirmBulkDelete}
+        onCancel={() => {
+          if (!deleting) setBulkDeleteOpen(false);
         }}
       />
     </>

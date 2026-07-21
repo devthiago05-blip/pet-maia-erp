@@ -138,6 +138,18 @@ export async function archiveProduct(id: number) {
     .eq("id", id);
 }
 
+export async function archiveProducts(ids: number[]) {
+  return supabase
+    .from("products")
+    .update({
+      ativo: false,
+      updated_at: new Date().toISOString(),
+    })
+    .in("id", ids)
+    .eq("ativo", true)
+    .select("id");
+}
+
 export async function fetchSuppliers() {
   return supabase.from("suppliers").select("*").order("nome");
 }

@@ -2,6 +2,7 @@
 
 import {
   CalendarClock,
+  CheckCircle2,
   MessageCircle,
   Search,
   Stethoscope,
@@ -25,6 +26,8 @@ import {
   createClinicalDocument,
   fetchClinicPatients,
   saveClinicalPrescription,
+  setClinicalReturnConfirmation,
+  setVaccinationConfirmation,
 } from "@/services/clinical";
 import type {
   ClinicalDocumentInput,
@@ -50,6 +53,8 @@ interface ClinicPatientResponse {
     consultation_date: string;
     professional_name: string;
     return_date?: string;
+    reminder_status?: "Pendente" | "Confirmado";
+    reminder_confirmed_at?: string;
   }>;
   pet_vaccinations?: Array<{
     id: number;
@@ -57,11 +62,14 @@ interface ClinicPatientResponse {
     application_date: string;
     professional_name: string;
     next_dose_date?: string;
+    reminder_status?: "Pendente" | "Confirmado";
+    reminder_confirmed_at?: string;
   }>;
 }
 
 interface ReturnQueueItem {
   id: string;
+  recordId: number;
   petId: number;
   petName: string;
   tutorName?: string;
@@ -70,10 +78,12 @@ interface ReturnQueueItem {
   consultationDate: string;
   professionalName: string;
   daysDiff: number;
+  reminderStatus: "Pendente" | "Confirmado";
 }
 
 interface VaccineQueueItem {
   id: string;
+  vaccinationId: number;
   petId: number;
   petName: string;
   tutorName?: string;
@@ -83,6 +93,7 @@ interface VaccineQueueItem {
   nextDoseDate: string;
   professionalName: string;
   daysDiff: number;
+  reminderStatus: "Pendente" | "Confirmado";
 }
 
 type QueueFilter = "all" | "overdue" | "today" | "upcoming";
@@ -192,6 +203,7 @@ export default function ClinicPage() {
 
             return {
               id: `${patient.id}-${record.id}`,
+              recordId: record.id,
               petId: patient.id,
               petName: patient.nome,
               tutorName: patient.tutors?.nome,
@@ -200,6 +212,7 @@ export default function ClinicPage() {
               consultationDate: record.consultation_date,
               professionalName: record.professional_name,
               daysDiff: differenceInDays(parseDateOnly(returnDate), today),
+              reminderStatus: record.reminder_status || "Pendente",
             };
           }),
       )
@@ -226,6 +239,7 @@ export default function ClinicPage() {
 
             return {
               id: `${patient.id}-${vaccination.id}`,
+              vaccinationId: vaccination.id,
               petId: patient.id,
               petName: patient.nome,
               tutorName: patient.tutors?.nome,
@@ -235,6 +249,7 @@ export default function ClinicPage() {
               nextDoseDate,
               professionalName: vaccination.professional_name,
               daysDiff: differenceInDays(parseDateOnly(nextDoseDate), today),
+              reminderStatus: vaccination.reminder_status || "Pendente",
             };
           }),
       )
@@ -265,6 +280,71 @@ export default function ClinicPage() {
     }
 
     toast.success("Medicação adicionada à receita!");
+  }
+
+  async function handleReturnConfirmation(
+    recordId: number,
+    confirmed: boolean,
+  ) {
+    const { error } = await setClinicalReturnConfirmation(recordId, confirmed);
+
+    if (error) {
+      toast.error("Não foi possível atualizar a confirmação do retorno.");
+      return false;
+    }
+
+    setPatients((current) =>
+      current.map((patient) => ({
+        ...patient,
+        clinicalRecords: patient.clinicalRecords?.map((record) =>
+          record.id === recordId
+            ? {
+                ...record,
+                reminder_status: confirmed ? "Confirmado" : "Pendente",
+                reminder_confirmed_at: confirmed
+                  ? new Date().toISOString()
+                  : undefined,
+              }
+            : record,
+        ),
+      })),
+    );
+    toast.success(confirmed ? "Retorno confirmado!" : "Confirmação removida.");
+    return true;
+  }
+
+  async function handleVaccinationConfirmation(
+    vaccinationId: number,
+    confirmed: boolean,
+  ) {
+    const { error } = await setVaccinationConfirmation(
+      vaccinationId,
+      confirmed,
+    );
+
+    if (error) {
+      toast.error("Não foi possível atualizar a confirmação da vacina.");
+      return false;
+    }
+
+    setPatients((current) =>
+      current.map((patient) => ({
+        ...patient,
+        vaccinationRecords: patient.vaccinationRecords?.map((vaccination) =>
+          vaccination.id === vaccinationId
+            ? {
+                ...vaccination,
+                reminder_status: confirmed ? "Confirmado" : "Pendente",
+                reminder_confirmed_at: confirmed
+                  ? new Date().toISOString()
+                  : undefined,
+              }
+            : vaccination,
+        ),
+      })),
+    );
+    toast.success(confirmed ? "Vacina confirmada!" : "Confirmação removida.");
+    return true;
   }
 
   return (
@@ -312,9 +392,15 @@ export default function ClinicPage() {
 
           <ClinicalDocumentTemplateManager />
 
-          <WeeklyReturnsQueue returns={weeklyReturns} />
+          <WeeklyReturnsQueue
+            returns={weeklyReturns}
+            onConfirmationChange={handleReturnConfirmation}
+          />
 
-          <VaccineAlertsQueue vaccines={vaccineAlerts} />
+          <VaccineAlertsQueue
+            vaccines={vaccineAlerts}
+            onConfirmationChange={handleVaccinationConfirmation}
+          />
 
           <label className="flex items-center gap-3 rounded-xl border bg-white px-4">
             <Search size={18} className="text-slate-400" />
@@ -498,7 +584,16 @@ function ClinicDocumentWorkspace({
   );
 }
 
-function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
+function WeeklyReturnsQueue({
+  returns,
+  onConfirmationChange,
+}: {
+  returns: ReturnQueueItem[];
+  onConfirmationChange: (
+    recordId: number,
+    confirmed: boolean,
+  ) => Promise<boolean>;
+}) {
   const [filter, setFilter] = useState<QueueFilter>("all");
   const overdueCount = returns.filter((item) => item.daysDiff < 0).length;
   const todayCount = returns.filter((item) => item.daysDiff === 0).length;
@@ -573,9 +668,15 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
                       date={item.returnDate}
                       kind="return"
                     />
+                    <ReminderConfirmationButton
+                      confirmed={item.reminderStatus === "Confirmado"}
+                      onChange={(confirmed) =>
+                        onConfirmationChange(item.recordId, confirmed)
+                      }
+                    />
                     <Link
                       href={`/pets/${item.petId}`}
-                      className="rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                      className="col-span-2 rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
                     >
                       Prontuário
                     </Link>
@@ -619,6 +720,13 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
                         petName={item.petName}
                         date={item.returnDate}
                         kind="return"
+                        compact
+                      />
+                      <ReminderConfirmationButton
+                        confirmed={item.reminderStatus === "Confirmado"}
+                        onChange={(confirmed) =>
+                          onConfirmationChange(item.recordId, confirmed)
+                        }
                         compact
                       />
                       <Link
@@ -742,7 +850,16 @@ function ReturnStatus({ daysDiff }: { daysDiff: number }) {
   );
 }
 
-function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
+function VaccineAlertsQueue({
+  vaccines,
+  onConfirmationChange,
+}: {
+  vaccines: VaccineQueueItem[];
+  onConfirmationChange: (
+    vaccinationId: number,
+    confirmed: boolean,
+  ) => Promise<boolean>;
+}) {
   const [filter, setFilter] = useState<QueueFilter>("all");
   const overdueCount = vaccines.filter((item) => item.daysDiff < 0).length;
   const todayCount = vaccines.filter((item) => item.daysDiff === 0).length;
@@ -821,9 +938,15 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
                       kind="vaccine"
                       vaccineName={item.vaccineName}
                     />
+                    <ReminderConfirmationButton
+                      confirmed={item.reminderStatus === "Confirmado"}
+                      onChange={(confirmed) =>
+                        onConfirmationChange(item.vaccinationId, confirmed)
+                      }
+                    />
                     <Link
                       href={`/pets/${item.petId}`}
-                      className="rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                      className="col-span-2 rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
                     >
                       Prontuário
                     </Link>
@@ -872,6 +995,13 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
                         vaccineName={item.vaccineName}
                         compact
                       />
+                      <ReminderConfirmationButton
+                        confirmed={item.reminderStatus === "Confirmado"}
+                        onChange={(confirmed) =>
+                          onConfirmationChange(item.vaccinationId, confirmed)
+                        }
+                        compact
+                      />
                       <Link
                         href={`/pets/${item.petId}`}
                         className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
@@ -915,6 +1045,42 @@ function VaccineStatus({ daysDiff }: { daysDiff: number }) {
     <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
       Em {daysDiff} dia(s)
     </span>
+  );
+}
+
+function ReminderConfirmationButton({
+  confirmed,
+  onChange,
+  compact = false,
+}: {
+  confirmed: boolean;
+  onChange: (confirmed: boolean) => Promise<boolean>;
+  compact?: boolean;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function handleClick() {
+    setSaving(true);
+    await onChange(!confirmed);
+    setSaving(false);
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={saving}
+      className={`flex items-center justify-center gap-2 rounded-xl border px-3 py-2 font-medium transition disabled:opacity-50 ${
+        confirmed
+          ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+          : "border-slate-300 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50"
+      }`}
+      title={confirmed ? "Remover confirmação" : "Marcar como confirmado"}
+    >
+      <CheckCircle2 size={17} />
+      {!compact &&
+        (saving ? "Salvando..." : confirmed ? "Confirmado" : "Confirmar")}
+    </button>
   );
 }
 

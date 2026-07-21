@@ -87,6 +87,8 @@ export interface ClinicalRecord {
   diagnosis?: string;
   conduct?: string;
   return_date?: string;
+  reminder_status?: "Pendente" | "Confirmado";
+  reminder_confirmed_at?: string;
   created_at: string;
   clinical_prescriptions?: ClinicalPrescription[];
   clinical_prescription_documents?: ClinicalPrescriptionDocument[];
@@ -244,6 +246,8 @@ export interface PetVaccination {
   batch_number?: string;
   application_date: string;
   next_dose_date?: string;
+  reminder_status?: "Pendente" | "Confirmado";
+  reminder_confirmed_at?: string;
   professional_name: string;
   notes?: string;
   created_at: string;
@@ -270,7 +274,12 @@ export interface ClinicPatientOverview extends Pet {
   clinicalRecords?: Array<
     Pick<
       ClinicalRecord,
-      "id" | "consultation_date" | "professional_name" | "return_date"
+      | "id"
+      | "consultation_date"
+      | "professional_name"
+      | "return_date"
+      | "reminder_status"
+      | "reminder_confirmed_at"
     >
   >;
   vaccinationRecords?: Array<
@@ -281,6 +290,8 @@ export interface ClinicPatientOverview extends Pet {
       | "application_date"
       | "next_dose_date"
       | "professional_name"
+      | "reminder_status"
+      | "reminder_confirmed_at"
     >
   >;
 }

@@ -405,6 +405,32 @@ export async function deletePetVaccination(id: number) {
   return supabase.from("pet_vaccinations").delete().eq("id", id);
 }
 
+export async function setClinicalReturnConfirmation(
+  recordId: number,
+  confirmed: boolean,
+) {
+  return supabase
+    .from("clinical_records")
+    .update({
+      reminder_status: confirmed ? "Confirmado" : "Pendente",
+      reminder_confirmed_at: confirmed ? new Date().toISOString() : null,
+    })
+    .eq("id", recordId);
+}
+
+export async function setVaccinationConfirmation(
+  vaccinationId: number,
+  confirmed: boolean,
+) {
+  return supabase
+    .from("pet_vaccinations")
+    .update({
+      reminder_status: confirmed ? "Confirmado" : "Pendente",
+      reminder_confirmed_at: confirmed ? new Date().toISOString() : null,
+    })
+    .eq("id", vaccinationId);
+}
+
 export async function fetchClinicPatients() {
   return supabase
     .from("pets")
@@ -419,14 +445,18 @@ export async function fetchClinicPatients() {
           id,
           consultation_date,
           professional_name,
-          return_date
+          return_date,
+          reminder_status,
+          reminder_confirmed_at
         ),
         pet_vaccinations (
           id,
           vaccine_name,
           application_date,
           professional_name,
-          next_dose_date
+          next_dose_date,
+          reminder_status,
+          reminder_confirmed_at
         )
       `,
     )
@@ -577,12 +607,14 @@ export async function fetchClinicalDocumentTemplates() {
 export async function createClinicalDocumentTemplate(
   input: ClinicalDocumentTemplateInput,
 ) {
-  return supabase.from("clinical_document_templates").insert([{
-    document_type: input.documentType,
-    title: input.title.trim(),
-    content: input.content.trim(),
-    sort_order: input.sortOrder,
-  }]);
+  return supabase.from("clinical_document_templates").insert([
+    {
+      document_type: input.documentType,
+      title: input.title.trim(),
+      content: input.content.trim(),
+      sort_order: input.sortOrder,
+    },
+  ]);
 }
 
 export async function updateClinicalDocumentTemplate(

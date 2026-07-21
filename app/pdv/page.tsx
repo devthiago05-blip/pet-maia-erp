@@ -2158,13 +2158,14 @@ function PurchasesView({
                   <th className="p-4 text-left">Fornecedor</th>
                   <th className="p-4 text-left">Documento</th>
                   <th className="p-4 text-left">Data</th>
+                  <th className="p-4 text-left">Pagamento</th>
                   <th className="p-4 text-left">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                    <td colSpan={6} className="p-6 text-center text-slate-500">
                       Nenhuma compra registrada.
                     </td>
                   </tr>
@@ -2180,6 +2181,27 @@ function PurchasesView({
                       </td>
                       <td className="p-4">
                         {formatDate(purchase.data_compra)}
+                      </td>
+                      <td className="p-4">
+                        {purchase.product_purchase_payments?.length ? (
+                          <div className="space-y-1">
+                            {purchase.product_purchase_payments.map(
+                              (payment, index) => (
+                                <p
+                                  key={`${purchase.id}-${payment.payment_method}-${index}`}
+                                  className="text-sm whitespace-nowrap"
+                                >
+                                  {payment.payment_method}:{" "}
+                                  <strong>
+                                    {formatCurrency(payment.amount)}
+                                  </strong>
+                                </p>
+                              ),
+                            )}
+                          </div>
+                        ) : (
+                          purchase.forma_pagamento || "-"
+                        )}
                       </td>
                       <td className="p-4">{formatCurrency(purchase.total)}</td>
                     </tr>

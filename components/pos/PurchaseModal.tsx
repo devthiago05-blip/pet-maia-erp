@@ -15,12 +15,21 @@ interface PurchaseLine {
   unitCost: string;
 }
 
+interface PurchasePaymentLine {
+  id: number;
+  paymentMethod: string;
+  amount: string;
+}
+
 export interface PurchaseInput {
   supplierId: number;
   documentNumber: string;
   purchaseDate: string;
   dueDate: string;
-  paymentMethod: string;
+  payments: Array<{
+    payment_method: string;
+    amount: number;
+  }>;
   notes: string;
   items: Array<{
     product_id: number;
@@ -47,7 +56,9 @@ export function PurchaseModal({
   const [dueDate, setDueDate] = useState(
     new Date().toLocaleDateString("en-CA"),
   );
-  const [paymentMethod, setPaymentMethod] = useState("Boleto");
+  const [payments, setPayments] = useState<PurchasePaymentLine[]>([
+    { id: 1, paymentMethod: "Boleto", amount: "" },
+  ]);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<PurchaseLine[]>([
     {
@@ -69,6 +80,11 @@ export function PurchaseModal({
       ),
     [lines],
   );
+  const paymentTotal = payments.reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0,
+  );
+  const paymentDifference = total - paymentTotal;
 
   function updateLine(
     id: number,
@@ -121,6 +137,31 @@ export function PurchaseModal({
       return;
     }
 
+    const parsedPayments = payments.map((payment) => ({
+      payment_method: payment.paymentMethod.trim(),
+      amount:
+        payments.length === 1 && payment.amount === ""
+          ? Number(total.toFixed(2))
+          : Number(payment.amount),
+    }));
+
+    if (
+      total <= 0 ||
+      parsedPayments.some(
+        (payment) =>
+          !payment.payment_method ||
+          !Number.isFinite(payment.amount) ||
+          payment.amount <= 0,
+      ) ||
+      Math.abs(
+        parsedPayments.reduce((sum, payment) => sum + payment.amount, 0) -
+          total,
+      ) > 0.009
+    ) {
+      toast.error("A soma dos pagamentos deve ser igual ao total da compra");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -129,7 +170,7 @@ export function PurchaseModal({
         documentNumber,
         purchaseDate,
         dueDate,
-        paymentMethod,
+        payments: parsedPayments,
         notes,
         items: parsedItems,
       });
@@ -137,6 +178,7 @@ export function PurchaseModal({
       setSupplierId("");
       setDocumentNumber("");
       setNotes("");
+      setPayments([{ id: 1, paymentMethod: "Boleto", amount: "" }]);
       setLines([
         {
           id: 1,
@@ -167,7 +209,7 @@ export function PurchaseModal({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
             <h2 className="mb-5 text-xl font-bold">Entrada de produtos</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="grid gap-2 text-sm font-medium">
                 Fornecedor
                 <select
@@ -193,20 +235,6 @@ export function PurchaseModal({
                   onChange={(event) => setDueDate(event.target.value)}
                   className="rounded-xl border p-3 font-normal"
                 />
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Forma de pagamento
-                <select
-                  value={paymentMethod}
-                  onChange={(event) => setPaymentMethod(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                >
-                  <option>Boleto</option>
-                  <option>PIX</option>
-                  <option>Transferência</option>
-                  <option>Cartão</option>
-                  <option>Dinheiro</option>
-                </select>
               </label>
               <label className="grid gap-2 text-sm font-medium">
                 Nota / Documento
@@ -343,6 +371,148 @@ export function PurchaseModal({
               <Plus size={17} />
               Adicionar item
             </button>
+
+            <section className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-slate-900">
+                    Formas de pagamento
+                  </h3>
+                  <p className="text-sm text-slate-500">
+                    Divida o total entre duas ou mais formas, se necessário.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPayments((current) => [
+                      ...current,
+                      {
+                        id: Math.max(...current.map((item) => item.id), 0) + 1,
+                        paymentMethod: "PIX",
+                        amount: "",
+                      },
+                    ])
+                  }
+                  className="inline-flex items-center gap-2 rounded-xl border border-purple-200 bg-white px-3 py-2 text-sm font-semibold text-[#8A0EEA]"
+                >
+                  <Plus size={16} /> Mais uma forma
+                </button>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                {payments.map((payment) => {
+                  const otherPaymentsTotal = payments.reduce(
+                    (sum, item) =>
+                      item.id === payment.id
+                        ? sum
+                        : sum + Number(item.amount || 0),
+                    0,
+                  );
+                  const remainingForPayment = Math.max(
+                    0,
+                    total - otherPaymentsTotal,
+                  );
+
+                  return (
+                    <div
+                      key={payment.id}
+                      className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_150px_auto_auto]"
+                    >
+                      <select
+                        value={payment.paymentMethod}
+                        onChange={(event) =>
+                          setPayments((current) =>
+                            current.map((item) =>
+                              item.id === payment.id
+                                ? {
+                                    ...item,
+                                    paymentMethod: event.target.value,
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="rounded-xl border bg-white p-3"
+                        aria-label="Forma de pagamento da compra"
+                      >
+                        <option>Boleto</option>
+                        <option>PIX</option>
+                        <option>Transferência</option>
+                        <option>Cartão de crédito</option>
+                        <option>Cartão de débito</option>
+                        <option>Dinheiro</option>
+                      </select>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        value={payment.amount}
+                        onChange={(event) =>
+                          setPayments((current) =>
+                            current.map((item) =>
+                              item.id === payment.id
+                                ? { ...item, amount: event.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        placeholder={formatCurrency(remainingForPayment)}
+                        aria-label="Valor desta forma de pagamento"
+                        className="rounded-xl border bg-white p-3"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPayments((current) =>
+                            current.map((item) =>
+                              item.id === payment.id
+                                ? {
+                                    ...item,
+                                    amount: remainingForPayment.toFixed(2),
+                                  }
+                                : item,
+                            ),
+                          )
+                        }
+                        className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold text-[#8A0EEA]"
+                      >
+                        Usar restante
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPayments((current) =>
+                            current.filter((item) => item.id !== payment.id),
+                          )
+                        }
+                        disabled={payments.length === 1}
+                        aria-label="Remover forma de pagamento"
+                        className="rounded-xl border bg-white p-3 text-red-600 disabled:opacity-30"
+                      >
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-wrap justify-end gap-x-5 gap-y-1 text-sm">
+                <span className="text-slate-500">
+                  Informado: {formatCurrency(paymentTotal)}
+                </span>
+                <strong
+                  className={
+                    Math.abs(paymentDifference) <= 0.009
+                      ? "text-emerald-700"
+                      : "text-amber-700"
+                  }
+                >
+                  {paymentDifference >= 0 ? "Falta" : "Excedeu"}:{" "}
+                  {formatCurrency(Math.abs(paymentDifference))}
+                </strong>
+              </div>
+            </section>
 
             <label className="mt-5 grid gap-2 text-sm font-medium">
               Observações

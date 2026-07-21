@@ -159,6 +159,11 @@ export async function fetchProductPurchases() {
           product_id,
           quantidade,
           custo_unitario
+        ),
+        product_purchase_payments (
+          payment_method,
+          amount,
+          due_date
         )
       `,
     )
@@ -171,7 +176,7 @@ export async function createProductPurchase({
   documentNumber,
   purchaseDate,
   dueDate,
-  paymentMethod,
+  payments,
   notes,
   items,
 }: {
@@ -179,7 +184,7 @@ export async function createProductPurchase({
   documentNumber: string;
   purchaseDate: string;
   dueDate: string;
-  paymentMethod: string;
+  payments: Array<{ payment_method: string; amount: number }>;
   notes: string;
   items: Array<{
     product_id: number;
@@ -187,12 +192,12 @@ export async function createProductPurchase({
     custo_unitario: number;
   }>;
 }) {
-  return supabase.rpc("create_product_purchase", {
+  return supabase.rpc("create_product_purchase_split", {
     selected_supplier_id: supplierId,
     document_number: documentNumber,
     purchase_date: purchaseDate,
     due_date: dueDate,
-    payment_method: paymentMethod,
+    payments,
     notes,
     items,
   });

@@ -766,6 +766,11 @@ export interface ProductPurchase {
     quantidade: number;
     custo_unitario: number;
   }>;
+  product_purchase_payments?: Array<{
+    payment_method: string;
+    amount: number;
+    due_date: string;
+  }>;
 }
 
 export type PurchaseOrderStatus =

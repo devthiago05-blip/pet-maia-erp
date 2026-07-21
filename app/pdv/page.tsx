@@ -234,6 +234,7 @@ export default function PosPage() {
   const [adjustmentReason, setAdjustmentReason] = useState("");
   const [discountLimitPercent, setDiscountLimitPercent] = useState(10);
   const [paymentMethod, setPaymentMethod] = useState("PIX");
+  const [paymentAmount, setPaymentAmount] = useState("");
   const [splitPayments, setSplitPayments] = useState(false);
   const [payments, setPayments] = useState<PaymentSplit[]>([
     { id: "payment-1", method: "PIX", amount: "" },
@@ -551,6 +552,35 @@ export default function PosPage() {
     setPayments([{ id: "payment-1", method: paymentMethod, amount: "" }]);
   }
 
+  function handlePaymentAmountBlur() {
+    const firstAmount = Number(paymentAmount || 0);
+
+    if (
+      splitPayments ||
+      !Number.isFinite(firstAmount) ||
+      firstAmount <= 0 ||
+      firstAmount >= saleTotal
+    ) {
+      return;
+    }
+
+    const remaining = saleTotal - firstAmount;
+    setSplitPayments(true);
+    setPayments([
+      {
+        id: `payment-${Date.now()}-1`,
+        method: paymentMethod,
+        amount: firstAmount.toFixed(2),
+      },
+      {
+        id: `payment-${Date.now()}-2`,
+        method: paymentMethod === "PIX" ? "Dinheiro" : "PIX",
+        amount: remaining.toFixed(2),
+      },
+    ]);
+    toast.success("Segunda forma aberta com o valor restante");
+  }
+
   function addPaymentSplit() {
     setPayments((current) => [
       ...current,
@@ -694,6 +724,7 @@ export default function PosPage() {
     setCustomerName("");
     setExpirationDate("");
     setPaymentMethod("PIX");
+    setPaymentAmount("");
     setSplitPayments(false);
     setPayments([{ id: "payment-1", method: "PIX", amount: "" }]);
     setDiscount("");
@@ -1170,6 +1201,7 @@ export default function PosPage() {
               maxDiscountAmount={maxDiscountAmount}
               discountIsInvalid={discountIsInvalid}
               paymentMethod={paymentMethod}
+              paymentAmount={paymentAmount}
               splitPayments={splitPayments}
               payments={payments}
               paymentTotal={paymentTotal}
@@ -1190,6 +1222,8 @@ export default function PosPage() {
               onSurcharge={setSurcharge}
               onAdjustmentReason={setAdjustmentReason}
               onPaymentMethod={setPaymentMethod}
+              onPaymentAmount={setPaymentAmount}
+              onPaymentAmountBlur={handlePaymentAmountBlur}
               onSplitPayments={handleSplitPayments}
               onPaymentSplit={updatePaymentSplit}
               onAddPaymentSplit={addPaymentSplit}
@@ -2291,6 +2325,7 @@ function SaleView({
   maxDiscountAmount,
   discountIsInvalid,
   paymentMethod,
+  paymentAmount,
   splitPayments,
   payments,
   paymentTotal,
@@ -2311,6 +2346,8 @@ function SaleView({
   onSurcharge,
   onAdjustmentReason,
   onPaymentMethod,
+  onPaymentAmount,
+  onPaymentAmountBlur,
   onSplitPayments,
   onPaymentSplit,
   onAddPaymentSplit,
@@ -2335,6 +2372,7 @@ function SaleView({
   maxDiscountAmount: number;
   discountIsInvalid: boolean;
   paymentMethod: string;
+  paymentAmount: string;
   splitPayments: boolean;
   payments: PaymentSplit[];
   paymentTotal: number;
@@ -2355,6 +2393,8 @@ function SaleView({
   onSurcharge: (value: string) => void;
   onAdjustmentReason: (value: string) => void;
   onPaymentMethod: (value: string) => void;
+  onPaymentAmount: (value: string) => void;
+  onPaymentAmountBlur: () => void;
   onSplitPayments: (value: boolean) => void;
   onPaymentSplit: (
     paymentId: string,
@@ -2580,15 +2620,34 @@ function SaleView({
             />
           )}
           {!splitPayments && (
-            <select
-              value={paymentMethod}
-              onChange={(event) => onPaymentMethod(event.target.value)}
-              className="rounded-xl border p-3"
-            >
-              {financialPaymentMethods.map((method) => (
-                <option key={method}>{method}</option>
-              ))}
-            </select>
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
+              <select
+                value={paymentMethod}
+                onChange={(event) => onPaymentMethod(event.target.value)}
+                className="rounded-xl border p-3"
+              >
+                {financialPaymentMethods.map((method) => (
+                  <option key={method}>{method}</option>
+                ))}
+              </select>
+              <label className="grid gap-1 text-xs font-medium text-slate-500">
+                Valor recebido
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={paymentAmount}
+                  onChange={(event) => onPaymentAmount(event.target.value)}
+                  onBlur={onPaymentAmountBlur}
+                  placeholder={formatCurrency(total)}
+                  className="rounded-xl border p-3 text-sm text-slate-900"
+                />
+              </label>
+              <p className="text-xs text-slate-500 sm:col-span-2">
+                Opcional: se o valor for menor que o total, a segunda forma será
+                aberta automaticamente.
+              </p>
+            </div>
           )}
           <div
             className={`rounded-xl border p-3 ${splitPayments ? "border-purple-200 bg-purple-50/50" : ""}`}

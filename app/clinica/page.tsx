@@ -3,6 +3,7 @@
 import {
   CalendarClock,
   CheckCircle2,
+  ClipboardList,
   MessageCircle,
   Search,
   Stethoscope,
@@ -380,6 +381,13 @@ export default function ClinicPage() {
             />
           </div>
 
+          <DailyVetDashboard
+            returns={weeklyReturns}
+            vaccines={vaccineAlerts}
+            onReturnConfirmation={handleReturnConfirmation}
+            onVaccinationConfirmation={handleVaccinationConfirmation}
+          />
+
           <ClinicDocumentWorkspace
             patients={patients}
             professionalName={profile?.nome || ""}
@@ -479,6 +487,199 @@ export default function ClinicPage() {
           )}
         </div>
       </main>
+    </div>
+  );
+}
+
+function DailyVetDashboard({
+  returns,
+  vaccines,
+  onReturnConfirmation,
+  onVaccinationConfirmation,
+}: {
+  returns: ReturnQueueItem[];
+  vaccines: VaccineQueueItem[];
+  onReturnConfirmation: (
+    recordId: number,
+    confirmed: boolean,
+  ) => Promise<boolean>;
+  onVaccinationConfirmation: (
+    vaccinationId: number,
+    confirmed: boolean,
+  ) => Promise<boolean>;
+}) {
+  const items = [
+    ...returns.map((item) => ({
+      id: `return-${item.id}`,
+      sourceId: item.recordId,
+      kind: "return" as const,
+      title: `Retorno de ${item.petName}`,
+      detail: "Retorno clínico",
+      date: item.returnDate,
+      daysDiff: item.daysDiff,
+      confirmed: item.reminderStatus === "Confirmado",
+      petId: item.petId,
+      petName: item.petName,
+      tutorName: item.tutorName,
+      tutorPhone: item.tutorPhone,
+    })),
+    ...vaccines.map((item) => ({
+      id: `vaccine-${item.id}`,
+      sourceId: item.vaccinationId,
+      kind: "vaccine" as const,
+      title: `Vacina de ${item.petName}`,
+      detail: item.vaccineName,
+      date: item.nextDoseDate,
+      daysDiff: item.daysDiff,
+      confirmed: item.reminderStatus === "Confirmado",
+      petId: item.petId,
+      petName: item.petName,
+      tutorName: item.tutorName,
+      tutorPhone: item.tutorPhone,
+    })),
+  ];
+  const actionableItems = items
+    .filter((item) => item.daysDiff <= 0 || !item.confirmed)
+    .sort(
+      (a, b) =>
+        Number(a.confirmed) - Number(b.confirmed) ||
+        a.daysDiff - b.daysDiff ||
+        a.title.localeCompare(b.title),
+    )
+    .slice(0, 8);
+  const overdueCount = items.filter(
+    (item) => item.daysDiff < 0 && !item.confirmed,
+  ).length;
+  const todayCount = items.filter((item) => item.daysDiff === 0).length;
+  const tomorrowCount = items.filter((item) => item.daysDiff === 1).length;
+  const confirmedTodayCount = items.filter(
+    (item) => item.daysDiff === 0 && item.confirmed,
+  ).length;
+
+  return (
+    <section className="overflow-hidden rounded-2xl border border-purple-100 bg-white shadow-sm">
+      <div className="bg-gradient-to-r from-purple-50 to-white p-4 sm:p-6">
+        <div className="flex items-start gap-3">
+          <div className="rounded-xl bg-[#8A0EEA] p-3 text-white">
+            <ClipboardList size={22} />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold">Painel do Veterinário Hoje</h2>
+            <p className="text-sm text-slate-500">
+              Prioridades clínicas e preparação do próximo dia.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <DailyMetric label="Atrasados" value={overdueCount} tone="danger" />
+          <DailyMetric label="Para hoje" value={todayCount} tone="warning" />
+          <DailyMetric
+            label="Confirmados hoje"
+            value={confirmedTodayCount}
+            tone="success"
+          />
+          <DailyMetric label="Amanhã" value={tomorrowCount} tone="info" />
+        </div>
+      </div>
+
+      <div className="p-4 sm:p-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="font-bold">Ações prioritárias</h3>
+          <span className="text-xs text-slate-500">
+            {actionableItems.length} exibida(s)
+          </span>
+        </div>
+        {actionableItems.length > 0 ? (
+          <div className="grid gap-3 xl:grid-cols-2">
+            {actionableItems.map((item) => (
+              <article
+                key={item.id}
+                className={`rounded-xl border p-3 ${
+                  item.confirmed
+                    ? "border-emerald-100 bg-emerald-50/40"
+                    : item.daysDiff < 0
+                      ? "border-rose-200 bg-rose-50/40"
+                      : "border-slate-200"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{item.title}</p>
+                    <p className="truncate text-sm text-slate-500">
+                      {item.detail} · {item.tutorName || "Tutor não informado"}
+                    </p>
+                  </div>
+                  {item.daysDiff < 0 ? (
+                    <span className="shrink-0 rounded-full bg-rose-100 px-2 py-1 text-xs font-medium text-rose-700">
+                      {Math.abs(item.daysDiff)}d atrasado
+                    </span>
+                  ) : (
+                    <span className="shrink-0 rounded-full bg-purple-50 px-2 py-1 text-xs font-medium text-[#8A0EEA]">
+                      {item.daysDiff === 0 ? "Hoje" : formatDate(item.date)}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <ClinicWhatsAppLink
+                    phone={item.tutorPhone}
+                    tutorName={item.tutorName}
+                    petName={item.petName}
+                    date={item.date}
+                    kind={item.kind}
+                    vaccineName={
+                      item.kind === "vaccine" ? item.detail : undefined
+                    }
+                    compact
+                  />
+                  <ReminderConfirmationButton
+                    confirmed={item.confirmed}
+                    onChange={(confirmed) =>
+                      item.kind === "return"
+                        ? onReturnConfirmation(item.sourceId, confirmed)
+                        : onVaccinationConfirmation(item.sourceId, confirmed)
+                    }
+                    compact
+                  />
+                  <Link
+                    href={`/pets/${item.petId}`}
+                    className="flex items-center justify-center rounded-xl border border-[#8A0EEA] px-3 py-2 text-sm font-medium text-[#8A0EEA]"
+                  >
+                    Abrir
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
+            Nenhuma ação clínica prioritária no momento.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DailyMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: "danger" | "warning" | "success" | "info";
+}) {
+  const classes = {
+    danger: "bg-rose-50 text-rose-700",
+    warning: "bg-amber-50 text-amber-700",
+    success: "bg-emerald-50 text-emerald-700",
+    info: "bg-sky-50 text-sky-700",
+  };
+
+  return (
+    <div className={`rounded-xl p-3 ${classes[tone]}`}>
+      <p className="text-2xl font-bold leading-none">{value}</p>
+      <p className="mt-1 text-xs font-medium">{label}</p>
     </div>
   );
 }

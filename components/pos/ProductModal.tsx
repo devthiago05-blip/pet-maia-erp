@@ -520,12 +520,39 @@ export function ProductModal({
             </div>
 
             <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <h3 className="font-bold text-slate-900">
-                Compra e venda por unidades diferentes
-              </h3>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-slate-900">
+                    Compra e venda por unidades diferentes
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Use para medicamentos em cartela ou ração vendida a granel.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[10, 15, 20, 25].map((weight) => (
+                    <button
+                      key={weight}
+                      type="button"
+                      onClick={() => {
+                        setPurchaseUnit("SACO");
+                        setSaleUnit("100G");
+                        setUnidadeComercial("UN");
+                        setUnitsPerPurchase(String(weight * 10));
+                        toast.success(
+                          `Ração a granel: saco de ${weight} kg configurado`,
+                        );
+                      }}
+                      className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:border-emerald-400"
+                    >
+                      Saco {weight} kg
+                    </button>
+                  ))}
+                </div>
+              </div>
               <p className="mt-1 text-sm text-slate-500">
-                Use quando comprar uma embalagem e vender suas unidades
-                internas, como caixa e cartela.
+                Na ração a granel, cada unidade vendida representa uma porção de
+                100 g, facilitando pesar e cobrar no PDV.
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-3">
                 <ProductInput
@@ -567,6 +594,11 @@ export function ProductModal({
                 Ao comprar 1 {purchaseUnit || "embalagem"}, entrarão{" "}
                 {Math.max(1, Number(unitsPerPurchase || 1))}{" "}
                 {saleUnit || "unidades"} no estoque.
+                {saleUnit === "100G" && (
+                  <span className="mt-1 block font-normal text-emerald-700">
+                    Exemplo: vender quantidade 5 no PDV corresponde a 500 g.
+                  </span>
+                )}
               </p>
             </div>
 

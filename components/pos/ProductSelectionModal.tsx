@@ -24,6 +24,7 @@ export function ProductSelectionModal({
   const selectedProduct = products.find(
     (product) => String(product.id) === productId,
   );
+  const isBulkFeed = selectedProduct?.sale_unit === "100G";
   const totalStock = useMemo(
     () => products.reduce((total, product) => total + product.estoque, 0),
     [products],
@@ -64,7 +65,7 @@ export function ProductSelectionModal({
         <div className="flex items-start justify-between gap-3">
           <Package className="text-[#8A0EEA]" size={22} />
           <span className="text-xs font-medium text-slate-500">
-            {totalStock} un.
+            {totalStock} {products[0]?.sale_unit || "un."}
           </span>
         </div>
         <p className="mt-2 line-clamp-2 font-bold leading-snug sm:mt-3">
@@ -93,6 +94,7 @@ export function ProductSelectionModal({
                 <h2 className="text-xl font-bold">{name}</h2>
                 <p className="text-sm text-slate-500">
                   Escolha a variação e a quantidade
+                  {isBulkFeed ? " de ração" : ""}
                 </p>
               </div>
               <button
@@ -115,13 +117,14 @@ export function ProductSelectionModal({
                 >
                   {products.map((product) => (
                     <option key={product.id} value={product.id}>
-                      {formatProductName(product)} · {product.estoque} un.
+                      {formatProductName(product)} · {product.estoque}{" "}
+                      {product.sale_unit || "un."}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="grid gap-2 text-sm font-medium">
-                Quantidade
+                {isBulkFeed ? "Porções de 100 g" : "Quantidade"}
                 <input
                   type="number"
                   min="1"
@@ -135,13 +138,25 @@ export function ProductSelectionModal({
             </div>
 
             {selectedProduct && (
-              <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-4">
-                <span className="text-sm text-slate-500">
-                  {selectedProduct.sku} · {selectedProduct.estoque} disponíveis
-                </span>
-                <strong className="text-[#8A0EEA]">
-                  {formatCurrency(selectedProduct.preco_venda)}
-                </strong>
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm text-slate-500">
+                    {selectedProduct.sku} · {selectedProduct.estoque}{" "}
+                    {selectedProduct.sale_unit || "un."} disponíveis
+                  </span>
+                  <strong className="text-[#8A0EEA]">
+                    {formatCurrency(selectedProduct.preco_venda)} /
+                    {selectedProduct.sale_unit || "un."}
+                  </strong>
+                </div>
+                {isBulkFeed && Number(quantity) > 0 && (
+                  <p className="mt-3 rounded-lg bg-emerald-50 p-2 text-center text-sm font-bold text-emerald-700">
+                    Peso: {Number(quantity) * 100} g · Total:{" "}
+                    {formatCurrency(
+                      Number(quantity) * Number(selectedProduct.preco_venda),
+                    )}
+                  </p>
+                )}
               </div>
             )}
 

@@ -4,6 +4,7 @@ import type {
   ClinicalDocumentInput,
   ClinicalDocumentTemplateInput,
   ClinicalExamInput,
+  ClinicalTask,
   MedicationCatalogInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
@@ -461,6 +462,60 @@ export async function fetchClinicPatients() {
       `,
     )
     .order("nome");
+}
+
+export async function fetchClinicalTasks() {
+  return supabase
+    .from("clinical_tasks")
+    .select("*, pets(id, nome, tutors(nome, telefone))")
+    .order("due_date", { ascending: true })
+    .order("priority", { ascending: false })
+    .limit(500)
+    .returns<ClinicalTask[]>();
+}
+
+export async function createClinicalTask(input: {
+  petId: number;
+  taskType: ClinicalTask["task_type"];
+  title: string;
+  dueDate: string;
+  priority: ClinicalTask["priority"];
+  assignedTo?: string;
+  notes?: string;
+}) {
+  return supabase
+    .from("clinical_tasks")
+    .insert({
+      pet_id: input.petId,
+      task_type: input.taskType,
+      title: input.title.trim(),
+      due_date: input.dueDate,
+      priority: input.priority,
+      assigned_to: input.assignedTo?.trim() || null,
+      notes: input.notes?.trim() || null,
+    })
+    .select("*, pets(id, nome, tutors(nome, telefone))")
+    .single<ClinicalTask>();
+}
+
+export async function setClinicalTaskCompleted(
+  taskId: number,
+  completed: boolean,
+) {
+  return supabase
+    .from("clinical_tasks")
+    .update({
+      status: completed ? "Concluída" : "Pendente",
+      completed_at: completed ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", taskId)
+    .select("*, pets(id, nome, tutors(nome, telefone))")
+    .single<ClinicalTask>();
+}
+
+export async function deleteClinicalTask(taskId: number) {
+  return supabase.from("clinical_tasks").delete().eq("id", taskId);
 }
 
 export async function fetchClinicalExamsByPet(petId: number) {

@@ -296,6 +296,34 @@ export interface ClinicPatientOverview extends Pet {
   >;
 }
 
+export interface ClinicalTask {
+  id: number;
+  pet_id: number;
+  task_type:
+    | "Pós-operatório"
+    | "Exame"
+    | "Curativo"
+    | "Medicação"
+    | "Retorno"
+    | "Outro";
+  title: string;
+  due_date: string;
+  priority: "Baixa" | "Normal" | "Alta";
+  assigned_to?: string;
+  notes?: string;
+  status: "Pendente" | "Concluída";
+  completed_at?: string;
+  created_at: string;
+  pets?: {
+    id: number;
+    nome: string;
+    tutors?: {
+      nome: string;
+      telefone?: string;
+    };
+  };
+}
+
 export interface ClinicalExam {
   id: number;
   pet_id: number;

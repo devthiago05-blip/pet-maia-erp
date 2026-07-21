@@ -17,6 +17,7 @@ import { useAccess } from "@/components/auth/AccessContext";
 import { ClinicalCatalogManager } from "@/components/clinic/ClinicalCatalogManager";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ClinicalDocumentTemplateManager } from "@/components/clinic/ClinicalDocumentTemplateManager";
+import { ClinicalTasksPanel } from "@/components/clinic/ClinicalTasksPanel";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -25,13 +26,18 @@ import { formatDate } from "@/lib/formatters";
 import { normalizeBrazilianWhatsAppPhone } from "@/lib/whatsapp";
 import {
   createClinicalDocument,
+  createClinicalTask,
+  deleteClinicalTask,
+  fetchClinicalTasks,
   fetchClinicPatients,
   saveClinicalPrescription,
   setClinicalReturnConfirmation,
+  setClinicalTaskCompleted,
   setVaccinationConfirmation,
 } from "@/services/clinical";
 import type {
   ClinicalDocumentInput,
+  ClinicalTask,
   ClinicPatientOverview,
   NewClinicalPrescriptionInput,
 } from "@/types/domain";
@@ -102,13 +108,18 @@ type QueueFilter = "all" | "overdue" | "today" | "upcoming";
 export default function ClinicPage() {
   const { profile } = useAccess();
   const [patients, setPatients] = useState<ClinicPatientOverview[]>([]);
+  const [clinicalTasks, setClinicalTasks] = useState<ClinicalTask[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   useMountEffect(() => {
     async function loadPatients() {
-      const { data, error } = await fetchClinicPatients();
+      const [patientsResponse, tasksResponse] = await Promise.all([
+        fetchClinicPatients(),
+        fetchClinicalTasks(),
+      ]);
+      const { data, error } = patientsResponse;
 
       if (error) {
         console.error(error);
@@ -163,6 +174,12 @@ export default function ClinicPage() {
       );
 
       setPatients(mappedPatients);
+      if (tasksResponse.error) {
+        console.error(tasksResponse.error);
+        toast.error("Não foi possível carregar as tarefas clínicas.");
+      } else {
+        setClinicalTasks(tasksResponse.data || []);
+      }
       setLoading(false);
     }
 
@@ -348,6 +365,49 @@ export default function ClinicPage() {
     return true;
   }
 
+  async function handleCreateClinicalTask(input: {
+    petId: number;
+    taskType: ClinicalTask["task_type"];
+    title: string;
+    dueDate: string;
+    priority: ClinicalTask["priority"];
+    assignedTo?: string;
+    notes?: string;
+  }) {
+    const { data, error } = await createClinicalTask(input);
+    if (error) {
+      toast.error("Não foi possível criar a tarefa clínica.");
+      return false;
+    }
+    setClinicalTasks((current) => [...current, data]);
+    toast.success("Tarefa clínica criada!");
+    return true;
+  }
+
+  async function handleToggleClinicalTask(taskId: number, completed: boolean) {
+    const { data, error } = await setClinicalTaskCompleted(taskId, completed);
+    if (error) {
+      toast.error("Não foi possível atualizar a tarefa.");
+      return false;
+    }
+    setClinicalTasks((current) =>
+      current.map((task) => (task.id === taskId ? data : task)),
+    );
+    toast.success(completed ? "Tarefa concluída!" : "Tarefa reaberta.");
+    return true;
+  }
+
+  async function handleDeleteClinicalTask(taskId: number) {
+    const { error } = await deleteClinicalTask(taskId);
+    if (error) {
+      toast.error("Não foi possível excluir a tarefa.");
+      return false;
+    }
+    setClinicalTasks((current) => current.filter((task) => task.id !== taskId));
+    toast.success("Tarefa excluída.");
+    return true;
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -384,8 +444,19 @@ export default function ClinicPage() {
           <DailyVetDashboard
             returns={weeklyReturns}
             vaccines={vaccineAlerts}
+            tasks={clinicalTasks}
             onReturnConfirmation={handleReturnConfirmation}
             onVaccinationConfirmation={handleVaccinationConfirmation}
+            onTaskToggle={handleToggleClinicalTask}
+          />
+
+          <ClinicalTasksPanel
+            tasks={clinicalTasks}
+            patients={patients}
+            professionalName={profile?.nome || ""}
+            onCreate={handleCreateClinicalTask}
+            onToggle={handleToggleClinicalTask}
+            onDelete={handleDeleteClinicalTask}
           />
 
           <ClinicDocumentWorkspace
@@ -494,11 +565,14 @@ export default function ClinicPage() {
 function DailyVetDashboard({
   returns,
   vaccines,
+  tasks,
   onReturnConfirmation,
   onVaccinationConfirmation,
+  onTaskToggle,
 }: {
   returns: ReturnQueueItem[];
   vaccines: VaccineQueueItem[];
+  tasks: ClinicalTask[];
   onReturnConfirmation: (
     recordId: number,
     confirmed: boolean,
@@ -507,6 +581,7 @@ function DailyVetDashboard({
     vaccinationId: number,
     confirmed: boolean,
   ) => Promise<boolean>;
+  onTaskToggle: (taskId: number, completed: boolean) => Promise<boolean>;
 }) {
   const items = [
     ...returns.map((item) => ({
@@ -536,6 +611,23 @@ function DailyVetDashboard({
       petName: item.petName,
       tutorName: item.tutorName,
       tutorPhone: item.tutorPhone,
+    })),
+    ...tasks.map((task) => ({
+      id: `task-${task.id}`,
+      sourceId: task.id,
+      kind: "task" as const,
+      title: task.title,
+      detail: `${task.task_type} · ${task.priority}`,
+      date: task.due_date,
+      daysDiff: differenceInDays(
+        parseDateOnly(task.due_date),
+        getDateOnly(new Date()),
+      ),
+      confirmed: task.status === "Concluída",
+      petId: task.pet_id,
+      petName: task.pets?.nome || "Pet",
+      tutorName: task.pets?.tutors?.nome,
+      tutorPhone: task.pets?.tutors?.telefone,
     })),
   ];
   const actionableItems = items
@@ -620,24 +712,33 @@ function DailyVetDashboard({
                   )}
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-2">
-                  <ClinicWhatsAppLink
-                    phone={item.tutorPhone}
-                    tutorName={item.tutorName}
-                    petName={item.petName}
-                    date={item.date}
-                    kind={item.kind}
-                    vaccineName={
-                      item.kind === "vaccine" ? item.detail : undefined
-                    }
-                    compact
-                  />
+                  {item.kind === "task" ? (
+                    <span className="flex items-center justify-center rounded-xl border bg-slate-50 px-2 text-xs font-medium text-slate-600">
+                      Tarefa
+                    </span>
+                  ) : (
+                    <ClinicWhatsAppLink
+                      phone={item.tutorPhone}
+                      tutorName={item.tutorName}
+                      petName={item.petName}
+                      date={item.date}
+                      kind={item.kind}
+                      vaccineName={
+                        item.kind === "vaccine" ? item.detail : undefined
+                      }
+                      compact
+                    />
+                  )}
                   <ReminderConfirmationButton
                     confirmed={item.confirmed}
                     onChange={(confirmed) =>
                       item.kind === "return"
                         ? onReturnConfirmation(item.sourceId, confirmed)
-                        : onVaccinationConfirmation(item.sourceId, confirmed)
+                        : item.kind === "vaccine"
+                          ? onVaccinationConfirmation(item.sourceId, confirmed)
+                          : onTaskToggle(item.sourceId, confirmed)
                     }
+                    mode={item.kind === "task" ? "task" : "confirmation"}
                     compact
                   />
                   <Link
@@ -1253,10 +1354,12 @@ function ReminderConfirmationButton({
   confirmed,
   onChange,
   compact = false,
+  mode = "confirmation",
 }: {
   confirmed: boolean;
   onChange: (confirmed: boolean) => Promise<boolean>;
   compact?: boolean;
+  mode?: "confirmation" | "task";
 }) {
   const [saving, setSaving] = useState(false);
 
@@ -1276,11 +1379,27 @@ function ReminderConfirmationButton({
           ? "border-emerald-500 bg-emerald-50 text-emerald-700"
           : "border-slate-300 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50"
       }`}
-      title={confirmed ? "Remover confirmação" : "Marcar como confirmado"}
+      title={
+        mode === "task"
+          ? confirmed
+            ? "Reabrir tarefa"
+            : "Concluir tarefa"
+          : confirmed
+            ? "Remover confirmação"
+            : "Marcar como confirmado"
+      }
     >
       <CheckCircle2 size={17} />
       {!compact &&
-        (saving ? "Salvando..." : confirmed ? "Confirmado" : "Confirmar")}
+        (saving
+          ? "Salvando..."
+          : mode === "task"
+            ? confirmed
+              ? "Concluída"
+              : "Concluir"
+            : confirmed
+              ? "Confirmado"
+              : "Confirmar")}
     </button>
   );
 }

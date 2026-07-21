@@ -1,6 +1,12 @@
 "use client";
 
-import { CalendarClock, Search, Stethoscope, Syringe } from "lucide-react";
+import {
+  CalendarClock,
+  MessageCircle,
+  Search,
+  Stethoscope,
+  Syringe,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -14,6 +20,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatDate } from "@/lib/formatters";
+import { normalizeBrazilianWhatsAppPhone } from "@/lib/whatsapp";
 import {
   createClinicalDocument,
   fetchClinicPatients,
@@ -58,6 +65,7 @@ interface ReturnQueueItem {
   petId: number;
   petName: string;
   tutorName?: string;
+  tutorPhone?: string;
   returnDate: string;
   consultationDate: string;
   professionalName: string;
@@ -69,6 +77,7 @@ interface VaccineQueueItem {
   petId: number;
   petName: string;
   tutorName?: string;
+  tutorPhone?: string;
   vaccineName: string;
   applicationDate: string;
   nextDoseDate: string;
@@ -186,6 +195,7 @@ export default function ClinicPage() {
               petId: patient.id,
               petName: patient.nome,
               tutorName: patient.tutors?.nome,
+              tutorPhone: patient.tutors?.telefone,
               returnDate,
               consultationDate: record.consultation_date,
               professionalName: record.professional_name,
@@ -219,6 +229,7 @@ export default function ClinicPage() {
               petId: patient.id,
               petName: patient.nome,
               tutorName: patient.tutors?.nome,
+              tutorPhone: patient.tutors?.telefone,
               vaccineName: vaccination.vaccine_name,
               applicationDate: vaccination.application_date,
               nextDoseDate,
@@ -554,12 +565,21 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
                       </p>
                     </div>
                   </div>
-                  <Link
-                    href={`/pets/${item.petId}`}
-                    className="mt-3 block rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
-                  >
-                    Abrir prontuário
-                  </Link>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <ClinicWhatsAppLink
+                      phone={item.tutorPhone}
+                      tutorName={item.tutorName}
+                      petName={item.petName}
+                      date={item.returnDate}
+                      kind="return"
+                    />
+                    <Link
+                      href={`/pets/${item.petId}`}
+                      className="rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                    >
+                      Prontuário
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>
@@ -592,12 +612,22 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
                       </p>
                       <p className="truncate">{item.professionalName || "-"}</p>
                     </div>
-                    <Link
-                      href={`/pets/${item.petId}`}
-                      className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
-                    >
-                      Abrir
-                    </Link>
+                    <div className="flex gap-2">
+                      <ClinicWhatsAppLink
+                        phone={item.tutorPhone}
+                        tutorName={item.tutorName}
+                        petName={item.petName}
+                        date={item.returnDate}
+                        kind="return"
+                        compact
+                      />
+                      <Link
+                        href={`/pets/${item.petId}`}
+                        className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                      >
+                        Abrir
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -782,12 +812,22 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
                       </div>
                     </div>
                   </div>
-                  <Link
-                    href={`/pets/${item.petId}`}
-                    className="mt-3 block rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
-                  >
-                    Abrir prontuário
-                  </Link>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <ClinicWhatsAppLink
+                      phone={item.tutorPhone}
+                      tutorName={item.tutorName}
+                      petName={item.petName}
+                      date={item.nextDoseDate}
+                      kind="vaccine"
+                      vaccineName={item.vaccineName}
+                    />
+                    <Link
+                      href={`/pets/${item.petId}`}
+                      className="rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                    >
+                      Prontuário
+                    </Link>
+                  </div>
                 </article>
               ))}
             </div>
@@ -822,12 +862,23 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
                       </p>
                       <p className="truncate">{item.professionalName || "-"}</p>
                     </div>
-                    <Link
-                      href={`/pets/${item.petId}`}
-                      className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
-                    >
-                      Abrir
-                    </Link>
+                    <div className="flex gap-2">
+                      <ClinicWhatsAppLink
+                        phone={item.tutorPhone}
+                        tutorName={item.tutorName}
+                        petName={item.petName}
+                        date={item.nextDoseDate}
+                        kind="vaccine"
+                        vaccineName={item.vaccineName}
+                        compact
+                      />
+                      <Link
+                        href={`/pets/${item.petId}`}
+                        className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                      >
+                        Abrir
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -864,6 +915,62 @@ function VaccineStatus({ daysDiff }: { daysDiff: number }) {
     <span className="mt-1 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700">
       Em {daysDiff} dia(s)
     </span>
+  );
+}
+
+function ClinicWhatsAppLink({
+  phone,
+  tutorName,
+  petName,
+  date,
+  kind,
+  vaccineName,
+  compact = false,
+}: {
+  phone?: string;
+  tutorName?: string;
+  petName: string;
+  date: string;
+  kind: "return" | "vaccine";
+  vaccineName?: string;
+  compact?: boolean;
+}) {
+  const normalizedPhone = normalizeBrazilianWhatsAppPhone(phone);
+  const firstName = tutorName?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
+  const subject =
+    kind === "return"
+      ? `o retorno de ${petName}, previsto para ${formatDate(date)}`
+      : `a próxima dose de ${vaccineName || "vacina"} de ${petName}, prevista para ${formatDate(date)}`;
+  const message = `${greeting} Aqui é da Pet Maia. Estamos entrando em contato para lembrar sobre ${subject}. Podemos confirmar?`;
+  const classes = compact
+    ? "inline-flex items-center justify-center rounded-xl border border-emerald-500 px-3 py-2 text-emerald-700 transition hover:bg-emerald-50"
+    : "flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 font-medium text-white";
+
+  if (!normalizedPhone) {
+    return (
+      <span
+        className={`${classes} cursor-not-allowed opacity-40`}
+        title="Tutor sem WhatsApp válido cadastrado"
+      >
+        <MessageCircle size={17} />
+        {!compact && "WhatsApp"}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`}
+      target="_blank"
+      rel="noreferrer"
+      className={classes}
+      title={`Enviar lembrete para ${tutorName || "o tutor"}`}
+      aria-label={`Enviar lembrete de ${kind === "return" ? "retorno" : "vacina"} pelo WhatsApp`}
+    >
+      <MessageCircle size={17} />
+      {!compact && "WhatsApp"}
+    </a>
   );
 }
 

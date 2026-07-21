@@ -59,7 +59,7 @@ export function ProductSelectionModal({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl border bg-white p-4 text-left transition hover:border-[#8A0EEA]"
+        className="min-w-0 rounded-xl border bg-white p-3 text-left transition hover:border-[#8A0EEA] sm:p-4"
       >
         <div className="flex items-start justify-between gap-3">
           <Package className="text-[#8A0EEA]" size={22} />
@@ -67,12 +67,14 @@ export function ProductSelectionModal({
             {totalStock} un.
           </span>
         </div>
-        <p className="mt-3 font-bold">{name}</p>
-        <p className="text-sm text-slate-500">
+        <p className="mt-2 line-clamp-2 font-bold leading-snug sm:mt-3">
+          {name}
+        </p>
+        <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">
           {category || "Sem categoria"} · {products.length}{" "}
           {products.length === 1 ? "opção" : "variações"}
         </p>
-        <p className="mt-2 text-lg font-bold text-[#8A0EEA]">
+        <p className="mt-2 text-base font-bold text-[#8A0EEA] sm:text-lg">
           {products.length > 1 ? "A partir de " : ""}
           {formatCurrency(minimumPrice)}
         </p>

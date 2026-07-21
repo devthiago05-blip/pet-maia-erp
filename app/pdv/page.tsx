@@ -1023,7 +1023,7 @@ export default function PosPage() {
       <Sidebar />
       <main className="min-w-0 flex-1">
         <Header />
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="space-y-4 p-3 sm:space-y-6 sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
@@ -1034,7 +1034,7 @@ export default function PosPage() {
               </p>
             </div>
             {view === "products" && (
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
                 <CategoryModal onSave={handleCategorySave} />
                 <QuickProductModal
                   categories={categories}
@@ -1051,7 +1051,7 @@ export default function PosPage() {
               </div>
             )}
             {view === "purchases" && (
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row">
                 <SupplierModal onSave={handleSupplierSave} />
                 <PurchaseModal
                   products={products}
@@ -1062,7 +1062,7 @@ export default function PosPage() {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
             <Summary
               label="Produtos ativos"
               value={products.filter((p) => p.ativo).length}
@@ -1094,7 +1094,7 @@ export default function PosPage() {
                 key={id}
                 type="button"
                 onClick={() => setView(id as typeof view)}
-                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold ${
+                className={`shrink-0 rounded-lg px-3 py-2 text-sm font-semibold sm:px-4 ${
                   view === id
                     ? "bg-[#8A0EEA] text-white"
                     : "text-slate-600 hover:bg-slate-100"
@@ -2337,7 +2337,7 @@ function SaleView({
   }, [categoryFilter, groups, stockFilter]);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
+    <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
       <section className="space-y-4">
         <SuspendedSalesPanel
           sales={suspendedSales}
@@ -2369,7 +2369,7 @@ function SaleView({
           />
         </label>
 
-        <div className="grid gap-3 rounded-xl border bg-white p-3 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 rounded-xl border bg-white p-2 sm:grid-cols-3 sm:gap-3 sm:p-3">
           <select
             value={categoryFilter}
             onChange={(event) => setCategoryFilter(event.target.value)}
@@ -2400,13 +2400,13 @@ function SaleView({
               setStockFilter("disponiveis");
               onSearch("");
             }}
-            className="rounded-xl border border-[#8A0EEA]/20 px-4 py-3 font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
+            className="col-span-2 rounded-xl border border-[#8A0EEA]/20 px-4 py-3 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:col-span-1"
           >
             Limpar busca
           </button>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-3">
           {displayedGroups.length === 0 ? (
             <div className="rounded-xl border border-dashed bg-white p-6 text-center text-sm text-slate-500 sm:col-span-2 lg:col-span-3">
               Nenhum produto encontrado com os filtros atuais.
@@ -3562,9 +3562,11 @@ function Summary({
   const displayValue = textValue ?? (currency ? formatCurrency(value) : value);
 
   return (
-    <div className="rounded-xl border bg-white p-4">
+    <div className="min-w-0 rounded-xl border bg-white p-3 sm:p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-bold ${warning ? "text-red-600" : ""}`}>
+      <p
+        className={`mt-1 truncate text-xl font-bold sm:text-2xl ${warning ? "text-red-600" : ""}`}
+      >
         {displayValue}
       </p>
     </div>

@@ -25,13 +25,17 @@ import {
   type PurchaseInput,
   PurchaseModal,
 } from "@/components/pos/PurchaseModal";
-import { type NewPurchaseOrderInput, PurchaseOrdersPanel } from "@/components/pos/PurchaseOrdersPanel";
+import {
+  type NewPurchaseOrderInput,
+  PurchaseOrdersPanel,
+} from "@/components/pos/PurchaseOrdersPanel";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import {
   QuoteEditModal,
   type QuoteUpdateInput,
 } from "@/components/pos/QuoteEditModal";
 import { ReplenishmentPanel } from "@/components/pos/ReplenishmentPanel";
+import { SaleReturnModal } from "@/components/pos/SaleReturnModal";
 import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { SuspendedSalesPanel } from "@/components/pos/SuspendedSalesPanel";
@@ -77,6 +81,7 @@ import {
   fetchSuspendedPosSales,
   openPosCashRegister,
   receivePurchaseOrder,
+  returnPosSale,
   saveProductStocktakeDraft,
   setPurchaseOrderStatus,
   suspendPosSale,
@@ -286,8 +291,9 @@ export default function PosPage() {
   const discountAmount = Math.max(0, Number(discount || 0));
   const surchargeAmount = Math.max(0, Number(surcharge || 0));
   const saleTotal = Math.max(0, cartTotal - discountAmount + surchargeAmount);
-  const maxDiscountAmount = cartTotal * discountLimitPercent / 100;
-  const discountIsInvalid = discountAmount > maxDiscountAmount || saleTotal <= 0;
+  const maxDiscountAmount = (cartTotal * discountLimitPercent) / 100;
+  const discountIsInvalid =
+    discountAmount > maxDiscountAmount || saleTotal <= 0;
   const paymentDifference = Number((saleTotal - paymentTotal).toFixed(2));
   const lowStockCount = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
@@ -355,7 +361,9 @@ export default function PosPage() {
     setCategories(categoriesResponse.data || []);
     setQuotes((quotesResponse.data || []) as PosQuote[]);
     setSales((salesResponse.data || []) as PosSale[]);
-    setSuspendedSales((suspendedSalesResponse.data || []) as SuspendedPosSale[]);
+    setSuspendedSales(
+      (suspendedSalesResponse.data || []) as SuspendedPosSale[],
+    );
     setCashRegisters((cashRegistersResponse.data || []) as PosCashRegister[]);
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
@@ -581,11 +589,16 @@ export default function PosPage() {
     }
 
     if (discountIsInvalid) {
-      toast.error(`Seu limite de desconto é ${discountLimitPercent}% (${formatCurrency(maxDiscountAmount)})`);
+      toast.error(
+        `Seu limite de desconto é ${discountLimitPercent}% (${formatCurrency(maxDiscountAmount)})`,
+      );
       return;
     }
 
-    if ((discountAmount > 0 || surchargeAmount > 0) && !adjustmentReason.trim()) {
+    if (
+      (discountAmount > 0 || surchargeAmount > 0) &&
+      !adjustmentReason.trim()
+    ) {
       toast.error("Informe o motivo do desconto ou acréscimo");
       return;
     }
@@ -666,45 +679,89 @@ export default function PosPage() {
   }
 
   async function handleSuspendSale(notes: string) {
-    if (cart.length === 0) { toast.error("Adicione produtos ao carrinho"); throw new Error("empty cart"); }
+    if (cart.length === 0) {
+      toast.error("Adicione produtos ao carrinho");
+      throw new Error("empty cart");
+    }
     const customer = getCustomer();
     setProcessing(true);
     const { error } = await suspendPosSale({
       ...customer,
       notes,
-      items: cart.map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+      items: cart.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+      })),
     });
     setProcessing(false);
-    if (error) { toast.error(error.message); throw error; }
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
     clearSale();
     toast.success("Venda suspensa. O PDV está livre para outro atendimento!");
     await loadData();
   }
 
   async function handleRecoverSuspendedSale(sale: SuspendedPosSale) {
-    if (cart.length > 0) { toast.error("Suspenda ou limpe o carrinho atual antes de recuperar outro"); return; }
+    if (cart.length > 0) {
+      toast.error(
+        "Suspenda ou limpe o carrinho atual antes de recuperar outro",
+      );
+      return;
+    }
     const recovered = (sale.suspended_pos_sale_items || []).flatMap((item) => {
-      const product = products.find((candidate) => candidate.id === item.product_id && candidate.ativo);
+      const product = products.find(
+        (candidate) => candidate.id === item.product_id && candidate.ativo,
+      );
       if (!product || product.estoque <= 0) return [];
       return [{ product, quantity: Math.min(item.quantity, product.estoque) }];
     });
-    if (recovered.length === 0) { toast.error("Os produtos desta venda estão sem estoque"); return; }
+    if (recovered.length === 0) {
+      toast.error("Os produtos desta venda estão sem estoque");
+      return;
+    }
     const { error } = await deleteSuspendedPosSale(sale.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setCart(recovered);
     setTutorId(sale.tutor_id ? String(sale.tutor_id) : "");
     setCustomerName(sale.tutor_id ? "" : sale.customer_name);
     setView("sale");
-    setSuspendedSales((current) => current.filter((item) => item.id !== sale.id));
-    if (recovered.some((item) => (sale.suspended_pos_sale_items || []).find((saved) => saved.product_id === item.product.id)?.quantity !== item.quantity)) toast.warning("Algumas quantidades foram ajustadas ao estoque disponível");
+    setSuspendedSales((current) =>
+      current.filter((item) => item.id !== sale.id),
+    );
+    if (
+      recovered.some(
+        (item) =>
+          (sale.suspended_pos_sale_items || []).find(
+            (saved) => saved.product_id === item.product.id,
+          )?.quantity !== item.quantity,
+      )
+    )
+      toast.warning(
+        "Algumas quantidades foram ajustadas ao estoque disponível",
+      );
     toast.success("Venda recuperada no carrinho!");
   }
 
   async function handleDeleteSuspendedSale(sale: SuspendedPosSale) {
-    if (!window.confirm(`Excluir a venda suspensa de ${sale.tutors?.nome || sale.customer_name}?`)) return;
+    if (
+      !window.confirm(
+        `Excluir a venda suspensa de ${sale.tutors?.nome || sale.customer_name}?`,
+      )
+    )
+      return;
     const { error } = await deleteSuspendedPosSale(sale.id);
-    if (error) { toast.error(error.message); return; }
-    setSuspendedSales((current) => current.filter((item) => item.id !== sale.id));
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setSuspendedSales((current) =>
+      current.filter((item) => item.id !== sale.id),
+    );
     toast.success("Venda suspensa excluída");
   }
 
@@ -784,21 +841,40 @@ export default function PosPage() {
 
   async function handlePurchaseOrderCreate(input: NewPurchaseOrderInput) {
     const { error } = await createPurchaseOrder(input);
-    if (error) { toast.error(error.message); throw error; }
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
     toast.success("Pedido de compra criado sem alterar o estoque!");
     await loadData();
   }
 
-  async function handlePurchaseOrderStatus(id: number, status: "Enviado" | "Cancelado") {
+  async function handlePurchaseOrderStatus(
+    id: number,
+    status: "Enviado" | "Cancelado",
+  ) {
     const { error } = await setPurchaseOrderStatus(id, status);
-    if (error) { toast.error(error.message); throw error; }
-    toast.success(status === "Enviado" ? "Pedido marcado como enviado!" : "Pedido cancelado!");
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+    toast.success(
+      status === "Enviado"
+        ? "Pedido marcado como enviado!"
+        : "Pedido cancelado!",
+    );
     await loadData();
   }
 
-  async function handlePurchaseOrderReceive(id: number, receipts: Array<{ item_id: number; quantidade: number }>) {
+  async function handlePurchaseOrderReceive(
+    id: number,
+    receipts: Array<{ item_id: number; quantidade: number }>,
+  ) {
     const { error } = await receivePurchaseOrder(id, receipts);
-    if (error) { toast.error(error.message); throw error; }
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
     toast.success("Recebimento registrado e estoque atualizado!");
     await loadData();
   }
@@ -1132,7 +1208,24 @@ export default function PosPage() {
               onUpdate={handleQuoteUpdate}
             />
           ) : (
-            <SalesView sales={sales} onCancel={handleSaleCancel} />
+            <SalesView
+              sales={sales}
+              onCancel={handleSaleCancel}
+              onReturn={async (saleId, input) => {
+                const { error } = await returnPosSale({ saleId, ...input });
+                if (error) {
+                  toast.error(error.message);
+                  return false;
+                }
+                toast.success(
+                  input.type === "Troca"
+                    ? "Troca registrada e estoque reposto."
+                    : "Devolução registrada com sucesso.",
+                );
+                await loadData();
+                return true;
+              }}
+            />
           )}
         </div>
       </main>
@@ -1801,7 +1894,8 @@ function CashDashboardPrintDocument({
         </p>
         <h1 className="mt-1 text-2xl font-bold">Dashboard do caixa</h1>
         <p className="mt-1 text-sm text-slate-600">
-          Período: {startDate || "início"} até {endDate || "hoje"} · Emitido em {formatDate(new Date().toISOString())}
+          Período: {startDate || "início"} até {endDate || "hoje"} · Emitido em{" "}
+          {formatDate(new Date().toISOString())}
         </p>
       </header>
 
@@ -1818,7 +1912,10 @@ function CashDashboardPrintDocument({
 
       <div className="mt-6 grid grid-cols-2 gap-3">
         {totals.paymentMethods.map((payment) => (
-          <div key={payment.method} className="flex justify-between border p-3 text-sm">
+          <div
+            key={payment.method}
+            className="flex justify-between border p-3 text-sm"
+          >
             <span>{payment.method}</span>
             <strong>{formatCurrency(payment.amount)}</strong>
           </div>
@@ -1840,7 +1937,9 @@ function CashDashboardPrintDocument({
         <tbody>
           {registers.map((register) => (
             <tr key={register.id}>
-              <td className="border p-2">#{String(register.id).padStart(6, "0")}</td>
+              <td className="border p-2">
+                #{String(register.id).padStart(6, "0")}
+              </td>
               <td className="border p-2">
                 {register.user_profiles?.nome ||
                   (register.opened_by
@@ -1849,8 +1948,12 @@ function CashDashboardPrintDocument({
               </td>
               <td className="border p-2">{formatDate(register.opened_at)}</td>
               <td className="border p-2">{register.status}</td>
-              <td className="border p-2">{formatCurrency(sumCashMovements(register, "venda"))}</td>
-              <td className="border p-2">{formatCurrency(register.expected_amount)}</td>
+              <td className="border p-2">
+                {formatCurrency(sumCashMovements(register, "venda"))}
+              </td>
+              <td className="border p-2">
+                {formatCurrency(register.expected_amount)}
+              </td>
               <td className="border p-2">
                 {register.status === "Fechado"
                   ? formatCurrency(register.difference_amount || 0)
@@ -2023,7 +2126,10 @@ function PurchasesView({
   sales: PosSale[];
   onCreateOrder: (input: NewPurchaseOrderInput) => Promise<void>;
   onOrderStatus: (id: number, status: "Enviado" | "Cancelado") => Promise<void>;
-  onOrderReceive: (id: number, receipts: Array<{ item_id: number; quantidade: number }>) => Promise<void>;
+  onOrderReceive: (
+    id: number,
+    receipts: Array<{ item_id: number; quantidade: number }>,
+  ) => Promise<void>;
 }) {
   return (
     <div className="space-y-6">
@@ -2042,64 +2148,68 @@ function PurchasesView({
         onStatus={onOrderStatus}
         onReceive={onOrderReceive}
       />
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="overflow-hidden rounded-xl border bg-white">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px]">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="p-4 text-left">Número</th>
-                <th className="p-4 text-left">Fornecedor</th>
-                <th className="p-4 text-left">Documento</th>
-                <th className="p-4 text-left">Data</th>
-                <th className="p-4 text-left">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {purchases.length === 0 ? (
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="overflow-hidden rounded-xl border bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px]">
+              <thead className="bg-slate-50">
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-slate-500">
-                    Nenhuma compra registrada.
-                  </td>
+                  <th className="p-4 text-left">Número</th>
+                  <th className="p-4 text-left">Fornecedor</th>
+                  <th className="p-4 text-left">Documento</th>
+                  <th className="p-4 text-left">Data</th>
+                  <th className="p-4 text-left">Total</th>
                 </tr>
-              ) : (
-                purchases.map((purchase) => (
-                  <tr key={purchase.id} className="border-t">
-                    <td className="p-4">
-                      #{String(purchase.id).padStart(6, "0")}
+              </thead>
+              <tbody>
+                {purchases.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="p-6 text-center text-slate-500">
+                      Nenhuma compra registrada.
                     </td>
-                    <td className="p-4">{purchase.suppliers?.nome || "-"}</td>
-                    <td className="p-4">{purchase.numero_documento || "-"}</td>
-                    <td className="p-4">{formatDate(purchase.data_compra)}</td>
-                    <td className="p-4">{formatCurrency(purchase.total)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  purchases.map((purchase) => (
+                    <tr key={purchase.id} className="border-t">
+                      <td className="p-4">
+                        #{String(purchase.id).padStart(6, "0")}
+                      </td>
+                      <td className="p-4">{purchase.suppliers?.nome || "-"}</td>
+                      <td className="p-4">
+                        {purchase.numero_documento || "-"}
+                      </td>
+                      <td className="p-4">
+                        {formatDate(purchase.data_compra)}
+                      </td>
+                      <td className="p-4">{formatCurrency(purchase.total)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
 
-      <aside className="rounded-xl border bg-white p-4">
-        <h2 className="font-bold">Fornecedores</h2>
-        <div className="mt-3 divide-y">
-          {suppliers.length === 0 ? (
-            <p className="py-4 text-sm text-slate-500">
-              Nenhum fornecedor cadastrado.
-            </p>
-          ) : (
-            suppliers.map((supplier) => (
-              <div key={supplier.id} className="py-3">
-                <p className="font-medium">{supplier.nome}</p>
-                <p className="text-xs text-slate-500">
-                  {supplier.contato || supplier.telefone || "Sem contato"}
-                </p>
-              </div>
-            ))
-          )}
-        </div>
-      </aside>
-    </div>
+        <aside className="rounded-xl border bg-white p-4">
+          <h2 className="font-bold">Fornecedores</h2>
+          <div className="mt-3 divide-y">
+            {suppliers.length === 0 ? (
+              <p className="py-4 text-sm text-slate-500">
+                Nenhum fornecedor cadastrado.
+              </p>
+            ) : (
+              suppliers.map((supplier) => (
+                <div key={supplier.id} className="py-3">
+                  <p className="font-medium">{supplier.nome}</p>
+                  <p className="text-xs text-slate-500">
+                    {supplier.contato || supplier.telefone || "Sem contato"}
+                  </p>
+                </div>
+              ))
+            )}
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -2232,7 +2342,11 @@ function SaleView({
         <SuspendedSalesPanel
           sales={suspendedSales}
           cartCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
-          customerName={tutors.find((tutor) => String(tutor.id) === tutorId)?.nome || customerName || "Consumidor"}
+          customerName={
+            tutors.find((tutor) => String(tutor.id) === tutorId)?.nome ||
+            customerName ||
+            "Consumidor"
+          }
           processing={processing}
           onSuspend={onSuspend}
           onRecover={onRecoverSuspended}
@@ -2501,25 +2615,76 @@ function SaleView({
         </div>
         <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-bold text-slate-700">Ajustes da venda</span>
-            <span className="text-xs font-semibold text-[#8A0EEA]">Limite: {discountLimitPercent}%</span>
+            <span className="text-sm font-bold text-slate-700">
+              Ajustes da venda
+            </span>
+            <span className="text-xs font-semibold text-[#8A0EEA]">
+              Limite: {discountLimitPercent}%
+            </span>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="grid gap-1 text-xs font-medium text-slate-500">Desconto (R$)<input type="number" min="0" step="0.01" max={maxDiscountAmount} value={discount} onChange={(event)=>onDiscount(event.target.value)} className={`rounded-xl border bg-white p-3 text-sm text-slate-900 ${discountIsInvalid?"border-red-400":""}`}/></label>
-            <label className="grid gap-1 text-xs font-medium text-slate-500">Acréscimo (R$)<input type="number" min="0" step="0.01" value={surcharge} onChange={(event)=>onSurcharge(event.target.value)} className="rounded-xl border bg-white p-3 text-sm text-slate-900"/></label>
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Desconto (R$)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                max={maxDiscountAmount}
+                value={discount}
+                onChange={(event) => onDiscount(event.target.value)}
+                className={`rounded-xl border bg-white p-3 text-sm text-slate-900 ${discountIsInvalid ? "border-red-400" : ""}`}
+              />
+            </label>
+            <label className="grid gap-1 text-xs font-medium text-slate-500">
+              Acréscimo (R$)
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={surcharge}
+                onChange={(event) => onSurcharge(event.target.value)}
+                className="rounded-xl border bg-white p-3 text-sm text-slate-900"
+              />
+            </label>
           </div>
-          {(Number(discount||0)>0||Number(surcharge||0)>0)&&<input value={adjustmentReason} onChange={(event)=>onAdjustmentReason(event.target.value)} placeholder="Motivo obrigatório" className="mt-2 w-full rounded-xl border bg-white p-3 text-sm"/>}
-          {discountIsInvalid&&<p className="mt-2 text-xs font-semibold text-red-600">Desconto máximo: {formatCurrency(maxDiscountAmount)}</p>}
+          {(Number(discount || 0) > 0 || Number(surcharge || 0) > 0) && (
+            <input
+              value={adjustmentReason}
+              onChange={(event) => onAdjustmentReason(event.target.value)}
+              placeholder="Motivo obrigatório"
+              className="mt-2 w-full rounded-xl border bg-white p-3 text-sm"
+            />
+          )}
+          {discountIsInvalid && (
+            <p className="mt-2 text-xs font-semibold text-red-600">
+              Desconto máximo: {formatCurrency(maxDiscountAmount)}
+            </p>
+          )}
         </div>
         <div className="mt-5 space-y-2 border-t pt-4">
-          {(Number(discount||0)>0||Number(surcharge||0)>0)&&<div className="flex justify-between text-sm text-slate-500"><span>Subtotal</span><span>{formatCurrency(subtotal)}</span></div>}
-          {Number(discount||0)>0&&<div className="flex justify-between text-sm font-medium text-emerald-700"><span>Desconto</span><span>- {formatCurrency(Number(discount))}</span></div>}
-          {Number(surcharge||0)>0&&<div className="flex justify-between text-sm font-medium text-amber-700"><span>Acréscimo</span><span>+ {formatCurrency(Number(surcharge))}</span></div>}
+          {(Number(discount || 0) > 0 || Number(surcharge || 0) > 0) && (
+            <div className="flex justify-between text-sm text-slate-500">
+              <span>Subtotal</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+          )}
+          {Number(discount || 0) > 0 && (
+            <div className="flex justify-between text-sm font-medium text-emerald-700">
+              <span>Desconto</span>
+              <span>- {formatCurrency(Number(discount))}</span>
+            </div>
+          )}
+          {Number(surcharge || 0) > 0 && (
+            <div className="flex justify-between text-sm font-medium text-amber-700">
+              <span>Acréscimo</span>
+              <span>+ {formatCurrency(Number(surcharge))}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between">
-          <span className="font-medium">Total</span>
-          <strong className="text-2xl text-[#8A0EEA]">
-            {formatCurrency(total)}
-          </strong>
+            <span className="font-medium">Total</span>
+            <strong className="text-2xl text-[#8A0EEA]">
+              {formatCurrency(total)}
+            </strong>
           </div>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
@@ -2538,7 +2703,8 @@ function SaleView({
               processing ||
               cart.length === 0 ||
               discountIsInvalid ||
-              ((Number(discount||0)>0||Number(surcharge||0)>0)&&!adjustmentReason.trim()) ||
+              ((Number(discount || 0) > 0 || Number(surcharge || 0) > 0) &&
+                !adjustmentReason.trim()) ||
               (splitPayments && Math.abs(paymentDifference) >= 0.01)
             }
             className="rounded-xl bg-[#8A0EEA] py-3 font-semibold text-white disabled:opacity-50"
@@ -2571,7 +2737,8 @@ function StockTurnoverDashboard({
     sales
       .filter(
         (sale) =>
-          sale.status !== "Cancelada" && new Date(sale.created_at) >= cutoffDate,
+          sale.status !== "Cancelada" &&
+          new Date(sale.created_at) >= cutoffDate,
       )
       .forEach((sale) => {
         sale.pos_sale_items?.forEach((item) => {
@@ -2647,7 +2814,11 @@ function StockTurnoverDashboard({
           <Summary label="Estoque baixo" value={report.lowStock.length} />
           <Summary label="Sem giro" value={report.noMovement.length} />
           <Summary label="Unidades vendidas" value={report.unitsSold} />
-          <Summary label="Custo em estoque" value={report.inventoryCost} currency />
+          <Summary
+            label="Custo em estoque"
+            value={report.inventoryCost}
+            currency
+          />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
@@ -2706,7 +2877,8 @@ function StockTurnoverDashboard({
               Relatório de estoque e giro
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              Últimos 30 dias · Emitido em {formatDate(new Date().toISOString())}
+              Últimos 30 dias · Emitido em{" "}
+              {formatDate(new Date().toISOString())}
             </p>
           </header>
 
@@ -2724,7 +2896,10 @@ function StockTurnoverDashboard({
               label="Unidades vendidas"
               textValue={String(report.unitsSold)}
             />
-            <PrintMetric label="Custo em estoque" value={report.inventoryCost} />
+            <PrintMetric
+              label="Custo em estoque"
+              value={report.inventoryCost}
+            />
           </div>
 
           <table className="mt-6 w-full border-collapse text-xs">
@@ -2843,7 +3018,9 @@ function ProductsView({
                 <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 p-3">
                   <div>
                     <p className="text-xs text-slate-500">Estoque atual</p>
-                    <p className={`text-xl font-bold ${lowStock ? "text-red-600" : "text-slate-900"}`}>
+                    <p
+                      className={`text-xl font-bold ${lowStock ? "text-red-600" : "text-slate-900"}`}
+                    >
                       {product.estoque}
                     </p>
                   </div>
@@ -2857,7 +3034,9 @@ function ProductsView({
                     {lowStock ? "Estoque baixo" : "Estoque normal"}
                   </span>
                 </div>
-                <span className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fiscalReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
+                <span
+                  className={`mt-3 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${fiscalReady ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}
+                >
                   {fiscalReady ? "Fiscal completo" : "Fiscal pendente"}
                 </span>
 
@@ -2926,8 +3105,12 @@ function ProductsView({
                     <td className="p-4">
                       <div className="flex flex-col items-start gap-1">
                         <span>{product.ativo ? "Ativo" : "Inativo"}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isProductFiscalReady(product) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}>
-                          {isProductFiscalReady(product) ? "Fiscal completo" : "Fiscal pendente"}
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isProductFiscalReady(product) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}
+                        >
+                          {isProductFiscalReady(product)
+                            ? "Fiscal completo"
+                            : "Fiscal pendente"}
                         </span>
                       </div>
                     </td>
@@ -2982,10 +3165,7 @@ function QuotesView({
   quotes: PosQuote[];
   products: Product[];
   tutors: Tutor[];
-  onConvert: (
-    quoteId: number,
-    conversion: PosQuoteConversion,
-  ) => Promise<void>;
+  onConvert: (quoteId: number, conversion: PosQuoteConversion) => Promise<void>;
   onDelete: (quoteId: number) => Promise<void>;
   onUpdate: (input: QuoteUpdateInput) => Promise<void>;
 }) {
@@ -3007,89 +3187,99 @@ function QuotesView({
 
   return (
     <>
-    <div className="overflow-hidden rounded-xl border bg-white">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px]">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="p-4 text-left">Número</th>
-              <th className="p-4 text-left">Cliente</th>
-              <th className="p-4 text-left">Criado em</th>
-              <th className="p-4 text-left">Validade</th>
-              <th className="p-4 text-left">Total</th>
-              <th className="p-4 text-left">Status</th>
-              <th className="p-4 text-left">Ações</th>
-            </tr>
-          </thead>
-          <tbody>
-            {quotes.length === 0 ? (
+      <div className="overflow-hidden rounded-xl border bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[720px]">
+            <thead className="bg-slate-50">
               <tr>
-                <td colSpan={7} className="p-6 text-center text-slate-500">
-                  Nenhum orçamento salvo.
-                </td>
+                <th className="p-4 text-left">Número</th>
+                <th className="p-4 text-left">Cliente</th>
+                <th className="p-4 text-left">Criado em</th>
+                <th className="p-4 text-left">Validade</th>
+                <th className="p-4 text-left">Total</th>
+                <th className="p-4 text-left">Status</th>
+                <th className="p-4 text-left">Ações</th>
               </tr>
-            ) : (
-              quotes.map((quote) => (
-                <tr key={quote.id} className="border-t">
-                  <td className="p-4">#{String(quote.id).padStart(6, "0")}</td>
-                  <td className="p-4">
-                    {quote.tutors?.nome || quote.cliente_nome || "Consumidor"}
-                  </td>
-                  <td className="p-4">{formatDate(quote.created_at)}</td>
-                  <td className="p-4">{formatDate(quote.validade)}</td>
-                  <td className="p-4">{formatCurrency(quote.total)}</td>
-                  <td className="p-4">{quote.status}</td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap items-center gap-3">
-                    <PosDocumentModal
-                      type="Orçamento"
-                      number={quote.id}
-                      customer={
-                        quote.tutors?.nome || quote.cliente_nome || "Consumidor"
-                      }
-                      date={quote.created_at}
-                      expirationDate={quote.validade}
-                      status={quote.status}
-                      total={quote.total}
-                      items={quote.pos_quote_items || []}
-                      onConvert={
-                        quote.status === "Aberto"
-                          ? (conversion) => onConvert(quote.id, conversion)
-                          : undefined
-                      }
-                    />
-                    {quote.status === "Aberto" && (
-                      <QuoteEditModal
-                        quote={quote}
-                        products={products}
-                        tutors={tutors}
-                        onSave={onUpdate}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setQuoteToDelete(quote)}
-                      className="font-semibold text-red-600"
-                    >
-                      Excluir
-                    </button>
-                    </div>
+            </thead>
+            <tbody>
+              {quotes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-6 text-center text-slate-500">
+                    Nenhum orçamento salvo.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                quotes.map((quote) => (
+                  <tr key={quote.id} className="border-t">
+                    <td className="p-4">
+                      #{String(quote.id).padStart(6, "0")}
+                    </td>
+                    <td className="p-4">
+                      {quote.tutors?.nome || quote.cliente_nome || "Consumidor"}
+                    </td>
+                    <td className="p-4">{formatDate(quote.created_at)}</td>
+                    <td className="p-4">{formatDate(quote.validade)}</td>
+                    <td className="p-4">{formatCurrency(quote.total)}</td>
+                    <td className="p-4">{quote.status}</td>
+                    <td className="p-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <PosDocumentModal
+                          type="Orçamento"
+                          number={quote.id}
+                          customer={
+                            quote.tutors?.nome ||
+                            quote.cliente_nome ||
+                            "Consumidor"
+                          }
+                          date={quote.created_at}
+                          expirationDate={quote.validade}
+                          status={quote.status}
+                          total={quote.total}
+                          items={quote.pos_quote_items || []}
+                          onConvert={
+                            quote.status === "Aberto"
+                              ? (conversion) => onConvert(quote.id, conversion)
+                              : undefined
+                          }
+                        />
+                        {quote.status === "Aberto" && (
+                          <QuoteEditModal
+                            quote={quote}
+                            products={products}
+                            tutors={tutors}
+                            onSave={onUpdate}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setQuoteToDelete(quote)}
+                          className="font-semibold text-red-600"
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
-    <ConfirmationDialog
-      isOpen={Boolean(quoteToDelete)}
-      title="Excluir orçamento?"
-      description={quoteToDelete ? `O orçamento #${String(quoteToDelete.id).padStart(6, "0")} e todos os seus itens serão removidos permanentemente.` : ""}
-      confirmText={deleting ? "Excluindo..." : "Excluir orçamento"}
-      onConfirm={() => void handleConfirmDelete()}
-      onCancel={() => { if (!deleting) setQuoteToDelete(null); }}
-    />
+      <ConfirmationDialog
+        isOpen={Boolean(quoteToDelete)}
+        title="Excluir orçamento?"
+        description={
+          quoteToDelete
+            ? `O orçamento #${String(quoteToDelete.id).padStart(6, "0")} e todos os seus itens serão removidos permanentemente.`
+            : ""
+        }
+        confirmText={deleting ? "Excluindo..." : "Excluir orçamento"}
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => {
+          if (!deleting) setQuoteToDelete(null);
+        }}
+      />
     </>
   );
 }
@@ -3097,9 +3287,18 @@ function QuotesView({
 function SalesView({
   sales,
   onCancel,
+  onReturn,
 }: {
   sales: PosSale[];
   onCancel: (saleId: number) => Promise<void>;
+  onReturn: (
+    saleId: number,
+    input: {
+      type: "Devolução" | "Troca";
+      reason: string;
+      items: Array<{ sale_item_id: number; quantity: number }>;
+    },
+  ) => Promise<boolean>;
 }) {
   const [saleToCancel, setSaleToCancel] = useState<PosSale | null>(null);
   const [cancelling, setCancelling] = useState(false);
@@ -3155,7 +3354,9 @@ function SalesView({
                     <p className="text-xs font-semibold text-slate-400">
                       VENDA #{String(sale.id).padStart(6, "0")}
                     </p>
-                    <h3 className="mt-1 font-bold text-slate-900">{customer}</h3>
+                    <h3 className="mt-1 font-bold text-slate-900">
+                      {customer}
+                    </h3>
                     <p className="mt-1 text-sm text-slate-500">
                       {formatDate(sale.created_at)}
                     </p>
@@ -3193,7 +3394,9 @@ function SalesView({
                   </div>
                 </div>
 
-                <div className={`mt-3 grid gap-2 border-t pt-3 ${cancelled ? "grid-cols-1" : "grid-cols-2"}`}>
+                <div
+                  className={`mt-3 grid gap-2 border-t pt-3 ${cancelled ? "grid-cols-1" : "grid-cols-3"}`}
+                >
                   <div className="flex min-h-10 items-center justify-center rounded-xl bg-purple-50 font-semibold text-[#8A0EEA]">
                     <PosDocumentModal
                       type="Venda"
@@ -3210,6 +3413,14 @@ function SalesView({
                       items={sale.pos_sale_items || []}
                     />
                   </div>
+                  {!cancelled && (
+                    <div className="flex min-h-10 items-center justify-center rounded-xl bg-amber-50">
+                      <SaleReturnModal
+                        sale={sale}
+                        onSave={(input) => onReturn(sale.id, input)}
+                      />
+                    </div>
+                  )}
                   {!cancelled && (
                     <button
                       type="button"
@@ -3294,6 +3505,12 @@ function SalesView({
                           adjustmentReason={sale.adjustment_reason}
                           items={sale.pos_sale_items || []}
                         />
+                        {sale.status !== "Cancelada" && (
+                          <SaleReturnModal
+                            sale={sale}
+                            onSave={(input) => onReturn(sale.id, input)}
+                          />
+                        )}
                         {sale.status !== "Cancelada" && (
                           <button
                             type="button"

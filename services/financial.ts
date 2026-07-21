@@ -1,9 +1,52 @@
 import { isGroomerDailyPaymentOrigin } from "@/lib/financial-origin";
 import { supabase } from "@/lib/supabase";
 import type {
+  FinancialRecurringRule,
   NewFinancialEntryInput,
   UpdateFinancialEntryInput,
 } from "@/types/domain";
+
+export async function fetchFinancialRecurringRules() {
+  return supabase
+    .from("financial_recurring_rules")
+    .select("*")
+    .order("active", { ascending: false })
+    .order("day_of_month")
+    .returns<FinancialRecurringRule[]>();
+}
+
+export async function createFinancialRecurringRule(
+  input: Omit<FinancialRecurringRule, "id" | "created_at" | "active">,
+) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return supabase
+    .from("financial_recurring_rules")
+    .insert({ ...input, active: true, created_by: user?.id })
+    .select()
+    .single();
+}
+
+export async function setFinancialRecurringRuleActive(
+  id: number,
+  active: boolean,
+) {
+  return supabase
+    .from("financial_recurring_rules")
+    .update({ active })
+    .eq("id", id);
+}
+
+export async function deleteFinancialRecurringRule(id: number) {
+  return supabase.from("financial_recurring_rules").delete().eq("id", id);
+}
+
+export async function generateRecurringFinancialEntries(untilDate: string) {
+  return supabase.rpc("generate_recurring_financial_entries", {
+    until_date: untilDate,
+  });
+}
 
 const financialEntrySelect = `
   *,

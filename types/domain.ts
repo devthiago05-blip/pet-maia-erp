@@ -628,6 +628,38 @@ export interface PosSale {
   };
   pos_sale_items?: PosItem[];
   pos_sale_payments?: PosSalePayment[];
+  pos_sale_returns?: PosSaleReturn[];
+}
+
+export interface PosSaleReturnItem {
+  id: number;
+  sale_item_id: number;
+  product_id: number;
+  quantity: number;
+  unit_price: number;
+}
+
+export interface PosSaleReturn {
+  id: number;
+  sale_id: number;
+  return_type: "Devolução" | "Troca";
+  amount: number;
+  reason: string;
+  created_at: string;
+  pos_sale_return_items?: PosSaleReturnItem[];
+}
+
+export interface FinancialRecurringRule {
+  id: number;
+  description: string;
+  amount: number;
+  entry_type: "Receita" | "Despesa";
+  payment_method?: string | null;
+  day_of_month: number;
+  start_date: string;
+  end_date?: string | null;
+  active: boolean;
+  created_at: string;
 }
 
 export interface PosSalePayment {
@@ -758,7 +790,10 @@ export interface PurchaseOrder {
   notes?: string;
   created_at: string;
   updated_at: string;
-  suppliers?: Pick<Supplier, "nome" | "documento" | "telefone" | "email" | "contato">;
+  suppliers?: Pick<
+    Supplier,
+    "nome" | "documento" | "telefone" | "email" | "contato"
+  >;
   purchase_order_items?: PurchaseOrderItem[];
 }
 

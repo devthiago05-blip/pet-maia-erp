@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { EditFinancialModal } from "@/components/financeiro/EditFinancialModal";
 import { FinancialTable } from "@/components/financeiro/FinancialTable";
 import { NewFinancialModal } from "@/components/financeiro/NewFinancialModal";
+import { RecurringAccountsPanel } from "@/components/financeiro/RecurringAccountsPanel";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
@@ -20,15 +21,21 @@ import {
 import { formatCurrency, formatDate } from "@/lib/formatters";
 import {
   createFinancialEntry,
+  createFinancialRecurringRule,
   deleteFinancialEntry,
+  deleteFinancialRecurringRule,
   fetchFinancialEntries,
+  fetchFinancialRecurringRules,
+  generateRecurringFinancialEntries,
   markFinancialEntryAsPaid,
+  setFinancialRecurringRuleActive,
   updateFinancialEntry,
 } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
 import { fetchTutors } from "@/services/tutors";
 import type {
   FinancialEntry,
+  FinancialRecurringRule,
   NewFinancialEntryInput,
   Pet,
   Tutor,
@@ -51,6 +58,9 @@ export default function FinanceiroPage() {
   const requestedEntryId = searchParams.get("entryId");
   const openedNotificationRef = useRef("");
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
+  const [recurringRules, setRecurringRules] = useState<
+    FinancialRecurringRule[]
+  >([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
   const [entryToEdit, setEntryToEdit] = useState<FinancialEntry | null>(null);
@@ -70,13 +80,17 @@ export default function FinanceiroPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
-    if (!requestedEntryId || openedNotificationRef.current === requestedEntryId) return;
+    if (!requestedEntryId || openedNotificationRef.current === requestedEntryId)
+      return;
     const entry = entries.find((item) => String(item.id) === requestedEntryId);
     if (!entry) return;
     openedNotificationRef.current = requestedEntryId;
     const timeout = window.setTimeout(() => {
       const date = entry.created_at?.slice(0, 10);
-      if (date) { setStartDate(date); setEndDate(date); }
+      if (date) {
+        setStartDate(date);
+        setEndDate(date);
+      }
       setEntryToEdit(entry);
     }, 0);
     return () => window.clearTimeout(timeout);
@@ -278,9 +292,16 @@ export default function FinanceiroPage() {
     setLoading(true);
     setLoadError("");
 
-    const [financialResponse, tutorsResponse, petsResponse] = await Promise.all(
-      [fetchFinancialEntries(), fetchTutors(), fetchPets()],
+    await generateRecurringFinancialEntries(
+      new Date().toLocaleDateString("en-CA"),
     );
+    const [financialResponse, tutorsResponse, petsResponse, recurringResponse] =
+      await Promise.all([
+        fetchFinancialEntries(),
+        fetchTutors(),
+        fetchPets(),
+        fetchFinancialRecurringRules(),
+      ]);
 
     if (financialResponse.error) {
       console.error(financialResponse.error);
@@ -304,6 +325,9 @@ export default function FinanceiroPage() {
     setEntries(loadedEntries);
     setTutors((tutorsResponse.data || []) as Tutor[]);
     setPets((petsResponse.data || []) as Pet[]);
+    setRecurringRules(
+      (recurringResponse.data || []) as FinancialRecurringRule[],
+    );
     setLoading(false);
   }
 
@@ -440,6 +464,47 @@ export default function FinanceiroPage() {
               tone={saldoPrevisto >= 0 ? "success" : "danger"}
             />
           </div>
+
+          <RecurringAccountsPanel
+            rules={recurringRules}
+            onCreate={async (input) => {
+              const { error } = await createFinancialRecurringRule(input);
+              if (error) {
+                toast.error(error.message);
+                return false;
+              }
+              await loadFinancial();
+              toast.success("Recorrência cadastrada.");
+              return true;
+            }}
+            onToggle={async (rule) => {
+              const { error } = await setFinancialRecurringRuleActive(
+                rule.id,
+                !rule.active,
+              );
+              if (error) toast.error(error.message);
+              else {
+                toast.success(
+                  rule.active ? "Recorrência pausada." : "Recorrência ativada.",
+                );
+                await loadFinancial();
+              }
+            }}
+            onDelete={async (id) => {
+              if (
+                !window.confirm(
+                  "Excluir esta recorrência? Os lançamentos já gerados serão mantidos.",
+                )
+              )
+                return;
+              const { error } = await deleteFinancialRecurringRule(id);
+              if (error) toast.error(error.message);
+              else {
+                toast.success("Recorrência excluída.");
+                await loadFinancial();
+              }
+            }}
+          />
 
           {overdueExpenses.length > 0 && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

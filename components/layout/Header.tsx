@@ -10,10 +10,14 @@ import { GlobalSearch } from "@/components/layout/GlobalSearch";
 import { formatCurrency } from "@/lib/formatters";
 import { supabase } from "@/lib/supabase";
 import {
+  fetchNotificationHistory,
   fetchPendingFinancialNotifications,
   fetchPendingSiteAppointmentNotifications,
   fetchTodayPendingAppointments,
   fetchVaccinationNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  syncNotificationHistory,
 } from "@/services/notifications";
 
 interface NotificationItem {
@@ -21,6 +25,7 @@ interface NotificationItem {
   title: string;
   description: string;
   href: string;
+  readAt?: string | null;
 }
 
 interface AppointmentNotificationRow {
@@ -191,12 +196,24 @@ export function Header() {
         };
       });
 
-      setNotifications([
+      const currentNotifications = [
         ...pendingSiteAppointmentItems,
         ...vaccinationItems,
         ...appointmentItems,
         ...financialItems,
-      ]);
+      ];
+      await syncNotificationHistory(currentNotifications);
+      const historyResponse = await fetchNotificationHistory();
+      if (!active) return;
+      setNotifications(
+        (historyResponse.data || []).map((item) => ({
+          id: item.notification_key,
+          title: item.title,
+          description: item.description,
+          href: item.href,
+          readAt: item.read_at,
+        })),
+      );
     }
 
     loadNotifications();
@@ -238,20 +255,41 @@ export function Header() {
               aria-expanded={notificationsOpen}
             >
               <Bell size={20} />
-              {notifications.length > 0 && (
+              {notifications.filter((item) => !item.readAt).length > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#FF7A00] px-1 text-xs text-white">
-                  {notifications.length > 9 ? "9+" : notifications.length}
+                  {notifications.filter((item) => !item.readAt).length > 9
+                    ? "9+"
+                    : notifications.filter((item) => !item.readAt).length}
                 </span>
               )}
             </button>
 
             {notificationsOpen && (
               <div className="fixed top-20 right-4 left-4 z-50 max-h-[calc(100dvh-6rem)] overflow-hidden rounded-xl border bg-white shadow-xl sm:absolute sm:top-12 sm:right-0 sm:left-auto sm:max-h-none sm:w-[min(22rem,calc(100vw-2rem))]">
-                <div className="border-b p-4">
-                  <p className="font-bold">Notificações</p>
-                  <p className="text-xs text-slate-500">
-                    Solicitacoes do site, vacinas, agenda e pagamentos
-                  </p>
+                <div className="flex items-start justify-between gap-3 border-b p-4">
+                  <div>
+                    <p className="font-bold">Notificações</p>
+                    <p className="text-xs text-slate-500">
+                      Solicitacoes do site, vacinas, agenda e pagamentos
+                    </p>
+                  </div>
+                  {notifications.some((item) => !item.readAt) && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await markAllNotificationsRead();
+                        setNotifications((current) =>
+                          current.map((item) => ({
+                            ...item,
+                            readAt: new Date().toISOString(),
+                          })),
+                        );
+                      }}
+                      className="text-xs font-semibold text-[#8A0EEA]"
+                    >
+                      Marcar todas como lidas
+                    </button>
+                  )}
                 </div>
                 <div className="max-h-[calc(100dvh-13rem)] overflow-y-auto sm:max-h-80">
                   {notifications.length === 0 ? (
@@ -263,8 +301,18 @@ export function Header() {
                       <Link
                         key={notification.id}
                         href={notification.href}
-                        onClick={() => setNotificationsOpen(false)}
-                        className="block border-b p-4 transition last:border-b-0 hover:bg-slate-50"
+                        onClick={() => {
+                          void markNotificationRead(notification.id);
+                          setNotifications((current) =>
+                            current.map((item) =>
+                              item.id === notification.id
+                                ? { ...item, readAt: new Date().toISOString() }
+                                : item,
+                            ),
+                          );
+                          setNotificationsOpen(false);
+                        }}
+                        className={`block border-b p-4 transition last:border-b-0 hover:bg-slate-50 ${notification.readAt ? "opacity-60" : "bg-purple-50/40"}`}
                       >
                         <p className="text-sm font-semibold">
                           {notification.title}

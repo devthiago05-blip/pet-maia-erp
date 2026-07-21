@@ -37,11 +37,13 @@ export async function completeProductStocktake({
 export async function fetchProductStocktakes() {
   return supabase
     .from("product_stocktakes")
-    .select(`
+    .select(
+      `
       *,
       user_profiles!product_stocktakes_created_by_fkey (nome),
       product_stocktake_items (*)
-    `)
+    `,
+    )
     .order("created_at", { ascending: false })
     .limit(50)
     .returns<ProductStocktake[]>();
@@ -194,17 +196,28 @@ export async function createProductPurchase({
 }
 
 export async function fetchPurchaseOrders() {
-  return supabase.from("purchase_orders").select(`
+  return supabase
+    .from("purchase_orders")
+    .select(
+      `
     *, suppliers(nome,documento,telefone,email,contato),
     purchase_order_items(*, products(id,nome,sku,tamanho,cor,sabor))
-  `).order("created_at", { ascending: false }).limit(50).returns<PurchaseOrder[]>();
+  `,
+    )
+    .order("created_at", { ascending: false })
+    .limit(50)
+    .returns<PurchaseOrder[]>();
 }
 
 export function createPurchaseOrder(input: {
   supplierId: number;
   expectedDate: string | null;
   notes: string;
-  items: Array<{ product_id: number; quantidade: number; custo_unitario: number }>;
+  items: Array<{
+    product_id: number;
+    quantidade: number;
+    custo_unitario: number;
+  }>;
 }) {
   return supabase.rpc("create_purchase_order", {
     selected_supplier_id: input.supplierId,
@@ -214,12 +227,24 @@ export function createPurchaseOrder(input: {
   });
 }
 
-export function setPurchaseOrderStatus(orderId: number, status: "Enviado" | "Cancelado") {
-  return supabase.rpc("set_purchase_order_status", { selected_order_id: orderId, selected_status: status });
+export function setPurchaseOrderStatus(
+  orderId: number,
+  status: "Enviado" | "Cancelado",
+) {
+  return supabase.rpc("set_purchase_order_status", {
+    selected_order_id: orderId,
+    selected_status: status,
+  });
 }
 
-export function receivePurchaseOrder(orderId: number, receipts: Array<{ item_id: number; quantidade: number }>) {
-  return supabase.rpc("receive_purchase_order", { selected_order_id: orderId, receipts });
+export function receivePurchaseOrder(
+  orderId: number,
+  receipts: Array<{ item_id: number; quantidade: number }>,
+) {
+  return supabase.rpc("receive_purchase_order", {
+    selected_order_id: orderId,
+    receipts,
+  });
 }
 
 export async function fetchPosQuotes() {
@@ -260,7 +285,11 @@ export async function updatePosQuote({
   tutorId: number | null;
   customerName: string;
   expirationDate: string | null;
-  items: Array<{ product_id: number; quantidade: number; valor_unitario: number }>;
+  items: Array<{
+    product_id: number;
+    quantidade: number;
+    valor_unitario: number;
+  }>;
 }) {
   return supabase.rpc("update_pos_quote", {
     selected_quote_id: quoteId,
@@ -294,6 +323,15 @@ export async function fetchPosSales() {
           payment_method,
           amount,
           created_at
+        ),
+        pos_sale_returns (
+          id,
+          sale_id,
+          return_type,
+          amount,
+          reason,
+          created_at,
+          pos_sale_return_items (*)
         )
       `,
     )
@@ -301,11 +339,31 @@ export async function fetchPosSales() {
     .limit(500);
 }
 
+export function returnPosSale(input: {
+  saleId: number;
+  type: "Devolução" | "Troca";
+  reason: string;
+  items: Array<{ sale_item_id: number; quantity: number }>;
+}) {
+  return supabase.rpc("return_pos_sale", {
+    selected_sale_id: input.saleId,
+    selected_type: input.type,
+    selected_reason: input.reason,
+    items: input.items,
+  });
+}
+
 export async function fetchSuspendedPosSales() {
-  return supabase.from("suspended_pos_sales").select(`
+  return supabase
+    .from("suspended_pos_sales")
+    .select(
+      `
     *, tutors(nome),
     suspended_pos_sale_items(*, products(id,nome,sku,tamanho,cor,sabor))
-  `).order("created_at", { ascending: false }).returns<SuspendedPosSale[]>();
+  `,
+    )
+    .order("created_at", { ascending: false })
+    .returns<SuspendedPosSale[]>();
 }
 
 export function suspendPosSale(input: {
@@ -507,7 +565,22 @@ export async function createPosSaleWithPayments({
 
 export async function fetchCurrentPosDiscountLimit() {
   const { data: userData, error: userError } = await supabase.auth.getUser();
-  if (userError || !userData.user) return { data: null, error: userError || new Error("Usuário não autenticado") };
-  const response = await supabase.from("user_profiles").select("is_admin,max_discount_percent").eq("id", userData.user.id).single();
-  return { data: response.data ? (response.data.is_admin ? 100 : Number(response.data.max_discount_percent)) : null, error: response.error };
+  if (userError || !userData.user)
+    return {
+      data: null,
+      error: userError || new Error("Usuário não autenticado"),
+    };
+  const response = await supabase
+    .from("user_profiles")
+    .select("is_admin,max_discount_percent")
+    .eq("id", userData.user.id)
+    .single();
+  return {
+    data: response.data
+      ? response.data.is_admin
+        ? 100
+        : Number(response.data.max_discount_percent)
+      : null,
+    error: response.error,
+  };
 }

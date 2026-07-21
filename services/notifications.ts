@@ -77,3 +77,48 @@ export async function fetchVaccinationNotifications(
     .order("next_dose_date", { ascending: true })
     .limit(20);
 }
+
+export async function syncNotificationHistory(
+  items: Array<{
+    id: string;
+    title: string;
+    description: string;
+    href: string;
+  }>,
+) {
+  const { data: userData } = await supabase.auth.getUser();
+  if (!userData.user || items.length === 0) return { error: null };
+  return supabase.from("user_notification_history").upsert(
+    items.map((item) => ({
+      user_id: userData.user!.id,
+      notification_key: item.id,
+      title: item.title,
+      description: item.description,
+      href: item.href,
+      last_seen_at: new Date().toISOString(),
+    })),
+    { onConflict: "user_id,notification_key", ignoreDuplicates: false },
+  );
+}
+
+export async function fetchNotificationHistory() {
+  return supabase
+    .from("user_notification_history")
+    .select("notification_key,title,description,href,read_at,last_seen_at")
+    .order("last_seen_at", { ascending: false })
+    .limit(50);
+}
+
+export async function markNotificationRead(key: string) {
+  return supabase
+    .from("user_notification_history")
+    .update({ read_at: new Date().toISOString() })
+    .eq("notification_key", key);
+}
+
+export async function markAllNotificationsRead() {
+  return supabase
+    .from("user_notification_history")
+    .update({ read_at: new Date().toISOString() })
+    .is("read_at", null);
+}

@@ -297,6 +297,14 @@ export default function PosPage() {
   const discountIsInvalid =
     discountAmount > maxDiscountAmount || saleTotal <= 0;
   const paymentDifference = Number((saleTotal - paymentTotal).toFixed(2));
+  const splitCashTotal = payments
+    .filter((payment) => payment.method === "Dinheiro")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const saleChangeDue = splitPayments
+    ? Math.max(0, -paymentDifference)
+    : paymentMethod === "Dinheiro"
+      ? Math.max(0, Number(paymentAmount || 0) - saleTotal)
+      : 0;
   const lowStockCount = products.filter(
     (product) => product.ativo && product.estoque <= product.estoque_minimo,
   ).length;
@@ -663,7 +671,7 @@ export default function PosPage() {
     }));
 
     if (splitPayments) {
-      const normalizedPayments = payments
+      let normalizedPayments = payments
         .map((payment) => ({
           payment_method: payment.method,
           amount: Number(payment.amount || 0),
@@ -675,9 +683,33 @@ export default function PosPage() {
         return;
       }
 
-      if (Math.abs(paymentDifference) >= 0.01) {
+      if (paymentDifference >= 0.01) {
         toast.error("A soma dos pagamentos precisa fechar o total da venda");
         return;
+      }
+
+      if (paymentDifference <= -0.01) {
+        let remainingChange = Math.abs(paymentDifference);
+
+        if (splitCashTotal + 0.009 < remainingChange) {
+          toast.error("O valor excedente só pode ser recebido em dinheiro");
+          return;
+        }
+
+        normalizedPayments = normalizedPayments
+          .map((payment) => {
+            if (payment.payment_method !== "Dinheiro" || remainingChange <= 0) {
+              return payment;
+            }
+
+            const deduction = Math.min(payment.amount, remainingChange);
+            remainingChange = Number((remainingChange - deduction).toFixed(2));
+            return {
+              ...payment,
+              amount: Number((payment.amount - deduction).toFixed(2)),
+            };
+          })
+          .filter((payment) => payment.amount > 0);
       }
 
       setProcessing(true);
@@ -713,7 +745,11 @@ export default function PosPage() {
       }
     }
 
-    toast.success("Venda finalizada e estoque atualizado!");
+    toast.success(
+      saleChangeDue > 0
+        ? `Venda finalizada! Troco: ${formatCurrency(saleChangeDue)}`
+        : "Venda finalizada e estoque atualizado!",
+    );
     clearSale();
     await loadData();
   }
@@ -2439,6 +2475,19 @@ function SaleView({
       );
     });
   }, [categoryFilter, groups, stockFilter]);
+  const splitCashTotal = payments
+    .filter((payment) => payment.method === "Dinheiro")
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const splitExcess = Math.max(0, -paymentDifference);
+  const splitPaymentInvalid =
+    paymentDifference >= 0.01 || splitExcess > splitCashTotal + 0.009;
+  const changeDue = splitPayments
+    ? splitPaymentInvalid
+      ? 0
+      : splitExcess
+    : paymentMethod === "Dinheiro"
+      ? Math.max(0, Number(paymentAmount || 0) - total)
+      : 0;
 
   return (
     <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -2647,6 +2696,16 @@ function SaleView({
                 Opcional: se o valor for menor que o total, a segunda forma será
                 aberta automaticamente.
               </p>
+              {changeDue > 0 && (
+                <div className="rounded-xl bg-emerald-50 p-3 text-center sm:col-span-2">
+                  <p className="text-xs font-semibold text-emerald-700">
+                    Troco para o cliente
+                  </p>
+                  <strong className="text-xl text-emerald-700">
+                    {formatCurrency(changeDue)}
+                  </strong>
+                </div>
+              )}
             </div>
           )}
           <div
@@ -2754,18 +2813,28 @@ function SaleView({
                     {formatCurrency(paymentTotal)}
                   </strong>
                   <span className="text-slate-500">
-                    {paymentDifference >= 0 ? "Falta" : "Excedeu"}
+                    {paymentDifference >= 0
+                      ? "Falta"
+                      : splitPaymentInvalid
+                        ? "Excedeu sem dinheiro"
+                        : "Troco"}
                   </span>
                   <strong
                     className={`text-right ${
-                      Math.abs(paymentDifference) >= 0.01
-                        ? "text-red-600"
-                        : "text-emerald-600"
+                      splitPaymentInvalid ? "text-red-600" : "text-emerald-600"
                     }`}
                   >
                     {formatCurrency(Math.abs(paymentDifference))}
                   </strong>
                 </div>
+                {changeDue > 0 && (
+                  <div className="rounded-xl bg-emerald-100 p-3 text-center text-emerald-800">
+                    <span className="text-sm font-semibold">Troco: </span>
+                    <strong className="text-lg">
+                      {formatCurrency(changeDue)}
+                    </strong>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2871,7 +2940,7 @@ function SaleView({
               discountIsInvalid ||
               ((Number(discount || 0) > 0 || Number(surcharge || 0) > 0) &&
                 !adjustmentReason.trim()) ||
-              (splitPayments && Math.abs(paymentDifference) >= 0.01)
+              (splitPayments && splitPaymentInvalid)
             }
             className="rounded-xl bg-[#8A0EEA] py-3 font-semibold text-white disabled:opacity-50"
           >

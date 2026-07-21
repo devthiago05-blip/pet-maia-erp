@@ -2,7 +2,7 @@
 
 import { ChevronDown, Printer, Search, SlidersHorizontal } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EditFinancialModal } from "@/components/financeiro/EditFinancialModal";
@@ -49,7 +49,7 @@ function getCurrentMonthPeriod() {
 export default function FinanceiroPage() {
   const searchParams = useSearchParams();
   const requestedEntryId = searchParams.get("entryId");
-  const openedNotificationRef = useRef(false);
+  const openedNotificationRef = useRef("");
   const [entries, setEntries] = useState<FinancialEntry[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -68,6 +68,19 @@ export default function FinanceiroPage() {
   );
   const [endDate, setEndDate] = useState(() => getCurrentMonthPeriod().end);
   const [filtersOpen, setFiltersOpen] = useState(false);
+
+  useEffect(() => {
+    if (!requestedEntryId || openedNotificationRef.current === requestedEntryId) return;
+    const entry = entries.find((item) => String(item.id) === requestedEntryId);
+    if (!entry) return;
+    openedNotificationRef.current = requestedEntryId;
+    const timeout = window.setTimeout(() => {
+      const date = entry.created_at?.slice(0, 10);
+      if (date) { setStartDate(date); setEndDate(date); }
+      setEntryToEdit(entry);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [entries, requestedEntryId]);
 
   const currentMonthPeriod = getCurrentMonthPeriod();
   const isTodaySelected =
@@ -289,15 +302,6 @@ export default function FinanceiroPage() {
 
     const loadedEntries = (financialResponse.data || []) as FinancialEntry[];
     setEntries(loadedEntries);
-    if (requestedEntryId && !openedNotificationRef.current) {
-      const entry = loadedEntries.find((item) => String(item.id) === requestedEntryId);
-      openedNotificationRef.current = true;
-      if (entry) {
-        const date = entry.created_at?.slice(0,10);
-        if (date) { setStartDate(date); setEndDate(date); }
-        setEntryToEdit(entry);
-      }
-    }
     setTutors((tutorsResponse.data || []) as Tutor[]);
     setPets((petsResponse.data || []) as Pet[]);
     setLoading(false);

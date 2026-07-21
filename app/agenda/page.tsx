@@ -2,7 +2,7 @@
 
 import { Printer, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
@@ -96,7 +96,7 @@ export default function AgendaPage() {
   const preselectedTutorId = searchParams.get("tutorId") || "";
   const preselectedStatus = getInitialStatusFilter(searchParams.get("status"));
   const requestedAppointmentId = searchParams.get("appointmentId");
-  const openedNotificationRef = useRef(false);
+  const openedNotificationRef = useRef("");
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [pets, setPets] = useState<Pet[]>([]);
@@ -125,6 +125,20 @@ export default function AgendaPage() {
   );
   const [appointmentToEdit, setAppointmentToEdit] =
     useState<Appointment | null>(null);
+
+  useEffect(() => {
+    if (!requestedAppointmentId || openedNotificationRef.current === requestedAppointmentId) return;
+    const appointment = appointments.find((item) => String(item.id) === requestedAppointmentId);
+    if (!appointment) return;
+    openedNotificationRef.current = requestedAppointmentId;
+    const timeout = window.setTimeout(() => {
+      setStartDate(appointment.data);
+      setEndDate(appointment.data);
+      setAppointmentToEdit(appointment);
+      setAppointmentModalOpen(true);
+    }, 0);
+    return () => window.clearTimeout(timeout);
+  }, [appointments, requestedAppointmentId]);
 
   const filteredAppointments = useMemo(() => {
     const term = normalizeText(search);
@@ -233,16 +247,6 @@ export default function AgendaPage() {
 
     const loadedAppointments = data || [];
     setAppointments(loadedAppointments);
-    if (requestedAppointmentId && !openedNotificationRef.current) {
-      const appointment = loadedAppointments.find((item) => String(item.id) === requestedAppointmentId);
-      openedNotificationRef.current = true;
-      if (appointment) {
-        setStartDate(appointment.data);
-        setEndDate(appointment.data);
-        setAppointmentToEdit(appointment);
-        setAppointmentModalOpen(true);
-      }
-    }
   }
 
   useMountEffect(() => {

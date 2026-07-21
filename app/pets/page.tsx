@@ -8,10 +8,7 @@ import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { EditPetModal } from "@/components/pets/EditPetModal";
 import { NewPetModal } from "@/components/pets/NewPetModal";
-import {
-  formatBathRecurrence,
-  PetTable,
-} from "@/components/pets/PetTable";
+import { formatBathRecurrence, PetTable } from "@/components/pets/PetTable";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { createPet, deletePet, fetchPets, updatePet } from "@/services/pets";
 import { fetchTutors } from "@/services/tutors";
@@ -143,6 +140,7 @@ export default function PetsPage() {
               pet={editingPet}
               tutors={tutors}
               onSave={handleUpdatePet}
+              onClose={() => setEditingPet(null)}
             />
           )}
 

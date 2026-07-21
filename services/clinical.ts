@@ -10,6 +10,7 @@ import type {
   MedicationCatalogInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
+  NewPetParasitePreventionInput,
   NewPetVaccinationInput,
 } from "@/types/domain";
 
@@ -406,6 +407,35 @@ export async function createPetVaccination(
 
 export async function deletePetVaccination(id: number) {
   return supabase.from("pet_vaccinations").delete().eq("id", id);
+}
+
+export async function fetchPetParasitePreventions(petId: number) {
+  return supabase
+    .from("pet_parasite_preventions")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("application_date", { ascending: false });
+}
+
+export async function createPetParasitePrevention(
+  prevention: NewPetParasitePreventionInput,
+) {
+  return supabase.from("pet_parasite_preventions").insert({
+    pet_id: prevention.petId,
+    prevention_type: prevention.preventionType,
+    product_name: prevention.productName,
+    application_date: prevention.applicationDate,
+    next_application_date: prevention.nextApplicationDate || null,
+    dose: prevention.dose || null,
+    weight_kg: prevention.weightKg || null,
+    batch_number: prevention.batchNumber || null,
+    professional_name: prevention.professionalName,
+    notes: prevention.notes || null,
+  });
+}
+
+export async function deletePetParasitePrevention(id: number) {
+  return supabase.from("pet_parasite_preventions").delete().eq("id", id);
 }
 
 export async function setClinicalReturnConfirmation(

@@ -264,6 +264,39 @@ export interface NewPetVaccinationInput {
   notes?: string;
 }
 
+export interface PetParasitePrevention {
+  id: number;
+  pet_id: number;
+  prevention_type:
+    | "Vermífugo"
+    | "Antipulgas"
+    | "Carrapatos"
+    | "Antipulgas e carrapatos"
+    | "Outro";
+  product_name: string;
+  application_date: string;
+  next_application_date?: string;
+  dose?: string;
+  weight_kg?: number;
+  batch_number?: string;
+  professional_name: string;
+  notes?: string;
+  created_at: string;
+}
+
+export interface NewPetParasitePreventionInput {
+  petId: number;
+  preventionType: PetParasitePrevention["prevention_type"];
+  productName: string;
+  applicationDate: string;
+  nextApplicationDate?: string;
+  dose?: string;
+  weightKg?: number;
+  batchNumber?: string;
+  professionalName: string;
+  notes?: string;
+}
+
 export interface ClinicPatientOverview extends Pet {
   lastClinicalRecord?: {
     consultation_date: string;

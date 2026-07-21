@@ -10,6 +10,7 @@ import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal
 import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
+import { ParasitePreventionModal } from "@/components/clinic/ParasitePreventionModal";
 import { PrescriptionGroups } from "@/components/clinic/PrescriptionGroups";
 import { VaccinationModal } from "@/components/clinic/VaccinationModal";
 import { Header } from "@/components/layout/Header";
@@ -24,14 +25,17 @@ import {
 } from "@/services/appointments";
 import {
   createClinicalDocument,
+  createPetParasitePrevention,
   createPetVaccination,
   deleteClinicalDocument,
   deleteClinicalExam,
   deleteClinicalPrescription,
+  deletePetParasitePrevention,
   deletePetVaccination,
   fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
   fetchClinicalRecordsByPet,
+  fetchPetParasitePreventions,
   fetchPetVaccinations,
   saveClinicalExam,
   saveClinicalPrescription,
@@ -58,8 +62,10 @@ import type {
   NewAppointmentInput,
   NewClinicalPrescriptionInput,
   NewClinicalRecordInput,
+  NewPetParasitePreventionInput,
   NewPetVaccinationInput,
   Pet,
+  PetParasitePrevention,
   PetVaccination,
   Service,
   Tutor,
@@ -72,6 +78,7 @@ const tabs = [
   { id: "exames", label: "Exames" },
   { id: "documentos", label: "Documentos" },
   { id: "vacinas", label: "Vacinas" },
+  { id: "preventivos", label: "Antiparasitários" },
   { id: "banhos", label: "Banhos" },
   { id: "financeiro", label: "Financeiro" },
 ];
@@ -185,6 +192,10 @@ export default function PetPage() {
   const [clinicalError, setClinicalError] = useState("");
   const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
   const [vaccinationError, setVaccinationError] = useState("");
+  const [parasitePreventions, setParasitePreventions] = useState<
+    PetParasitePrevention[]
+  >([]);
+  const [parasitePreventionError, setParasitePreventionError] = useState("");
   const [exams, setExams] = useState<ClinicalExam[]>([]);
   const [examError, setExamError] = useState("");
   const [documents, setDocuments] = useState<ClinicalDocument[]>([]);
@@ -229,6 +240,7 @@ export default function PetPage() {
         financialResponse,
         clinicalResponse,
         vaccinationsResponse,
+        parasitePreventionsResponse,
         examsResponse,
         documentsResponse,
         clinicSettingsResponse,
@@ -237,6 +249,7 @@ export default function PetPage() {
         fetchFinancialEntriesByPet(petId),
         fetchClinicalRecordsByPet(petId),
         fetchPetVaccinations(petId),
+        fetchPetParasitePreventions(petId),
         fetchClinicalExamsByPet(petId),
         fetchClinicalDocumentsByPet(petId),
         fetchClinicSettings(),
@@ -266,6 +279,15 @@ export default function PetPage() {
         );
       } else {
         setVaccinations(vaccinationsResponse.data || []);
+      }
+
+      if (parasitePreventionsResponse.error) {
+        console.error(parasitePreventionsResponse.error);
+        setParasitePreventionError(
+          "Não foi possível carregar os antiparasitários.",
+        );
+      } else {
+        setParasitePreventions(parasitePreventionsResponse.data || []);
       }
 
       if (examsResponse.error) {
@@ -622,6 +644,26 @@ export default function PetPage() {
     toast.success("Vacina registrada!");
   }
 
+  async function handleCreateParasitePrevention(
+    input: NewPetParasitePreventionInput,
+  ) {
+    const { error: createError } = await createPetParasitePrevention(input);
+    if (createError) {
+      toast.error(createError.message);
+      throw createError;
+    }
+    const { data, error: reloadError } = await fetchPetParasitePreventions(
+      input.petId,
+    );
+    if (reloadError) {
+      toast.error("Preventivo salvo, mas o histórico não foi atualizado.");
+      return;
+    }
+    setParasitePreventions(data || []);
+    setParasitePreventionError("");
+    toast.success("Preventivo registrado!");
+  }
+
   async function handleSaveExam(input: ClinicalExamInput) {
     const { error: saveError } = await saveClinicalExam(input);
 
@@ -676,6 +718,18 @@ export default function PetPage() {
 
     setVaccinations((current) => current.filter((item) => item.id !== id));
     toast.success("Vacina excluída.");
+  }
+
+  async function handleDeleteParasitePrevention(id: number) {
+    const { error: deleteError } = await deletePetParasitePrevention(id);
+    if (deleteError) {
+      toast.error(deleteError.message);
+      return;
+    }
+    setParasitePreventions((current) =>
+      current.filter((item) => item.id !== id),
+    );
+    toast.success("Preventivo excluído.");
   }
 
   async function handleDeleteExam(id: number) {
@@ -836,6 +890,16 @@ export default function PetPage() {
                       professionalName={profile?.nome || ""}
                       onSave={handleCreateVaccination}
                       onDelete={handleDeleteVaccination}
+                    />
+                  )}
+                  {tab === "preventivos" && (
+                    <ParasitePreventionHistory
+                      pet={pet}
+                      preventions={parasitePreventions}
+                      error={parasitePreventionError}
+                      professionalName={profile?.nome || ""}
+                      onSave={handleCreateParasitePrevention}
+                      onDelete={handleDeleteParasitePrevention}
                     />
                   )}
                   {tab === "exames" && (
@@ -1594,6 +1658,139 @@ function VaccinationPrintCard({
         médico-veterinário responsável.
       </p>
     </section>
+  );
+}
+
+function ParasitePreventionHistory({
+  pet,
+  preventions,
+  error,
+  professionalName,
+  onSave,
+  onDelete,
+}: {
+  pet: Pet;
+  preventions: PetParasitePrevention[];
+  error: string;
+  professionalName: string;
+  onSave: (input: NewPetParasitePreventionInput) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
+}) {
+  const next = [...preventions]
+    .filter((item) => item.next_application_date)
+    .sort((a, b) =>
+      (a.next_application_date || "").localeCompare(
+        b.next_application_date || "",
+      ),
+    )[0];
+  const phone = pet.tutors?.telefone?.replace(/\D/g, "");
+  const normalizedPhone = phone
+    ? phone.startsWith("55")
+      ? phone
+      : `55${phone}`
+    : "";
+  const message = next?.next_application_date
+    ? `Olá! Aqui é da Pet Maia. A próxima aplicação de ${next.product_name} de ${pet.nome} está prevista para ${formatDate(next.next_application_date)}. Podemos confirmar?`
+    : "";
+
+  return (
+    <section className="overflow-hidden rounded-xl border bg-white">
+      <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+        <div>
+          <h3 className="text-lg font-bold">Controle antiparasitário</h3>
+          <p className="text-sm text-slate-500">
+            Vermífugos, pulgas, carrapatos e próximas aplicações de {pet.nome}
+          </p>
+        </div>
+        {!error && (
+          <div className="grid gap-2 sm:flex">
+            {normalizedPhone && message && (
+              <a
+                href={`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white"
+              >
+                Lembrar pelo WhatsApp
+              </a>
+            )}
+            <ParasitePreventionModal
+              petId={pet.id}
+              defaultProfessionalName={professionalName}
+              onSave={onSave}
+            />
+          </div>
+        )}
+      </div>
+      {error ? (
+        <p className="p-6 text-sm text-amber-700">{error}</p>
+      ) : preventions.length === 0 ? (
+        <p className="p-6 text-center text-sm text-slate-500">
+          Nenhum antiparasitário registrado.
+        </p>
+      ) : (
+        <div className="grid gap-3 p-4 sm:p-6 lg:grid-cols-2">
+          {preventions.map((prevention) => (
+            <article key={prevention.id} className="rounded-xl border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-xs font-semibold uppercase text-[#8A0EEA]">
+                    {prevention.prevention_type}
+                  </span>
+                  <p className="truncate font-bold">
+                    {prevention.product_name}
+                  </p>
+                </div>
+                <VaccineDateStatus date={prevention.next_application_date} />
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                <PreventionInfo
+                  label="Aplicação"
+                  value={formatDate(prevention.application_date)}
+                />
+                <PreventionInfo
+                  label="Próxima"
+                  value={formatDate(prevention.next_application_date)}
+                />
+                <PreventionInfo label="Dose" value={prevention.dose || "-"} />
+                <PreventionInfo
+                  label="Peso"
+                  value={
+                    prevention.weight_kg ? `${prevention.weight_kg} kg` : "-"
+                  }
+                />
+                <div className="col-span-2">
+                  <PreventionInfo
+                    label="Profissional"
+                    value={prevention.professional_name}
+                  />
+                </div>
+              </div>
+              {prevention.notes && (
+                <p className="mt-3 text-sm text-slate-600">
+                  {prevention.notes}
+                </p>
+              )}
+              <div className="mt-3">
+                <ClinicalDeleteButton
+                  itemName={prevention.product_name}
+                  onDelete={() => onDelete(prevention.id)}
+                />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PreventionInfo({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="truncate font-semibold">{value}</p>
+    </div>
   );
 }
 

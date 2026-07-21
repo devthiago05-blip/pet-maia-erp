@@ -4,6 +4,7 @@ import type {
   ClinicalDocumentInput,
   ClinicalDocumentTemplateInput,
   ClinicalExamInput,
+  ClinicalHospitalization,
   ClinicalTask,
   MedicationCatalogInput,
   NewClinicalPrescriptionInput,
@@ -516,6 +517,78 @@ export async function setClinicalTaskCompleted(
 
 export async function deleteClinicalTask(taskId: number) {
   return supabase.from("clinical_tasks").delete().eq("id", taskId);
+}
+
+export async function fetchClinicalHospitalizations() {
+  return supabase
+    .from("clinical_hospitalizations")
+    .select(
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+    )
+    .order("admission_at", { ascending: false })
+    .limit(200)
+    .returns<ClinicalHospitalization[]>();
+}
+
+export async function createClinicalHospitalization(input: {
+  petId: number;
+  reason: string;
+  veterinarianName?: string;
+  kennel?: string;
+}) {
+  return supabase
+    .from("clinical_hospitalizations")
+    .insert({
+      pet_id: input.petId,
+      reason: input.reason.trim(),
+      veterinarian_name: input.veterinarianName?.trim() || null,
+      kennel: input.kennel?.trim() || null,
+    })
+    .select(
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+    )
+    .single<ClinicalHospitalization>();
+}
+
+export async function addClinicalHospitalizationLog(input: {
+  hospitalizationId: number;
+  logType: "Evolução" | "Sinais vitais" | "Medicação" | "Alimentação";
+  notes: string;
+  temperatureC?: number;
+  weightKg?: number;
+  heartRate?: number;
+  respiratoryRate?: number;
+  professionalName?: string;
+}) {
+  return supabase
+    .from("clinical_hospitalization_logs")
+    .insert({
+      hospitalization_id: input.hospitalizationId,
+      log_type: input.logType,
+      notes: input.notes.trim(),
+      temperature_c: input.temperatureC || null,
+      weight_kg: input.weightKg || null,
+      heart_rate: input.heartRate || null,
+      respiratory_rate: input.respiratoryRate || null,
+      professional_name: input.professionalName?.trim() || null,
+    })
+    .select("*")
+    .single();
+}
+
+export async function dischargeClinicalHospitalization(id: number) {
+  return supabase
+    .from("clinical_hospitalizations")
+    .update({
+      status: "Alta",
+      discharge_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .select(
+      "*, pets(id,nome,tutors(nome,telefone)), clinical_hospitalization_logs(*)",
+    )
+    .single<ClinicalHospitalization>();
 }
 
 export async function fetchClinicalExamsByPet(petId: number) {

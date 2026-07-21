@@ -324,6 +324,36 @@ export interface ClinicalTask {
   };
 }
 
+export interface ClinicalHospitalizationLog {
+  id: number;
+  hospitalization_id: number;
+  log_type: "Evolução" | "Sinais vitais" | "Medicação" | "Alimentação";
+  notes: string;
+  temperature_c?: number;
+  weight_kg?: number;
+  heart_rate?: number;
+  respiratory_rate?: number;
+  professional_name?: string;
+  recorded_at: string;
+}
+
+export interface ClinicalHospitalization {
+  id: number;
+  pet_id: number;
+  admission_at: string;
+  discharge_at?: string;
+  reason: string;
+  veterinarian_name?: string;
+  kennel?: string;
+  status: "Internado" | "Alta";
+  pets?: {
+    id: number;
+    nome: string;
+    tutors?: { nome: string; telefone?: string };
+  };
+  clinical_hospitalization_logs?: ClinicalHospitalizationLog[];
+}
+
 export interface ClinicalExam {
   id: number;
   pet_id: number;

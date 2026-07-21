@@ -18,6 +18,7 @@ import { ClinicalCatalogManager } from "@/components/clinic/ClinicalCatalogManag
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ClinicalDocumentTemplateManager } from "@/components/clinic/ClinicalDocumentTemplateManager";
 import { ClinicalTasksPanel } from "@/components/clinic/ClinicalTasksPanel";
+import { HospitalizationPanel } from "@/components/clinic/HospitalizationPanel";
 import { PrescriptionModal } from "@/components/clinic/PrescriptionModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -25,9 +26,13 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatDate } from "@/lib/formatters";
 import { normalizeBrazilianWhatsAppPhone } from "@/lib/whatsapp";
 import {
+  addClinicalHospitalizationLog,
   createClinicalDocument,
+  createClinicalHospitalization,
   createClinicalTask,
   deleteClinicalTask,
+  dischargeClinicalHospitalization,
+  fetchClinicalHospitalizations,
   fetchClinicalTasks,
   fetchClinicPatients,
   saveClinicalPrescription,
@@ -37,6 +42,7 @@ import {
 } from "@/services/clinical";
 import type {
   ClinicalDocumentInput,
+  ClinicalHospitalization,
   ClinicalTask,
   ClinicPatientOverview,
   NewClinicalPrescriptionInput,
@@ -109,16 +115,21 @@ export default function ClinicPage() {
   const { profile } = useAccess();
   const [patients, setPatients] = useState<ClinicPatientOverview[]>([]);
   const [clinicalTasks, setClinicalTasks] = useState<ClinicalTask[]>([]);
+  const [hospitalizations, setHospitalizations] = useState<
+    ClinicalHospitalization[]
+  >([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
   useMountEffect(() => {
     async function loadPatients() {
-      const [patientsResponse, tasksResponse] = await Promise.all([
-        fetchClinicPatients(),
-        fetchClinicalTasks(),
-      ]);
+      const [patientsResponse, tasksResponse, hospitalizationsResponse] =
+        await Promise.all([
+          fetchClinicPatients(),
+          fetchClinicalTasks(),
+          fetchClinicalHospitalizations(),
+        ]);
       const { data, error } = patientsResponse;
 
       if (error) {
@@ -180,6 +191,8 @@ export default function ClinicPage() {
       } else {
         setClinicalTasks(tasksResponse.data || []);
       }
+      if (!hospitalizationsResponse.error)
+        setHospitalizations(hospitalizationsResponse.data || []);
       setLoading(false);
     }
 
@@ -408,6 +421,61 @@ export default function ClinicPage() {
     return true;
   }
 
+  async function handleAdmit(input: {
+    petId: number;
+    reason: string;
+    veterinarianName?: string;
+    kennel?: string;
+  }) {
+    const { data, error } = await createClinicalHospitalization(input);
+    if (error) {
+      toast.error("Não foi possível internar o paciente.");
+      return false;
+    }
+    setHospitalizations((current) => [data, ...current]);
+    toast.success("Paciente internado!");
+    return true;
+  }
+
+  async function handleHospitalizationLog(
+    input: Parameters<typeof addClinicalHospitalizationLog>[0],
+  ) {
+    const { data, error } = await addClinicalHospitalizationLog(input);
+    if (error) {
+      toast.error("Não foi possível salvar o registro.");
+      return false;
+    }
+    setHospitalizations((current) =>
+      current.map((item) =>
+        item.id === input.hospitalizationId
+          ? {
+              ...item,
+              clinical_hospitalization_logs: [
+                data,
+                ...(item.clinical_hospitalization_logs || []),
+              ],
+            }
+          : item,
+      ),
+    );
+    toast.success("Registro de internação salvo!");
+    return true;
+  }
+
+  async function handleDischarge(id: number) {
+    if (!window.confirm("Confirmar alta deste paciente?")) return false;
+    const { data, error } = await dischargeClinicalHospitalization(id);
+    if (error) {
+      toast.error("Não foi possível registrar a alta.");
+      return false;
+    }
+    setHospitalizations((current) =>
+      current.map((item) => (item.id === id ? data : item)),
+    );
+    toast.success("Alta registrada!");
+    return true;
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -457,6 +525,15 @@ export default function ClinicPage() {
             onCreate={handleCreateClinicalTask}
             onToggle={handleToggleClinicalTask}
             onDelete={handleDeleteClinicalTask}
+          />
+
+          <HospitalizationPanel
+            hospitalizations={hospitalizations}
+            patients={patients}
+            professionalName={profile?.nome || ""}
+            onAdmit={handleAdmit}
+            onLog={handleHospitalizationLog}
+            onDischarge={handleDischarge}
           />
 
           <ClinicDocumentWorkspace

@@ -583,6 +583,43 @@ export async function createPosSaleWithPayments({
   });
 }
 
+export async function createPosSaleWithChange({
+  tutorId,
+  customerName,
+  payments,
+  items,
+  discount,
+  surcharge,
+  adjustmentReason,
+  cashReceived,
+  changeAmount,
+  changeMethod,
+}: {
+  tutorId: number | null;
+  customerName: string;
+  payments: Array<{ payment_method: string; amount: number }>;
+  items: PosCartItem[];
+  discount: number;
+  surcharge: number;
+  adjustmentReason: string;
+  cashReceived: number;
+  changeAmount: number;
+  changeMethod: "Dinheiro" | "PIX";
+}) {
+  return supabase.rpc("create_pos_sale_with_change", {
+    customer_tutor_id: tutorId,
+    customer_name: customerName,
+    payments,
+    items,
+    selected_discount: discount,
+    selected_surcharge: surcharge,
+    selected_reason: adjustmentReason,
+    selected_cash_received: cashReceived,
+    selected_change_amount: changeAmount,
+    selected_change_method: changeMethod,
+  });
+}
+
 export async function fetchCurrentPosDiscountLimit() {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user)

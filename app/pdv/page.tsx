@@ -59,6 +59,7 @@ import {
   convertPosQuoteWithPayments,
   createPosQuote,
   createPosSale,
+  createPosSaleWithChange,
   createPosSaleWithPayments,
   createProductCategory,
   createProductPurchase,
@@ -235,6 +236,9 @@ export default function PosPage() {
   const [discountLimitPercent, setDiscountLimitPercent] = useState(10);
   const [paymentMethod, setPaymentMethod] = useState("PIX");
   const [paymentAmount, setPaymentAmount] = useState("");
+  const [changeMethod, setChangeMethod] = useState<"Dinheiro" | "PIX">(
+    "Dinheiro",
+  );
   const [splitPayments, setSplitPayments] = useState(false);
   const [payments, setPayments] = useState<PaymentSplit[]>([
     { id: "payment-1", method: "PIX", amount: "" },
@@ -712,15 +716,31 @@ export default function PosPage() {
           .filter((payment) => payment.amount > 0);
       }
 
+      const cashReceived = payments
+        .filter((payment) => payment.method === "Dinheiro")
+        .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
       setProcessing(true);
-      const { error } = await createPosSaleWithPayments({
-        ...customer,
-        payments: normalizedPayments,
-        items: saleItems,
-        discount: discountAmount,
-        surcharge: surchargeAmount,
-        adjustmentReason,
-      });
+      const { error } =
+        saleChangeDue > 0
+          ? await createPosSaleWithChange({
+              ...customer,
+              payments: normalizedPayments,
+              items: saleItems,
+              discount: discountAmount,
+              surcharge: surchargeAmount,
+              adjustmentReason,
+              cashReceived,
+              changeAmount: saleChangeDue,
+              changeMethod,
+            })
+          : await createPosSaleWithPayments({
+              ...customer,
+              payments: normalizedPayments,
+              items: saleItems,
+              discount: discountAmount,
+              surcharge: surchargeAmount,
+              adjustmentReason,
+            });
       setProcessing(false);
 
       if (error) {
@@ -729,14 +749,29 @@ export default function PosPage() {
       }
     } else {
       setProcessing(true);
-      const { error } = await createPosSale({
-        ...customer,
-        paymentMethod,
-        items: saleItems,
-        discount: discountAmount,
-        surcharge: surchargeAmount,
-        adjustmentReason,
-      });
+      const { error } =
+        saleChangeDue > 0
+          ? await createPosSaleWithChange({
+              ...customer,
+              payments: [
+                { payment_method: "Dinheiro", amount: saleTotal },
+              ],
+              items: saleItems,
+              discount: discountAmount,
+              surcharge: surchargeAmount,
+              adjustmentReason,
+              cashReceived: Number(paymentAmount),
+              changeAmount: saleChangeDue,
+              changeMethod,
+            })
+          : await createPosSale({
+              ...customer,
+              paymentMethod,
+              items: saleItems,
+              discount: discountAmount,
+              surcharge: surchargeAmount,
+              adjustmentReason,
+            });
       setProcessing(false);
 
       if (error) {
@@ -761,6 +796,7 @@ export default function PosPage() {
     setExpirationDate("");
     setPaymentMethod("PIX");
     setPaymentAmount("");
+    setChangeMethod("Dinheiro");
     setSplitPayments(false);
     setPayments([{ id: "payment-1", method: "PIX", amount: "" }]);
     setDiscount("");
@@ -1238,6 +1274,7 @@ export default function PosPage() {
               discountIsInvalid={discountIsInvalid}
               paymentMethod={paymentMethod}
               paymentAmount={paymentAmount}
+              changeMethod={changeMethod}
               splitPayments={splitPayments}
               payments={payments}
               paymentTotal={paymentTotal}
@@ -1260,6 +1297,7 @@ export default function PosPage() {
               onPaymentMethod={setPaymentMethod}
               onPaymentAmount={setPaymentAmount}
               onPaymentAmountBlur={handlePaymentAmountBlur}
+              onChangeMethod={setChangeMethod}
               onSplitPayments={handleSplitPayments}
               onPaymentSplit={updatePaymentSplit}
               onAddPaymentSplit={addPaymentSplit}
@@ -2362,6 +2400,7 @@ function SaleView({
   discountIsInvalid,
   paymentMethod,
   paymentAmount,
+  changeMethod,
   splitPayments,
   payments,
   paymentTotal,
@@ -2384,6 +2423,7 @@ function SaleView({
   onPaymentMethod,
   onPaymentAmount,
   onPaymentAmountBlur,
+  onChangeMethod,
   onSplitPayments,
   onPaymentSplit,
   onAddPaymentSplit,
@@ -2409,6 +2449,7 @@ function SaleView({
   discountIsInvalid: boolean;
   paymentMethod: string;
   paymentAmount: string;
+  changeMethod: "Dinheiro" | "PIX";
   splitPayments: boolean;
   payments: PaymentSplit[];
   paymentTotal: number;
@@ -2431,6 +2472,7 @@ function SaleView({
   onPaymentMethod: (value: string) => void;
   onPaymentAmount: (value: string) => void;
   onPaymentAmountBlur: () => void;
+  onChangeMethod: (value: "Dinheiro" | "PIX") => void;
   onSplitPayments: (value: boolean) => void;
   onPaymentSplit: (
     paymentId: string,
@@ -2838,6 +2880,35 @@ function SaleView({
               </div>
             )}
           </div>
+          {changeDue > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+              <p className="text-sm font-bold text-emerald-900">
+                Como entregar o troco de {formatCurrency(changeDue)}?
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(["Dinheiro", "PIX"] as const).map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => onChangeMethod(method)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-bold transition ${
+                      changeMethod === method
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-emerald-200 bg-white text-emerald-800"
+                    }`}
+                  >
+                    Troco via {method}
+                  </button>
+                ))}
+              </div>
+              {changeMethod === "PIX" && (
+                <p className="mt-2 text-xs text-emerald-800">
+                  Use quando não houver dinheiro suficiente no caixa. O valor
+                  ficará identificado na venda.
+                </p>
+              )}
+            </div>
+          )}
           <label className="grid gap-1 text-xs font-medium text-slate-500">
             Validade do orçamento
             <input

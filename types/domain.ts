@@ -625,6 +625,9 @@ export interface PosSale {
   forma_pagamento: string;
   status?: "Concluída" | "Cancelada";
   cash_register_id?: number;
+  change_amount?: number;
+  change_method?: "Dinheiro" | "PIX";
+  cash_received?: number;
   created_at: string;
   tutors?: {
     nome: string;

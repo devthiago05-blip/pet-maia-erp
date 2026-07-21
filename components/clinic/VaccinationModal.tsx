@@ -7,10 +7,12 @@ import type { NewPetVaccinationInput } from "@/types/domain";
 
 export function VaccinationModal({
   petId,
+  species,
   defaultProfessionalName,
   onSave,
 }: {
   petId: number;
+  species?: string;
   defaultProfessionalName: string;
   onSave: (vaccination: NewPetVaccinationInput) => Promise<void>;
 }) {
@@ -27,6 +29,13 @@ export function VaccinationModal({
   );
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const suggestions = getVaccineSuggestions(species);
+
+  function setNextDoseInDays(days: number) {
+    const date = new Date(`${applicationDate}T12:00:00`);
+    date.setDate(date.getDate() + days);
+    setNextDoseDate(date.toLocaleDateString("en-CA"));
+  }
 
   async function handleSave() {
     if (!vaccineName.trim() || !applicationDate || !professionalName.trim()) {
@@ -73,6 +82,27 @@ export function VaccinationModal({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
             <h2 className="text-xl font-bold">Registrar vacina</h2>
+            <div className="mt-4 rounded-xl bg-purple-50 p-3">
+              <p className="text-xs font-semibold uppercase text-[#8A0EEA]">
+                Sugestões para {species || "o paciente"}
+              </p>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                {suggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setVaccineName(suggestion)}
+                    className="whitespace-nowrap rounded-full border border-purple-200 bg-white px-3 py-1.5 text-sm text-[#8A0EEA]"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Apoio baseado nas diretrizes WSAVA. Valide o protocolo conforme
+                idade, risco, região e fabricante.
+              </p>
+            </div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <VaccineInput
                 label="Vacina"
@@ -106,6 +136,23 @@ export function VaccinationModal({
                 value={nextDoseDate}
                 onChange={setNextDoseDate}
               />
+              <div className="flex flex-wrap gap-2 sm:col-span-2">
+                <span className="w-full text-xs font-medium text-slate-500">
+                  Calcular próxima dose
+                </span>
+                <DoseButton
+                  label="Em 21 dias"
+                  onClick={() => setNextDoseInDays(21)}
+                />
+                <DoseButton
+                  label="Em 30 dias"
+                  onClick={() => setNextDoseInDays(30)}
+                />
+                <DoseButton
+                  label="Em 1 ano"
+                  onClick={() => setNextDoseInDays(365)}
+                />
+              </div>
               <label className="grid gap-2 text-sm font-medium sm:col-span-2">
                 Observações
                 <textarea
@@ -137,6 +184,37 @@ export function VaccinationModal({
         </div>
       )}
     </>
+  );
+}
+
+function getVaccineSuggestions(species?: string) {
+  const normalized = species?.toLocaleLowerCase("pt-BR") || "";
+  if (normalized.includes("gat") || normalized.includes("felin")) {
+    return ["V3 / V4 / V5 felina", "Antirrábica", "FeLV"];
+  }
+  return [
+    "V8 / V10 polivalente",
+    "Antirrábica",
+    "Leptospirose",
+    "Tosse dos canis",
+  ];
+}
+
+function DoseButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border px-3 py-2 text-xs font-medium text-slate-600 hover:border-purple-300 hover:bg-purple-50"
+    >
+      {label}
+    </button>
   );
 }
 

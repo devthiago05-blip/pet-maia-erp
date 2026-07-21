@@ -1280,13 +1280,30 @@ function VaccinationHistory({
           </p>
         </div>
         {!error && (
-          <VaccinationModal
-            petId={pet.id}
-            defaultProfessionalName={professionalName}
-            onSave={onSave}
-          />
+          <div className="grid gap-2 sm:flex">
+            {vaccinations.length > 0 && (
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="rounded-xl border border-[#8A0EEA] px-4 py-2 text-sm font-medium text-[#8A0EEA]"
+              >
+                Imprimir carteirinha
+              </button>
+            )}
+            <VaccinationWhatsAppButton pet={pet} vaccinations={vaccinations} />
+            <VaccinationModal
+              petId={pet.id}
+              species={pet.especie}
+              defaultProfessionalName={professionalName}
+              onSave={onSave}
+            />
+          </div>
         )}
       </div>
+
+      {!error && (
+        <VaccinationProtocolStatus pet={pet} vaccinations={vaccinations} />
+      )}
 
       {error ? (
         <p className="p-6 text-sm text-amber-700">{error}</p>
@@ -1295,53 +1312,287 @@ function VaccinationHistory({
           Nenhuma vacina registrada.
         </p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px]">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="p-4 text-left">Vacina</th>
-                <th className="p-4 text-left">Aplicação</th>
-                <th className="p-4 text-left">Próxima dose</th>
-                <th className="p-4 text-left">Fabricante / lote</th>
-                <th className="p-4 text-left">Profissional</th>
-                <th className="p-4 text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vaccinations.map((vaccination) => (
-                <tr key={vaccination.id} className="border-t">
-                  <td className="p-4">
-                    <p className="font-medium">{vaccination.vaccine_name}</p>
-                    {vaccination.notes && (
-                      <p className="mt-1 max-w-xs text-xs text-slate-500">
-                        {vaccination.notes}
-                      </p>
-                    )}
-                  </td>
-                  <td className="p-4">
-                    {formatDate(vaccination.application_date)}
-                  </td>
-                  <td className="p-4">
-                    {formatDate(vaccination.next_dose_date)}
-                  </td>
-                  <td className="p-4">
-                    {[vaccination.manufacturer, vaccination.batch_number]
-                      .filter(Boolean)
-                      .join(" · ") || "-"}
-                  </td>
-                  <td className="p-4">{vaccination.professional_name}</td>
-                  <td className="p-4">
-                    <ClinicalDeleteButton
-                      itemName={vaccination.vaccine_name}
-                      onDelete={() => onDelete(vaccination.id)}
-                    />
-                  </td>
+        <div className="p-4 sm:p-6">
+          <div className="grid gap-3 md:hidden">
+            {vaccinations.map((vaccination) => (
+              <VaccinationCard
+                key={vaccination.id}
+                vaccination={vaccination}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[760px]">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="p-4 text-left">Vacina</th>
+                  <th className="p-4 text-left">Aplicação</th>
+                  <th className="p-4 text-left">Próxima dose</th>
+                  <th className="p-4 text-left">Fabricante / lote</th>
+                  <th className="p-4 text-left">Profissional</th>
+                  <th className="p-4 text-left">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {vaccinations.map((vaccination) => (
+                  <tr key={vaccination.id} className="border-t">
+                    <td className="p-4">
+                      <p className="font-medium">{vaccination.vaccine_name}</p>
+                      {vaccination.notes && (
+                        <p className="mt-1 max-w-xs text-xs text-slate-500">
+                          {vaccination.notes}
+                        </p>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      {formatDate(vaccination.application_date)}
+                    </td>
+                    <td className="p-4">
+                      {formatDate(vaccination.next_dose_date)}
+                    </td>
+                    <td className="p-4">
+                      {[vaccination.manufacturer, vaccination.batch_number]
+                        .filter(Boolean)
+                        .join(" · ") || "-"}
+                    </td>
+                    <td className="p-4">{vaccination.professional_name}</td>
+                    <td className="p-4">
+                      <ClinicalDeleteButton
+                        itemName={vaccination.vaccine_name}
+                        onDelete={() => onDelete(vaccination.id)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
+      {vaccinations.length > 0 && (
+        <VaccinationPrintCard pet={pet} vaccinations={vaccinations} />
+      )}
+    </section>
+  );
+}
+
+function VaccinationCard({
+  vaccination,
+  onDelete,
+}: {
+  vaccination: PetVaccination;
+  onDelete: (id: number) => Promise<void>;
+}) {
+  return (
+    <article className="rounded-xl border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">{vaccination.vaccine_name}</p>
+          <p className="text-sm text-slate-500">
+            Aplicada em {formatDate(vaccination.application_date)}
+          </p>
+        </div>
+        <VaccineDateStatus date={vaccination.next_dose_date} />
+      </div>
+      <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+        <div>
+          <p className="text-xs text-slate-500">Próxima dose</p>
+          <p className="font-semibold">
+            {formatDate(vaccination.next_dose_date)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs text-slate-500">Lote</p>
+          <p className="font-semibold">{vaccination.batch_number || "-"}</p>
+        </div>
+        <div className="col-span-2">
+          <p className="text-xs text-slate-500">Profissional</p>
+          <p className="font-semibold">{vaccination.professional_name}</p>
+        </div>
+      </div>
+      {vaccination.notes && (
+        <p className="mt-3 text-sm text-slate-600">{vaccination.notes}</p>
+      )}
+      <div className="mt-3">
+        <ClinicalDeleteButton
+          itemName={vaccination.vaccine_name}
+          onDelete={() => onDelete(vaccination.id)}
+        />
+      </div>
+    </article>
+  );
+}
+
+function VaccinationProtocolStatus({
+  pet,
+  vaccinations,
+}: {
+  pet: Pet;
+  vaccinations: PetVaccination[];
+}) {
+  const species = normalizeText(pet.especie || "");
+  const isCat = species.includes("gat") || species.includes("felin");
+  const protocols = isCat
+    ? [
+        { label: "Múltipla felina", terms: ["v3", "v4", "v5", "felina"] },
+        { label: "Antirrábica", terms: ["raiva", "antirr"] },
+      ]
+    : [
+        { label: "Polivalente canina", terms: ["v8", "v10", "polivalente"] },
+        { label: "Antirrábica", terms: ["raiva", "antirr"] },
+      ];
+
+  return (
+    <div className="border-b bg-slate-50 p-4 sm:p-6">
+      <p className="text-sm font-semibold">Protocolo preventivo essencial</p>
+      <p className="text-xs text-slate-500">
+        Apoio à conferência; valide o protocolo individual com o veterinário.
+      </p>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        {protocols.map((protocol) => {
+          const record = vaccinations.find((item) =>
+            protocol.terms.some((term) =>
+              normalizeText(item.vaccine_name).includes(term),
+            ),
+          );
+          const days = calculateDaysUntilDate(record?.next_dose_date);
+          const overdue = days !== null && days < 0;
+
+          return (
+            <div
+              key={protocol.label}
+              className={`rounded-xl border bg-white p-3 text-sm ${
+                !record || overdue ? "border-amber-300" : "border-emerald-200"
+              }`}
+            >
+              <p className="font-semibold">{protocol.label}</p>
+              <p
+                className={
+                  !record || overdue ? "text-amber-700" : "text-emerald-700"
+                }
+              >
+                {!record
+                  ? "Sem registro — avaliar"
+                  : overdue
+                    ? `Dose vencida em ${formatDate(record.next_dose_date)}`
+                    : record.next_dose_date
+                      ? `Próxima: ${formatDate(record.next_dose_date)}`
+                      : "Aplicação registrada"}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function VaccineDateStatus({ date }: { date?: string }) {
+  const days = calculateDaysUntilDate(date);
+  if (days === null)
+    return (
+      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-600">
+        Sem próxima dose
+      </span>
+    );
+  if (days < 0)
+    return (
+      <span className="rounded-full bg-rose-100 px-2 py-1 text-xs text-rose-700">
+        Vencida
+      </span>
+    );
+  if (days <= 30)
+    return (
+      <span className="rounded-full bg-amber-100 px-2 py-1 text-xs text-amber-700">
+        Em {days} dia(s)
+      </span>
+    );
+  return (
+    <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700">
+      Em dia
+    </span>
+  );
+}
+
+function VaccinationWhatsAppButton({
+  pet,
+  vaccinations,
+}: {
+  pet: Pet;
+  vaccinations: PetVaccination[];
+}) {
+  const next = vaccinations
+    .filter((item) => item.next_dose_date)
+    .sort((a, b) =>
+      (a.next_dose_date || "").localeCompare(b.next_dose_date || ""),
+    )[0];
+  const phone = pet.tutors?.telefone?.replace(/\D/g, "");
+  if (!phone || !next?.next_dose_date) return null;
+  const normalized = phone.startsWith("55") ? phone : `55${phone}`;
+  const message = `Olá! Aqui é da Pet Maia. A próxima dose de ${next.vaccine_name} de ${pet.nome} está prevista para ${formatDate(next.next_dose_date)}. Podemos confirmar?`;
+
+  return (
+    <a
+      href={`https://wa.me/${normalized}?text=${encodeURIComponent(message)}`}
+      target="_blank"
+      rel="noreferrer"
+      className="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-medium text-white"
+    >
+      Lembrar pelo WhatsApp
+    </a>
+  );
+}
+
+function VaccinationPrintCard({
+  pet,
+  vaccinations,
+}: {
+  pet: Pet;
+  vaccinations: PetVaccination[];
+}) {
+  return (
+    <section className="document-print-area hidden bg-white p-8 print:block">
+      <h1 className="text-2xl font-bold">Carteirinha de vacinação</h1>
+      <p className="mt-2">
+        Pet Maia · Paciente: <strong>{pet.nome}</strong> · Tutor:{" "}
+        <strong>{pet.tutors?.nome || "-"}</strong>
+      </p>
+      <p>
+        {pet.especie} · {pet.raca || "Raça não informada"}
+      </p>
+      <table className="mt-6 w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100">
+            <th className="border p-2 text-left">Vacina</th>
+            <th className="border p-2 text-left">Aplicação</th>
+            <th className="border p-2 text-left">Próxima dose</th>
+            <th className="border p-2 text-left">Fabricante / lote</th>
+            <th className="border p-2 text-left">Profissional</th>
+          </tr>
+        </thead>
+        <tbody>
+          {vaccinations.map((item) => (
+            <tr key={item.id}>
+              <td className="border p-2">{item.vaccine_name}</td>
+              <td className="border p-2">
+                {formatDate(item.application_date)}
+              </td>
+              <td className="border p-2">{formatDate(item.next_dose_date)}</td>
+              <td className="border p-2">
+                {[item.manufacturer, item.batch_number]
+                  .filter(Boolean)
+                  .join(" · ") || "-"}
+              </td>
+              <td className="border p-2">{item.professional_name}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="mt-6 text-xs text-slate-500">
+        Documento de acompanhamento. O protocolo deve ser validado pelo
+        médico-veterinário responsável.
+      </p>
     </section>
   );
 }

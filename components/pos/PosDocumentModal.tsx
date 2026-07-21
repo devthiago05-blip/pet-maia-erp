@@ -32,6 +32,9 @@ export function PosDocumentModal({
   discount,
   surcharge,
   adjustmentReason,
+  cashReceived,
+  changeAmount,
+  changeMethod,
   items,
   onConvert,
 }: {
@@ -47,6 +50,9 @@ export function PosDocumentModal({
   discount?: number;
   surcharge?: number;
   adjustmentReason?: string;
+  cashReceived?: number;
+  changeAmount?: number;
+  changeMethod?: "Dinheiro" | "PIX";
   items: PosItem[];
   onConvert?: (conversion: PosQuoteConversion) => Promise<void>;
 }) {
@@ -150,6 +156,18 @@ export function PosDocumentModal({
                     <strong>Status:</strong> {status}
                   </p>
                 )}
+                {Number(cashReceived || 0) > 0 && (
+                  <p>
+                    <strong>Recebido em dinheiro:</strong>{" "}
+                    {formatCurrency(cashReceived || 0)}
+                  </p>
+                )}
+                {Number(changeAmount || 0) > 0 && (
+                  <p>
+                    <strong>Troco:</strong> {formatCurrency(changeAmount || 0)}
+                    {changeMethod ? ` via ${changeMethod}` : ""}
+                  </p>
+                )}
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[520px] text-sm">
@@ -177,8 +195,34 @@ export function PosDocumentModal({
                   </tbody>
                 </table>
               </div>
-              {(Number(discount||0)>0||Number(surcharge||0)>0)&&<div className="space-y-1 border-t pt-4 text-sm"><div className="flex justify-between"><span>Subtotal</span><span>{formatCurrency(subtotal||total)}</span></div>{Number(discount||0)>0&&<div className="flex justify-between text-emerald-700"><span>Desconto</span><span>- {formatCurrency(discount||0)}</span></div>}{Number(surcharge||0)>0&&<div className="flex justify-between text-amber-700"><span>Acréscimo</span><span>+ {formatCurrency(surcharge||0)}</span></div>}{adjustmentReason&&<p className="pt-1 text-xs text-slate-500">Motivo: {adjustmentReason}</p>}</div>}
-              <div className={`${Number(discount||0)>0||Number(surcharge||0)>0?"pt-2":"border-t pt-4"} flex justify-between text-lg`}>
+              {(Number(discount || 0) > 0 || Number(surcharge || 0) > 0) && (
+                <div className="space-y-1 border-t pt-4 text-sm">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(subtotal || total)}</span>
+                  </div>
+                  {Number(discount || 0) > 0 && (
+                    <div className="flex justify-between text-emerald-700">
+                      <span>Desconto</span>
+                      <span>- {formatCurrency(discount || 0)}</span>
+                    </div>
+                  )}
+                  {Number(surcharge || 0) > 0 && (
+                    <div className="flex justify-between text-amber-700">
+                      <span>Acréscimo</span>
+                      <span>+ {formatCurrency(surcharge || 0)}</span>
+                    </div>
+                  )}
+                  {adjustmentReason && (
+                    <p className="pt-1 text-xs text-slate-500">
+                      Motivo: {adjustmentReason}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div
+                className={`${Number(discount || 0) > 0 || Number(surcharge || 0) > 0 ? "pt-2" : "border-t pt-4"} flex justify-between text-lg`}
+              >
                 <strong>Total</strong>
                 <strong className="text-[#8A0EEA]">
                   {formatCurrency(total)}

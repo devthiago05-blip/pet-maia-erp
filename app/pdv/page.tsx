@@ -753,9 +753,7 @@ export default function PosPage() {
         saleChangeDue > 0
           ? await createPosSaleWithChange({
               ...customer,
-              payments: [
-                { payment_method: "Dinheiro", amount: saleTotal },
-              ],
+              payments: [{ payment_method: "Dinheiro", amount: saleTotal }],
               items: saleItems,
               discount: discountAmount,
               surcharge: surchargeAmount,
@@ -3868,6 +3866,9 @@ function SalesView({
                       discount={sale.discount_amount}
                       surcharge={sale.surcharge_amount}
                       adjustmentReason={sale.adjustment_reason}
+                      cashReceived={sale.cash_received}
+                      changeAmount={sale.change_amount}
+                      changeMethod={sale.change_method}
                       items={sale.pos_sale_items || []}
                     />
                   </div>
@@ -3961,6 +3962,9 @@ function SalesView({
                           discount={sale.discount_amount}
                           surcharge={sale.surcharge_amount}
                           adjustmentReason={sale.adjustment_reason}
+                          cashReceived={sale.cash_received}
+                          changeAmount={sale.change_amount}
+                          changeMethod={sale.change_method}
                           items={sale.pos_sale_items || []}
                         />
                         {sale.status !== "Cancelada" && (

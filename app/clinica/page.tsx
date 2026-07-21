@@ -519,43 +519,90 @@ function WeeklyReturnsQueue({ returns }: { returns: ReturnQueueItem[] }) {
         onChange={setFilter}
       />
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4">
         {filteredReturns.length > 0 ? (
-          <div className="min-w-[720px] divide-y">
-            {filteredReturns.map((item) => (
-              <div
-                key={item.id}
-                className="grid grid-cols-[1.2fr_1.1fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{item.petName}</p>
-                  <p className="truncate text-xs text-slate-500">
-                    {item.tutorName || "Tutor nao informado"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium">{formatDate(item.returnDate)}</p>
-                  <ReturnStatus daysDiff={item.daysDiff} />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-500">Consulta base</p>
-                  <p>{formatDate(item.consultationDate)}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-slate-500">
-                    Profissional
-                  </p>
-                  <p className="truncate">{item.professionalName || "-"}</p>
-                </div>
-                <Link
-                  href={`/pets/${item.petId}`}
-                  className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
-                >
-                  Abrir
-                </Link>
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filteredReturns.map((item) => (
+                <article key={item.id} className="rounded-xl border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{item.petName}</p>
+                      <p className="truncate text-sm text-slate-500">
+                        {item.tutorName || "Tutor não informado"}
+                      </p>
+                    </div>
+                    <ReturnStatus daysDiff={item.daysDiff} />
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-3 rounded-xl bg-slate-50 p-3 text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500">Retorno</p>
+                      <p className="font-semibold">
+                        {formatDate(item.returnDate)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Consulta base</p>
+                      <p className="font-semibold">
+                        {formatDate(item.consultationDate)}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs text-slate-500">Profissional</p>
+                      <p className="truncate font-semibold">
+                        {item.professionalName || "-"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/pets/${item.petId}`}
+                    className="mt-3 block rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                  >
+                    Abrir prontuário
+                  </Link>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <div className="min-w-[720px] divide-y">
+                {filteredReturns.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-[1.2fr_1.1fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{item.petName}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        {item.tutorName || "Tutor nao informado"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {formatDate(item.returnDate)}
+                      </p>
+                      <ReturnStatus daysDiff={item.daysDiff} />
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">Consulta base</p>
+                      <p>{formatDate(item.consultationDate)}</p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs text-slate-500">
+                        Profissional
+                      </p>
+                      <p className="truncate">{item.professionalName || "-"}</p>
+                    </div>
+                    <Link
+                      href={`/pets/${item.petId}`}
+                      className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                    >
+                      Abrir
+                    </Link>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          </>
         ) : (
           <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
             Nenhum retorno encontrado para este filtro.
@@ -697,45 +744,95 @@ function VaccineAlertsQueue({ vaccines }: { vaccines: VaccineQueueItem[] }) {
         onChange={setFilter}
       />
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4">
         {filteredVaccines.length > 0 ? (
-          <div className="min-w-[780px] divide-y">
-            {filteredVaccines.map((item) => (
-              <div
-                key={item.id}
-                className="grid grid-cols-[1.1fr_1.2fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
-              >
-                <div className="min-w-0">
-                  <p className="truncate font-semibold">{item.petName}</p>
-                  <p className="truncate text-xs text-slate-500">
-                    {item.tutorName || "Tutor nao informado"}
-                  </p>
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{item.vaccineName}</p>
-                  <p className="text-xs text-slate-500">
-                    Aplicada em {formatDate(item.applicationDate)}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium">{formatDate(item.nextDoseDate)}</p>
-                  <VaccineStatus daysDiff={item.daysDiff} />
-                </div>
-                <div className="min-w-0">
-                  <p className="truncate text-xs text-slate-500">
-                    Profissional
-                  </p>
-                  <p className="truncate">{item.professionalName || "-"}</p>
-                </div>
-                <Link
-                  href={`/pets/${item.petId}`}
-                  className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
-                >
-                  Abrir
-                </Link>
+          <>
+            <div className="grid gap-3 md:hidden">
+              {filteredVaccines.map((item) => (
+                <article key={item.id} className="rounded-xl border p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{item.petName}</p>
+                      <p className="truncate text-sm text-slate-500">
+                        {item.tutorName || "Tutor não informado"}
+                      </p>
+                    </div>
+                    <VaccineStatus daysDiff={item.daysDiff} />
+                  </div>
+                  <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm">
+                    <p className="truncate font-semibold">{item.vaccineName}</p>
+                    <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-xs text-slate-500">Aplicação</p>
+                        <p className="font-semibold">
+                          {formatDate(item.applicationDate)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-500">Próxima dose</p>
+                        <p className="font-semibold">
+                          {formatDate(item.nextDoseDate)}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-slate-500">Profissional</p>
+                        <p className="truncate font-semibold">
+                          {item.professionalName || "-"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/pets/${item.petId}`}
+                    className="mt-3 block rounded-xl bg-[#8A0EEA] px-3 py-2.5 text-center font-medium text-white"
+                  >
+                    Abrir prontuário
+                  </Link>
+                </article>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
+              <div className="min-w-[780px] divide-y">
+                {filteredVaccines.map((item) => (
+                  <div
+                    key={item.id}
+                    className="grid grid-cols-[1.1fr_1.2fr_1fr_1.1fr_auto] items-center gap-4 py-3 text-sm"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold">{item.petName}</p>
+                      <p className="truncate text-xs text-slate-500">
+                        {item.tutorName || "Tutor nao informado"}
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">{item.vaccineName}</p>
+                      <p className="text-xs text-slate-500">
+                        Aplicada em {formatDate(item.applicationDate)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {formatDate(item.nextDoseDate)}
+                      </p>
+                      <VaccineStatus daysDiff={item.daysDiff} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs text-slate-500">
+                        Profissional
+                      </p>
+                      <p className="truncate">{item.professionalName || "-"}</p>
+                    </div>
+                    <Link
+                      href={`/pets/${item.petId}`}
+                      className="rounded-xl border border-[#8A0EEA] px-3 py-2 text-center font-medium text-[#8A0EEA] transition hover:bg-purple-50"
+                    >
+                      Abrir
+                    </Link>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          </>
         ) : (
           <div className="rounded-xl border border-dashed p-6 text-center text-sm text-slate-500">
             Nenhuma vacina encontrada para este filtro.

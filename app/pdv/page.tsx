@@ -2949,7 +2949,16 @@ function ProductsView({
 }) {
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    "active" | "inactive" | "all"
+  >("active");
   const activeProducts = products.filter((product) => product.ativo);
+  const inactiveProducts = products.filter((product) => !product.ativo);
+  const visibleProducts = products.filter((product) => {
+    if (statusFilter === "active") return product.ativo;
+    if (statusFilter === "inactive") return !product.ativo;
+    return true;
+  });
 
   async function handleConfirmDelete() {
     if (!productToDelete) {
@@ -2975,28 +2984,51 @@ function ProductsView({
         <div>
           <h2 className="font-bold text-slate-900">Catálogo de produtos</h2>
           <p className="text-sm text-slate-500">
-            Preços, estoque e manutenção dos produtos ativos.
+            Consulte, edite, desative ou reative produtos.
           </p>
         </div>
         <span className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-          {activeProducts.length}
+          {visibleProducts.length}
         </span>
       </div>
 
+      <div className="flex gap-2 overflow-x-auto rounded-xl border bg-white p-2">
+        {(
+          [
+            ["active", `Ativos (${activeProducts.length})`],
+            ["inactive", `Inativos (${inactiveProducts.length})`],
+            ["all", `Todos (${products.length})`],
+          ] as const
+        ).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setStatusFilter(value)}
+            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              statusFilter === value
+                ? "bg-[#8A0EEA] text-white"
+                : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-3 md:hidden">
-        {activeProducts.length === 0 ? (
+        {visibleProducts.length === 0 ? (
           <div className="rounded-xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
-            Nenhum produto cadastrado.
+            Nenhum produto encontrado neste filtro.
           </div>
         ) : (
-          activeProducts.map((product) => {
+          visibleProducts.map((product) => {
             const lowStock = product.estoque <= product.estoque_minimo;
             const fiscalReady = isProductFiscalReady(product);
 
             return (
               <article
                 key={product.id}
-                className="rounded-2xl border bg-white p-4 shadow-sm"
+                className={`rounded-2xl border bg-white p-4 shadow-sm ${!product.ativo ? "border-slate-300 opacity-80" : ""}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -3039,6 +3071,11 @@ function ProductsView({
                 >
                   {fiscalReady ? "Fiscal completo" : "Fiscal pendente"}
                 </span>
+                {!product.ativo && (
+                  <span className="mt-3 ml-2 inline-flex rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                    Inativo — edite para reativar
+                  </span>
+                )}
 
                 <div className="mt-3 grid grid-cols-2 gap-2 border-t pt-3">
                   <div className="flex min-h-10 items-center justify-center rounded-xl bg-purple-50 font-semibold text-[#8A0EEA]">
@@ -3076,15 +3113,18 @@ function ProductsView({
               </tr>
             </thead>
             <tbody>
-              {activeProducts.length === 0 ? (
+              {visibleProducts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-6 text-center text-slate-500">
-                    Nenhum produto cadastrado.
+                    Nenhum produto encontrado neste filtro.
                   </td>
                 </tr>
               ) : (
-                activeProducts.map((product) => (
-                  <tr key={product.id} className="border-t">
+                visibleProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className={`border-t ${!product.ativo ? "bg-slate-50 text-slate-500" : ""}`}
+                  >
                     <td className="p-4">
                       <p className="font-medium">
                         {formatProductName(product)}

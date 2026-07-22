@@ -2,7 +2,7 @@ import type { Product } from "@/types/domain";
 
 type PackStockProduct = Pick<
   Product,
-  "estoque" | "purchase_unit" | "sale_unit" | "units_per_purchase"
+  "estoque" | "nome" | "purchase_unit" | "sale_unit" | "units_per_purchase"
 >;
 
 function normalizeUnit(unit: string | undefined, fallback: string) {
@@ -20,10 +20,14 @@ export function getPackStockBreakdown(product: PackStockProduct) {
   const stock = Math.max(0, Number(product.estoque || 0));
   const unitsPerPack = Math.max(1, Number(product.units_per_purchase || 1));
   const purchaseUnit = normalizeUnit(product.purchase_unit, "UN");
-  const saleUnit = normalizeUnit(product.sale_unit, "UN");
+  const fiscalSaleUnit = normalizeUnit(product.sale_unit, "UN");
+  const saleUnit =
+    fiscalSaleUnit === "UN" && /sach[eê]/i.test(product.nome)
+      ? "SACHÊ"
+      : fiscalSaleUnit;
   const isPack =
     unitsPerPack > 1 &&
-    purchaseUnit !== saleUnit &&
+    purchaseUnit !== fiscalSaleUnit &&
     ["PACK", "PACOTE", "CAIXA", "FARDO"].includes(purchaseUnit);
 
   if (!isPack) return null;

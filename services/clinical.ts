@@ -1,6 +1,7 @@
 import { supabase } from "@/lib/supabase";
 import type {
   ClinicalAttachment,
+  ClinicalConsentInput,
   ClinicalDocumentInput,
   ClinicalDocumentTemplateInput,
   ClinicalExam,
@@ -857,6 +858,31 @@ export async function createClinicalDocument(input: ClinicalDocumentInput) {
 
 export async function deleteClinicalDocument(id: number) {
   return supabase.from("clinical_documents").delete().eq("id", id);
+}
+
+export async function fetchClinicalConsentsByPet(petId: number) {
+  return supabase
+    .from("clinical_consents")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("signed_at", { ascending: false });
+}
+
+export async function createClinicalConsent(input: ClinicalConsentInput) {
+  const professional = await getCurrentProfessional();
+
+  return supabase.from("clinical_consents").insert({
+    pet_id: input.petId,
+    clinical_record_id: input.clinicalRecordId || null,
+    consent_type: input.consentType,
+    title: input.title,
+    content: input.content,
+    signer_name: input.signerName,
+    signer_document: input.signerDocument || null,
+    signature_data_url: input.signatureDataUrl,
+    professional_name: input.professionalName,
+    professional_id: professional.userId,
+  });
 }
 
 export async function fetchClinicalDocumentTemplates() {

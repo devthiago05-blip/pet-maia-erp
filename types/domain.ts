@@ -541,6 +541,38 @@ export interface ClinicalDocumentInput {
   professionalName: string;
 }
 
+export interface ClinicalConsent {
+  id: number;
+  pet_id: number;
+  clinical_record_id?: number;
+  consent_type:
+    | "Procedimento"
+    | "Anestesia e cirurgia"
+    | "Internação"
+    | "Recusa de tratamento"
+    | "Outro";
+  title: string;
+  content: string;
+  signer_name: string;
+  signer_document?: string;
+  signature_data_url: string;
+  signed_at: string;
+  professional_name: string;
+  created_at: string;
+}
+
+export interface ClinicalConsentInput {
+  petId: number;
+  clinicalRecordId?: number;
+  consentType: ClinicalConsent["consent_type"];
+  title: string;
+  content: string;
+  signerName: string;
+  signerDocument?: string;
+  signatureDataUrl: string;
+  professionalName: string;
+}
+
 export interface ClinicalDocumentTemplate {
   id: number;
   document_type: ClinicalDocument["document_type"];

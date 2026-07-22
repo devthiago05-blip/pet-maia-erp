@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptModal";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { useAccess } from "@/components/auth/AccessContext";
+import { ClinicalConsentPanel } from "@/components/clinic/ClinicalConsentPanel";
 import { ClinicalDocumentModal } from "@/components/clinic/ClinicalDocumentModal";
 import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
@@ -25,6 +26,7 @@ import {
   fetchAppointmentServicesByAppointmentId,
 } from "@/services/appointments";
 import {
+  createClinicalConsent,
   createClinicalDocument,
   createClinicalPatientAlert,
   createPetParasitePrevention,
@@ -34,6 +36,7 @@ import {
   deleteClinicalPrescription,
   deletePetParasitePrevention,
   deletePetVaccination,
+  fetchClinicalConsentsByPet,
   fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
   fetchClinicalPatientAlerts,
@@ -56,6 +59,8 @@ import { fetchServices } from "@/services/services";
 import { fetchClinicSettings } from "@/services/settings";
 import type {
   Appointment,
+  ClinicalConsent,
+  ClinicalConsentInput,
   ClinicalDocument,
   ClinicalDocumentInput,
   ClinicalExam,
@@ -209,6 +214,7 @@ export default function PetPage() {
   const [exams, setExams] = useState<ClinicalExam[]>([]);
   const [examError, setExamError] = useState("");
   const [documents, setDocuments] = useState<ClinicalDocument[]>([]);
+  const [consents, setConsents] = useState<ClinicalConsent[]>([]);
   const [documentError, setDocumentError] = useState("");
   const [financialEntries, setFinancialEntries] = useState<FinancialEntry[]>(
     [],
@@ -254,6 +260,7 @@ export default function PetPage() {
         parasitePreventionsResponse,
         examsResponse,
         documentsResponse,
+        consentsResponse,
         clinicSettingsResponse,
       ] = await Promise.all([
         fetchAppointmentsByPet(petId),
@@ -264,6 +271,7 @@ export default function PetPage() {
         fetchPetParasitePreventions(petId),
         fetchClinicalExamsByPet(petId),
         fetchClinicalDocumentsByPet(petId),
+        fetchClinicalConsentsByPet(petId),
         fetchClinicSettings(),
       ]);
 
@@ -324,6 +332,11 @@ export default function PetPage() {
         );
       } else {
         setDocuments(documentsResponse.data || []);
+      }
+      if (consentsResponse.error) {
+        console.error(consentsResponse.error);
+      } else {
+        setConsents(consentsResponse.data || []);
       }
       if (clinicSettingsResponse.error) {
         console.error(clinicSettingsResponse.error);
@@ -777,6 +790,23 @@ export default function PetPage() {
     toast.success("Documento clínico salvo!");
   }
 
+  async function handleCreateConsent(input: ClinicalConsentInput) {
+    const { error: createError } = await createClinicalConsent(input);
+    if (createError) {
+      toast.error(createError.message);
+      throw createError;
+    }
+    const { data, error: reloadError } = await fetchClinicalConsentsByPet(
+      input.petId,
+    );
+    if (reloadError) {
+      toast.error("Consentimento salvo, mas a lista não foi atualizada");
+      return;
+    }
+    setConsents(data || []);
+    toast.success("Consentimento assinado e guardado!");
+  }
+
   async function handleDeleteVaccination(id: number) {
     const { error: deleteError } = await deletePetVaccination(id);
 
@@ -992,10 +1022,12 @@ export default function PetPage() {
                     <ClinicalDocuments
                       pet={pet}
                       documents={documents}
+                      consents={consents}
                       error={documentError}
                       professionalName={profile?.nome || ""}
                       professionalCrmv={profile?.crmv || ""}
                       onSave={handleCreateDocument}
+                      onConsentSave={handleCreateConsent}
                       onDelete={handleDeleteDocument}
                     />
                   )}
@@ -1988,22 +2020,32 @@ function ExamHistory({
 function ClinicalDocuments({
   pet,
   documents,
+  consents,
   error,
   professionalName,
   professionalCrmv,
   onSave,
+  onConsentSave,
   onDelete,
 }: {
   pet: Pet;
   documents: ClinicalDocument[];
+  consents: ClinicalConsent[];
   error: string;
   professionalName: string;
   professionalCrmv: string;
   onSave: (input: ClinicalDocumentInput) => Promise<void>;
+  onConsentSave: (input: ClinicalConsentInput) => Promise<void>;
   onDelete: (id: number) => Promise<void>;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border bg-white">
+      <ClinicalConsentPanel
+        pet={pet}
+        consents={consents}
+        professionalName={professionalName}
+        onSave={onConsentSave}
+      />
       <div className="flex flex-col gap-3 border-b p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
         <div>
           <h3 className="text-lg font-bold">Documentos clínicos</h3>

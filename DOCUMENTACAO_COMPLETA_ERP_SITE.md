@@ -330,6 +330,7 @@ Rotas: `/clinica`, `/pets/[id]` e receita pública `/receita/[token]`.
 - Tarefas da equipe veterinária.
 - Internação, evolução, alta e agenda de medicamentos administrados.
 - Perfis profissionais com CRMV, UF, MAPA e assinatura.
+- Consentimentos clínicos vinculados ao pet, com modelos para procedimento, anestesia/cirurgia, internação e recusa de tratamento. O tutor assina na tela com dedo, caneta ou mouse; o sistema preserva o texto aceito, responsável, documento opcional, data/hora e profissional, permitindo impressão ou PDF posterior.
 
 Serviço: `services/clinical.ts`.
 

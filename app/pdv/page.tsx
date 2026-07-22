@@ -3585,15 +3585,39 @@ function ProductsView({
   const [deleting, setDeleting] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<number[]>([]);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [productSearch, setProductSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<
     "active" | "inactive" | "all"
   >("active");
   const activeProducts = products.filter((product) => product.ativo);
   const inactiveProducts = products.filter((product) => !product.ativo);
+  const normalizedProductSearch = productSearch
+    .trim()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
   const visibleProducts = products.filter((product) => {
-    if (statusFilter === "active") return product.ativo;
-    if (statusFilter === "inactive") return !product.ativo;
-    return true;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "active" ? product.ativo : !product.ativo);
+    if (!matchesStatus) return false;
+    if (!normalizedProductSearch) return true;
+
+    return [
+      product.nome,
+      product.sku,
+      product.barcode,
+      product.categoria,
+      product.tamanho,
+      product.cor,
+      product.sabor,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "")
+      .toLocaleLowerCase("pt-BR")
+      .includes(normalizedProductSearch);
   });
   const selectableProducts = visibleProducts;
   const allVisibleSelected =
@@ -3668,6 +3692,25 @@ function ProductsView({
           {visibleProducts.length}
         </span>
       </div>
+
+      <label className="relative block">
+        <Search
+          size={20}
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-slate-400"
+        />
+        <input
+          type="search"
+          value={productSearch}
+          onChange={(event) => {
+            setProductSearch(event.target.value);
+            setSelectedProductIds([]);
+          }}
+          placeholder="Buscar por nome, código, categoria ou variação"
+          aria-label="Buscar produtos no catálogo"
+          className="min-h-12 w-full rounded-xl border bg-white pr-4 pl-12 text-base outline-none transition focus:border-[#8A0EEA] focus:ring-2 focus:ring-purple-100"
+        />
+      </label>
 
       <div className="flex gap-2 overflow-x-auto rounded-xl border bg-white p-2">
         {(

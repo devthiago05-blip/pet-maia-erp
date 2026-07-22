@@ -32,10 +32,12 @@ export function AppointmentTable({
   function renderActions(appointment: Appointment, mobile = false) {
     const buttonClass = mobile
       ? "inline-flex min-h-10 items-center justify-center rounded-xl px-3 text-sm font-semibold"
-      : "text-sm font-medium";
+      : "inline-flex min-h-9 items-center justify-center rounded-lg bg-slate-50 px-3 text-sm font-semibold hover:bg-slate-100";
 
     return (
-      <div className={mobile ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-3"}>
+      <div
+        className={mobile ? "grid grid-cols-2 gap-2" : "flex flex-wrap gap-3"}
+      >
         {appointment.status === "Pendente" && (
           <>
             <button
@@ -109,7 +111,7 @@ export function AppointmentTable({
             return (
               <article
                 key={appointment.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_5px_20px_rgba(15,23,42,0.05)]"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -155,68 +157,66 @@ export function AppointmentTable({
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white md:block">
-        <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[980px]">
-          <thead className="bg-slate-50">
-            <tr>
-              <th className="p-3 text-left sm:p-4">Hora</th>
-              <th className="p-3 text-left sm:p-4">Pet</th>
-              <th className="p-3 text-left sm:p-4">Serviço</th>
-              <th className="p-3 text-left sm:p-4">Observação</th>
-              <th className="p-3 text-left sm:p-4">Status</th>
-              <th className="p-3 text-left sm:p-4">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {appointments.length === 0 ? (
+        <div className="erp-table-scroll">
+          <table className="erp-data-table min-w-[980px]">
+            <thead className="bg-slate-50">
               <tr>
-                <td
-                  colSpan={6}
-                  className="p-6 text-center text-sm text-slate-500"
-                >
-                  Nenhum agendamento encontrado.
-                </td>
+                <th className="p-3 text-left sm:p-4">Hora</th>
+                <th className="p-3 text-left sm:p-4">Pet</th>
+                <th className="p-3 text-left sm:p-4">Serviço</th>
+                <th className="p-3 text-left sm:p-4">Observação</th>
+                <th className="p-3 text-left sm:p-4">Status</th>
+                <th className="p-3 text-left sm:p-4">Ações</th>
               </tr>
-            ) : (
-              appointments.map((appointment) => (
-                <tr key={appointment.id} className="border-t">
-                  <td className="p-3 sm:p-4">{appointment.hora}</td>
+            </thead>
 
-                  <td className="p-3 sm:p-4">
-                    {getAppointmentPetDisplayName(appointment)}
-                  </td>
-
-                  <td className="p-3 sm:p-4">{appointment.servico}</td>
-
-                  <td className="max-w-72 whitespace-pre-line p-3 text-sm text-slate-500 sm:p-4">
-                    {formatAppointmentObservation(appointment)}
-                  </td>
-
-                  <td className="p-3 sm:p-4">
-                    <span
-                      className={`rounded-full px-3 py-1 text-sm font-medium ${
-                        appointment.status === "Finalizado"
-                          ? "bg-green-100 text-green-700"
-                          : appointment.status === "Cancelado"
-                            ? "bg-red-100 text-red-700"
-                            : appointment.status === "Pendente"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {appointment.status}
-                    </span>
-                  </td>
-
-                  <td className="p-3 sm:p-4">
-                    {renderActions(appointment)}
+            <tbody>
+              {appointments.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="p-6 text-center text-sm text-slate-500"
+                  >
+                    Nenhum agendamento encontrado.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                appointments.map((appointment) => (
+                  <tr key={appointment.id} className="border-t">
+                    <td className="p-3 sm:p-4">{appointment.hora}</td>
+
+                    <td className="p-3 sm:p-4">
+                      {getAppointmentPetDisplayName(appointment)}
+                    </td>
+
+                    <td className="p-3 sm:p-4">{appointment.servico}</td>
+
+                    <td className="max-w-72 whitespace-pre-line p-3 text-sm text-slate-500 sm:p-4">
+                      {formatAppointmentObservation(appointment)}
+                    </td>
+
+                    <td className="p-3 sm:p-4">
+                      <span
+                        className={`rounded-full px-3 py-1 text-sm font-medium ${
+                          appointment.status === "Finalizado"
+                            ? "bg-green-100 text-green-700"
+                            : appointment.status === "Cancelado"
+                              ? "bg-red-100 text-red-700"
+                              : appointment.status === "Pendente"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-yellow-100 text-yellow-700"
+                        }`}
+                      >
+                        {appointment.status}
+                      </span>
+                    </td>
+
+                    <td className="p-3 sm:p-4">{renderActions(appointment)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

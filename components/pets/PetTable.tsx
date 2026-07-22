@@ -44,7 +44,7 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
           pets.map((pet) => (
             <article
               key={pet.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_5px_20px_rgba(15,23,42,0.05)]"
             >
               <div className="flex items-start gap-3">
                 {pet.photo_url ? (
@@ -107,8 +107,8 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
       </div>
 
       <div className="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm md:block">
-        <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[880px]">
+        <div className="erp-table-scroll">
+          <table className="erp-data-table min-w-[880px]">
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Nome</th>
@@ -157,14 +157,14 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">
                       <button
-                        className="text-blue-600"
+                        className="min-h-9 rounded-lg bg-blue-50 px-3 text-sm font-semibold text-blue-700 hover:bg-blue-100"
                         onClick={() => onEdit(pet)}
                       >
                         Editar
                       </button>
 
                       <button
-                        className="text-red-600"
+                        className="min-h-9 rounded-lg bg-red-50 px-3 text-sm font-semibold text-red-600 hover:bg-red-100"
                         onClick={() => setPetToDelete(pet)}
                       >
                         Excluir

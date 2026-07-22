@@ -223,6 +223,7 @@ export async function createProductPurchase({
     product_id: number;
     quantidade: number;
     custo_unitario: number;
+    multiplicador: number;
   }>;
 }) {
   return supabase.rpc("create_product_purchase_split", {

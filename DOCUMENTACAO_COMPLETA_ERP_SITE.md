@@ -560,3 +560,4 @@ Depois de uma mudança relevante:
 - Os nomes dos produtos são padronizados automaticamente em letras maiúsculas.
 - A regra vale para cadastro completo, cadastro rápido, edição, importação CSV, leitura de código de barras e importações de notas.
 - O banco de dados também possui uma proteção para normalizar integrações e atualizar os registros antigos.
+- Na entrada de produtos, itens cadastrados com conversão (pack/sachê, caixa/cartela etc.) podem ser comprados tanto pela embalagem quanto pela unidade. Cada item guarda o multiplicador usado, garantindo entrada e reversão exatas do estoque.

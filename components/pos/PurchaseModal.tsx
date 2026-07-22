@@ -38,6 +38,7 @@ interface PurchaseLine {
   productId: string;
   quantity: string;
   unitCost: string;
+  purchaseMode: "pack" | "unit";
 }
 
 interface PurchasePaymentLine {
@@ -60,6 +61,7 @@ export interface PurchaseInput {
     product_id: number;
     quantidade: number;
     custo_unitario: number;
+    multiplicador: number;
   }>;
 }
 
@@ -101,6 +103,7 @@ export function PurchaseModal({
       productId: "",
       quantity: "1",
       unitCost: "",
+      purchaseMode: "pack",
     },
   ]);
   const [saving, setSaving] = useState(false);
@@ -139,10 +142,10 @@ export function PurchaseModal({
   const paymentDifference = total - paymentTotal;
   const unresolvedCount = lines.filter((line) => !line.productId).length;
 
-  function updateLine(
+  function updateLine<Field extends keyof Omit<PurchaseLine, "id">>(
     id: number,
-    field: keyof Omit<PurchaseLine, "id">,
-    value: string,
+    field: Field,
+    value: PurchaseLine[Field],
   ) {
     setLines((current) =>
       current.map((line) =>
@@ -161,6 +164,7 @@ export function PurchaseModal({
         productId: "",
         quantity: "1",
         unitCost: "",
+        purchaseMode: "pack",
       },
     ]);
   }
@@ -191,6 +195,7 @@ export function PurchaseModal({
         unitCost: String(
           item.unitCost || item.total / Math.max(item.quantity, 1) || "",
         ),
+        purchaseMode: "pack" as const,
       };
     });
     if (recognizedLines.length) setLines(recognizedLines);
@@ -228,11 +233,20 @@ export function PurchaseModal({
   }
 
   async function handleSave() {
-    const parsedItems = lines.map((line) => ({
-      product_id: Number(line.productId),
-      quantidade: Number(line.quantity),
-      custo_unitario: Number(line.unitCost),
-    }));
+    const parsedItems = lines.map((line) => {
+      const product = products.find(
+        (candidate) => candidate.id === Number(line.productId),
+      );
+      return {
+        product_id: Number(line.productId),
+        quantidade: Number(line.quantity),
+        custo_unitario: Number(line.unitCost),
+        multiplicador:
+          line.purchaseMode === "unit"
+            ? 1
+            : Math.max(1, Number(product?.units_per_purchase || 1)),
+      };
+    });
 
     if (!supplierId) {
       toast.error("Selecione um fornecedor");
@@ -333,6 +347,7 @@ export function PurchaseModal({
           productId: "",
           quantity: "1",
           unitCost: "",
+          purchaseMode: "pack",
         },
       ]);
     } catch {
@@ -444,8 +459,11 @@ export function PurchaseModal({
                     1,
                     Number(selectedProduct?.units_per_purchase || 1),
                   );
+                  const selectedMultiplier =
+                    line.purchaseMode === "unit" ? 1 : conversion;
                   const registeredPurchaseCost = selectedProduct
-                    ? Number(selectedProduct.preco_custo || 0) * conversion
+                    ? Number(selectedProduct.preco_custo || 0) *
+                      selectedMultiplier
                     : 0;
                   const importedPurchaseCost = Number(line.unitCost || 0);
                   const costDifference =
@@ -458,10 +476,10 @@ export function PurchaseModal({
                   return (
                     <div
                       key={line.id}
-                      className={`grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(280px,1fr)_100px_150px_40px] ${line.productId ? "border-emerald-200 bg-emerald-50/30" : "border-amber-200 bg-amber-50/30"}`}
+                      className={`grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(260px,1fr)_130px_100px_150px_40px] ${line.productId ? "border-emerald-200 bg-emerald-50/30" : "border-amber-200 bg-amber-50/30"}`}
                     >
                       {line.originalDescription && (
-                        <div className="flex flex-col gap-3 rounded-xl bg-white p-3 lg:col-span-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="flex flex-col gap-3 rounded-xl bg-white p-3 lg:col-span-5 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                               Item encontrado na nota
@@ -524,6 +542,7 @@ export function PurchaseModal({
                               (item) => item.id === targetId,
                             );
                             updateLine(line.id, "productId", value);
+                            updateLine(line.id, "purchaseMode", "pack");
                             updateLine(
                               line.id,
                               "productName",
@@ -547,7 +566,34 @@ export function PurchaseModal({
                         />
                       </label>
                       <label className="grid gap-1 text-xs font-medium text-slate-500">
-                        Qtd. {selectedProduct?.purchase_unit || "UN"}
+                        Comprar como
+                        <select
+                          value={line.purchaseMode}
+                          onChange={(event) =>
+                            updateLine(
+                              line.id,
+                              "purchaseMode",
+                              event.target.value as "pack" | "unit",
+                            )
+                          }
+                          disabled={!selectedProduct || conversion === 1}
+                          className="rounded-xl border bg-white p-3 text-sm font-semibold text-slate-900 disabled:bg-slate-100"
+                        >
+                          <option value="pack">
+                            {selectedProduct?.purchase_unit || "UN"}
+                          </option>
+                          {selectedProduct && conversion > 1 && (
+                            <option value="unit">
+                              {selectedProduct.sale_unit || "UNIDADE"}
+                            </option>
+                          )}
+                        </select>
+                      </label>
+                      <label className="grid gap-1 text-xs font-medium text-slate-500">
+                        Qtd.{" "}
+                        {line.purchaseMode === "unit"
+                          ? selectedProduct?.sale_unit || "UN"
+                          : selectedProduct?.purchase_unit || "UN"}
                         <input
                           type="number"
                           min="1"
@@ -561,7 +607,10 @@ export function PurchaseModal({
                         />
                       </label>
                       <label className="grid gap-1 text-xs font-medium text-slate-500">
-                        Custo por {selectedProduct?.purchase_unit || "unidade"}
+                        Custo por{" "}
+                        {line.purchaseMode === "unit"
+                          ? selectedProduct?.sale_unit || "unidade"
+                          : selectedProduct?.purchase_unit || "unidade"}
                         <input
                           type="number"
                           min="0"
@@ -588,14 +637,17 @@ export function PurchaseModal({
                         <Trash2 size={18} />
                       </button>
                       {selectedProduct && conversion > 1 && (
-                        <p className="rounded-lg bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 lg:col-span-4">
-                          {line.quantity || 0} {selectedProduct.purchase_unit} ={" "}
-                          {Number(line.quantity || 0) * conversion}{" "}
+                        <p className="rounded-lg bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 lg:col-span-5">
+                          {line.quantity || 0}{" "}
+                          {line.purchaseMode === "unit"
+                            ? selectedProduct.sale_unit
+                            : selectedProduct.purchase_unit}{" "}
+                          = {Number(line.quantity || 0) * selectedMultiplier}{" "}
                           {selectedProduct.sale_unit} no estoque
                         </p>
                       )}
                       {hasCostDifference && (
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 lg:col-span-4">
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 lg:col-span-5">
                           <strong className="block font-bold">
                             Custo diferente do cadastro
                           </strong>

@@ -17,30 +17,105 @@ const consentTexts: Record<
   ClinicalConsent["consent_type"],
   { title: string; content: string }
 > = {
-  Procedimento: {
-    title: "Autorização para procedimento",
+  "Exames e procedimento de risco": {
+    title: "Consentimento para exames e procedimentos de risco",
     content:
-      "Declaro que recebi explicações sobre o procedimento indicado, seus benefícios, riscos, alternativas e cuidados posteriores, e autorizo sua realização no paciente.",
+      "Declaro que fui informado sobre os exames e/ou procedimentos diagnósticos indicados, incluindo finalidade, preparo, riscos de reações adversas, complicações e alternativas. Autorizo sua realização e eventuais medidas de emergência necessárias à proteção do paciente.",
   },
-  "Anestesia e cirurgia": {
-    title: "Consentimento anestésico e cirúrgico",
+  "Procedimento terapêutico": {
+    title: "Consentimento para procedimento terapêutico",
     content:
-      "Declaro que fui informado sobre o procedimento anestésico e/ou cirúrgico indicado, seus riscos, exames recomendados, possíveis intercorrências e cuidados pós-operatórios, e autorizo sua realização.",
+      "Declaro que recebi explicações claras sobre o tratamento ou procedimento indicado, benefícios esperados, riscos, alternativas, possibilidade de mudança de conduta e cuidados posteriores. Autorizo sua realização no paciente.",
   },
-  Internação: {
-    title: "Autorização para internação",
+  Cirurgia: {
+    title: "Consentimento para procedimento cirúrgico",
     content:
-      "Autorizo a internação do paciente e os cuidados necessários durante o período, declarando ter recebido informações sobre acompanhamento, medicações, exames e custos estimados.",
+      "Declaro que fui informado sobre a cirurgia indicada, técnica proposta, benefícios, riscos, possíveis complicações, alternativas e cuidados pré e pós-operatórios. Autorizo o procedimento e as medidas adicionais indispensáveis diante de intercorrências.",
+  },
+  "Anestesia e sedação": {
+    title: "Consentimento para anestesia e sedação",
+    content:
+      "Declaro que fui informado sobre o protocolo anestésico ou sedativo, necessidade de jejum e exames, monitoramento, riscos inerentes, possíveis reações e intercorrências. Autorizo a anestesia, sedação e medidas de suporte ou emergência necessárias.",
+  },
+  "Internação e tratamento": {
+    title: "Consentimento para internação e tratamento",
+    content:
+      "Autorizo a internação e o tratamento clínico ou pós-cirúrgico do paciente. Declaro ter recebido informações sobre motivo, cuidados previstos, exames, medicações, monitoramento, riscos, atualizações clínicas e estimativa inicial de custos.",
+  },
+  "Transfusão de sangue": {
+    title: "Consentimento para transfusão sanguínea",
+    content:
+      "Declaro que fui informado sobre a indicação de transfusão de sangue ou hemocomponentes, benefícios, compatibilidade, riscos de reações imediatas ou tardias, transmissão de agentes e necessidade de monitoramento. Autorizo sua realização.",
+  },
+  Odontologia: {
+    title: "Consentimento para procedimento odontológico",
+    content:
+      "Declaro que fui informado sobre avaliação e tratamento odontológico, necessidade de anestesia, radiografias, limpeza, extrações que se mostrarem indicadas, riscos e cuidados posteriores. Autorizo os procedimentos descritos e necessários.",
+  },
+  "Reprodução e obstetrícia": {
+    title: "Consentimento para procedimento reprodutivo ou obstétrico",
+    content:
+      "Declaro que fui informado sobre o atendimento reprodutivo ou obstétrico indicado, riscos para a fêmea e os filhotes, possibilidade de cesariana, perdas fetais, esterilização emergencial quando indispensável e cuidados posteriores. Autorizo a conduta descrita.",
+  },
+  "Isolamento infectocontagioso": {
+    title: "Ciência e autorização para isolamento",
+    content:
+      "Declaro que fui informado sobre a suspeita ou confirmação de doença infectocontagiosa, necessidade de isolamento, medidas de biossegurança, limitações de visita, riscos de transmissão e custos adicionais. Autorizo os cuidados necessários.",
+  },
+  Eutanásia: {
+    title: "Consentimento livre e esclarecido para eutanásia",
+    content:
+      "Declaro que recebi esclarecimentos sobre o estado clínico, prognóstico, alternativas possíveis, finalidade e etapas da eutanásia. Após sanar minhas dúvidas, autorizo livremente a realização do procedimento pelo médico-veterinário, visando evitar sofrimento incompatível com o bem-estar do animal.",
+  },
+  "Retirada do corpo": {
+    title: "Termo de retirada do corpo de animal em óbito",
+    content:
+      "Declaro que fui informado sobre as opções de destinação legal e sanitariamente adequadas e solicito a retirada do corpo do animal, assumindo a responsabilidade por seu transporte e destinação conforme a legislação aplicável.",
+  },
+  "Destinação e cremação": {
+    title: "Autorização para destinação do corpo",
+    content:
+      "Autorizo a destinação do corpo do animal conforme a opção registrada neste documento, incluindo cremação individual, cremação coletiva ou serviço autorizado. Declaro ciência das condições, prazos, identificação e possibilidade ou não de devolução das cinzas.",
+  },
+  Necropsia: {
+    title: "Consentimento para necropsia",
+    content:
+      "Autorizo a realização de necropsia e, quando necessário, coleta e envio de amostras para exames complementares. Declaro ciência da finalidade diagnóstica, das alterações decorrentes do procedimento, dos prazos e da destinação posterior do corpo.",
+  },
+  "Doação para ensino e pesquisa": {
+    title: "Consentimento para doação do corpo para ensino e pesquisa",
+    content:
+      "Autorizo a doação do corpo do animal para atividades de ensino e/ou pesquisa autorizadas, após receber esclarecimentos sobre finalidade, uso, conservação, impossibilidade de devolução e destinação final ética e sanitariamente adequada.",
+  },
+  "Pesquisa clínica": {
+    title: "Consentimento para participação em pesquisa clínica",
+    content:
+      "Declaro que recebi informações sobre objetivo, métodos, duração, benefícios, riscos, custos, confidencialidade e liberdade para retirar o animal da pesquisa sem penalidade. Autorizo voluntariamente sua participação conforme o protocolo apresentado.",
+  },
+  "Retirada sem alta": {
+    title: "Termo de retirada do animal sem alta médica",
+    content:
+      "Solicito a retirada do paciente antes da alta médica, apesar das orientações recebidas. Declaro ciência dos riscos da interrupção do acompanhamento ou tratamento, possíveis agravamentos e cuidados recomendados, assumindo a responsabilidade por esta decisão.",
   },
   "Recusa de tratamento": {
     title: "Termo de recusa de tratamento",
     content:
       "Declaro que recebi orientação sobre o tratamento recomendado, riscos da não realização e possíveis consequências, e opto por recusá-lo neste momento.",
   },
+  "Transporte e remoção": {
+    title: "Consentimento para transporte ou remoção",
+    content:
+      "Autorizo o transporte ou a remoção do paciente para outro serviço, declarando ciência de seu estado clínico, riscos durante o deslocamento, necessidade de suporte, destino informado e responsabilidade pelo acompanhamento conforme combinado.",
+  },
+  "Uso de imagem e dados": {
+    title: "Autorização de uso de imagem e dados clínicos",
+    content:
+      "Autorizo o uso de imagens e informações clínicas do animal para a finalidade especificada neste documento, preservando os dados pessoais do responsável quando aplicável. Estou ciente de que a autorização pode ser delimitada ou revogada para usos futuros.",
+  },
   Outro: {
     title: "Consentimento clínico",
     content:
-      "Declaro que recebi as informações necessárias, tive oportunidade de esclarecer dúvidas e manifesto minha decisão conforme descrito neste documento.",
+      "Declaro que recebi informações em linguagem clara sobre o ato descrito abaixo, seus objetivos, riscos, alternativas e cuidados, tive oportunidade de esclarecer dúvidas e manifesto minha decisão livremente.",
   },
 };
 
@@ -59,10 +134,15 @@ export function ClinicalConsentPanel({
 }) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<ClinicalConsent | null>(null);
-  const [type, setType] =
-    useState<ClinicalConsent["consent_type"]>("Procedimento");
-  const [title, setTitle] = useState(consentTexts.Procedimento.title);
-  const [content, setContent] = useState(consentTexts.Procedimento.content);
+  const [type, setType] = useState<ClinicalConsent["consent_type"]>(
+    "Procedimento terapêutico",
+  );
+  const [title, setTitle] = useState(
+    consentTexts["Procedimento terapêutico"].title,
+  );
+  const [content, setContent] = useState(
+    consentTexts["Procedimento terapêutico"].content,
+  );
   const [signerName, setSignerName] = useState(pet.tutors?.nome || "");
   const [signerDocument, setSignerDocument] = useState("");
   const [saving, setSaving] = useState(false);
@@ -149,7 +229,8 @@ export function ClinicalConsentPanel({
             <h4 className="font-bold">Consentimentos assinados</h4>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            Autorizações, internações e recusas com assinatura do tutor.
+            20 modelos para autorizações, internações, altas, óbito e outros
+            atos.
           </p>
         </div>
         <button
@@ -194,6 +275,11 @@ export function ClinicalConsentPanel({
               </button>
             </header>
             <div className="grid gap-4 p-4 sm:grid-cols-2 sm:p-6">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 sm:col-span-2">
+                Modelo editável. O médico-veterinário deve adaptar o texto ao
+                caso, explicar riscos e alternativas e confirmar a versão
+                adotada pelo responsável técnico.
+              </div>
               <label className="grid gap-2 text-sm font-medium">
                 Tipo
                 <select

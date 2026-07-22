@@ -541,16 +541,33 @@ export interface ClinicalDocumentInput {
   professionalName: string;
 }
 
+export type ClinicalConsentType =
+  | "Exames e procedimento de risco"
+  | "Procedimento terapêutico"
+  | "Cirurgia"
+  | "Anestesia e sedação"
+  | "Internação e tratamento"
+  | "Transfusão de sangue"
+  | "Odontologia"
+  | "Reprodução e obstetrícia"
+  | "Isolamento infectocontagioso"
+  | "Eutanásia"
+  | "Retirada do corpo"
+  | "Destinação e cremação"
+  | "Necropsia"
+  | "Doação para ensino e pesquisa"
+  | "Pesquisa clínica"
+  | "Retirada sem alta"
+  | "Recusa de tratamento"
+  | "Transporte e remoção"
+  | "Uso de imagem e dados"
+  | "Outro";
+
 export interface ClinicalConsent {
   id: number;
   pet_id: number;
   clinical_record_id?: number;
-  consent_type:
-    | "Procedimento"
-    | "Anestesia e cirurgia"
-    | "Internação"
-    | "Recusa de tratamento"
-    | "Outro";
+  consent_type: ClinicalConsentType;
   title: string;
   content: string;
   signer_name: string;

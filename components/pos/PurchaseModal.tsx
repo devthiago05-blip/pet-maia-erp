@@ -475,6 +475,7 @@ export function PurchaseModal({
                           products={products}
                           value={line.productId}
                           pending={!line.productId}
+                          sourceDescription={line.originalDescription}
                           onChange={(value) => {
                             const targetId = Number(value);
                             const product = products.find(
@@ -785,11 +786,13 @@ function ProductAssociationSearch({
   products,
   value,
   pending,
+  sourceDescription,
   onChange,
 }: {
   products: Product[];
   value: string;
   pending: boolean;
+  sourceDescription: string;
   onChange: (value: string) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -814,6 +817,15 @@ function ProductAssociationSearch({
           .join(" "),
       ).includes(normalizedQuery);
     })
+    .map((product) => ({
+      product,
+      score: productMatchScore(normalizedQuery || sourceDescription, product),
+    }))
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        left.product.nome.localeCompare(right.product.nome, "pt-BR"),
+    )
     .slice(0, 40);
   const selectedLabel = selected
     ? `${formatProductName(selected)} · ${selected.sku || selected.barcode || "sem código"}`
@@ -839,7 +851,7 @@ function ProductAssociationSearch({
           if (event.key === "Escape") setOpen(false);
           if (event.key === "Enter" && filtered.length === 1) {
             event.preventDefault();
-            onChange(String(filtered[0]!.id));
+            onChange(String(filtered[0]!.product.id));
             setOpen(false);
           }
         }}
@@ -850,7 +862,7 @@ function ProductAssociationSearch({
       {open && (
         <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border bg-white p-1 shadow-xl">
           {filtered.length ? (
-            filtered.map((product) => (
+            filtered.map(({ product, score }, index) => (
               <button
                 key={product.id}
                 type="button"
@@ -862,9 +874,16 @@ function ProductAssociationSearch({
                 }}
                 className={`block w-full rounded-lg px-3 py-2 text-left hover:bg-purple-50 ${String(product.id) === value ? "bg-purple-50" : ""}`}
               >
-                <strong className="block text-sm text-slate-800">
-                  {formatProductName(product)}
-                </strong>
+                <span className="flex items-start justify-between gap-2">
+                  <strong className="block text-sm text-slate-800">
+                    {formatProductName(product)}
+                  </strong>
+                  {!normalizedQuery && index < 3 && score > 0 && (
+                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                      Sugestão {index + 1}
+                    </span>
+                  )}
+                </span>
                 <span className="text-xs text-slate-500">
                   {product.sku || product.barcode || "Sem código"}
                   {product.categoria ? ` · ${product.categoria}` : ""}
@@ -880,6 +899,38 @@ function ProductAssociationSearch({
       )}
     </div>
   );
+}
+
+function productMatchScore(source: string, product: Product) {
+  const normalizedSource = normalize(source);
+  if (!normalizedSource) return 0;
+
+  const sourceWords = new Set(
+    normalizedSource.split(" ").filter((word) => word.length > 1),
+  );
+  const name = normalize(product.nome);
+  const sku = normalize(product.sku || "");
+  const barcode = normalize(product.barcode || "");
+  const details = normalize(
+    [product.categoria, product.tamanho, product.cor, product.sabor]
+      .filter(Boolean)
+      .join(" "),
+  );
+
+  if (barcode && normalizedSource.includes(barcode)) return 10_000;
+  if (sku && normalizedSource.includes(sku)) return 9_000;
+  if (name === normalizedSource) return 8_000;
+
+  const nameMatches = [...sourceWords].filter((word) =>
+    name.includes(word),
+  ).length;
+  const detailMatches = [...sourceWords].filter((word) =>
+    details.includes(word),
+  ).length;
+  const phraseBonus =
+    name.length > 3 && normalizedSource.includes(name) ? 100 : 0;
+
+  return phraseBonus + nameMatches * 12 + detailMatches * 3;
 }
 
 function normalize(value: string) {

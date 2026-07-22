@@ -507,9 +507,8 @@ export function ProductModal({
                 <ProductInput
                   label="Nome"
                   value={nome}
-                  onChange={(value) =>
-                    setNome(value.toLocaleUpperCase("pt-BR"))
-                  }
+                  uppercase
+                  onChange={setNome}
                 />
                 <label className="grid gap-2 text-sm font-medium">
                   Categoria
@@ -1080,6 +1079,7 @@ function ProductInput({
   value,
   type = "text",
   integer = false,
+  uppercase = false,
   placeholder,
   onChange,
 }: {
@@ -1087,6 +1087,7 @@ function ProductInput({
   value: string;
   type?: string;
   integer?: boolean;
+  uppercase?: boolean;
   placeholder?: string;
   onChange: (value: string) => void;
 }) {
@@ -1100,7 +1101,7 @@ function ProductInput({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 rounded-xl border bg-white p-3 font-normal"
+        className={`min-w-0 rounded-xl border bg-white p-3 font-normal ${uppercase ? "uppercase" : ""}`}
       />
     </label>
   );

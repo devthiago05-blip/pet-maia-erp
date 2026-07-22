@@ -368,7 +368,8 @@ export function QuickProductModal({
               <QuickInput
                 label="Produto"
                 value={nome}
-                onChange={(value) => setNome(value.toLocaleUpperCase("pt-BR"))}
+                uppercase
+                onChange={setNome}
                 placeholder="Ex: Coleira nylon"
               />
               <label className="grid gap-2 text-sm font-medium">
@@ -520,6 +521,7 @@ function QuickInput({
   value,
   type = "text",
   integer = false,
+  uppercase = false,
   placeholder,
   onChange,
 }: {
@@ -527,6 +529,7 @@ function QuickInput({
   value: string;
   type?: string;
   integer?: boolean;
+  uppercase?: boolean;
   placeholder?: string;
   onChange: (value: string) => void;
 }) {
@@ -540,7 +543,7 @@ function QuickInput({
         value={value}
         placeholder={placeholder}
         onChange={(event) => onChange(event.target.value)}
-        className="min-w-0 rounded-xl border bg-white p-3 font-normal"
+        className={`min-w-0 rounded-xl border bg-white p-3 font-normal ${uppercase ? "uppercase" : ""}`}
       />
     </label>
   );

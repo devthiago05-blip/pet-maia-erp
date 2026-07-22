@@ -215,6 +215,21 @@ export async function createProductPurchase({
   });
 }
 
+export async function deleteProductPurchase(purchaseId: number) {
+  const result = await supabase.rpc("delete_product_purchase", {
+    selected_purchase_id: purchaseId,
+  });
+
+  if (!result.error && Array.isArray(result.data) && result.data.length > 0) {
+    const storageResult = await supabase.storage
+      .from("purchase-documents")
+      .remove(result.data as string[]);
+    if (storageResult.error) console.error(storageResult.error);
+  }
+
+  return result;
+}
+
 export async function fetchPurchaseOrders() {
   return supabase
     .from("purchase_orders")

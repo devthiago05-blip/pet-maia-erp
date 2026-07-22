@@ -69,6 +69,7 @@ import {
   createPurchaseOrder,
   createSupplier,
   deletePosQuote,
+  deleteProductPurchase,
   deleteProductStocktakeDraft,
   deleteSuspendedPosSale,
   fetchCurrentPosDiscountLimit,
@@ -993,6 +994,18 @@ export default function PosPage() {
     return Number(data);
   }
 
+  async function handlePurchaseDelete(purchaseId: number) {
+    const { error } = await deleteProductPurchase(purchaseId);
+
+    if (error) {
+      toast.error(error.message);
+      throw error;
+    }
+
+    toast.success("Importação excluída e estoque/financeiro revertidos!");
+    await loadData();
+  }
+
   async function handlePurchaseOrderCreate(input: NewPurchaseOrderInput) {
     const { error } = await createPurchaseOrder(input);
     if (error) {
@@ -1362,6 +1375,7 @@ export default function PosPage() {
               onCreateOrder={handlePurchaseOrderCreate}
               onOrderStatus={handlePurchaseOrderStatus}
               onOrderReceive={handlePurchaseOrderReceive}
+              onDeletePurchase={handlePurchaseDelete}
             />
           ) : view === "quotes" ? (
             <QuotesView
@@ -2284,6 +2298,7 @@ function PurchasesView({
   onCreateOrder,
   onOrderStatus,
   onOrderReceive,
+  onDeletePurchase,
 }: {
   purchases: ProductPurchase[];
   purchaseDocuments: PurchaseDocumentArchive[];
@@ -2297,12 +2312,16 @@ function PurchasesView({
     id: number,
     receipts: Array<{ item_id: number; quantidade: number }>,
   ) => Promise<void>;
+  onDeletePurchase: (id: number) => Promise<void>;
 }) {
   const [supplierFilter, setSupplierFilter] = useState("");
   const [documentFilter, setDocumentFilter] = useState("");
   const [startDateFilter, setStartDateFilter] = useState("");
   const [endDateFilter, setEndDateFilter] = useState("");
   const [onlyWithFile, setOnlyWithFile] = useState(false);
+  const [purchaseToDelete, setPurchaseToDelete] =
+    useState<ProductPurchase | null>(null);
+  const [deletingPurchase, setDeletingPurchase] = useState(false);
 
   const purchaseDocumentIds = useMemo(
     () => new Set(purchaseDocuments.map((item) => item.linked_record_id)),
@@ -2501,7 +2520,7 @@ function PurchasesView({
                   <th className="p-4 text-left">Data</th>
                   <th className="p-4 text-left">Pagamento</th>
                   <th className="p-4 text-left">Total</th>
-                  <th className="p-4 text-right">Arquivo</th>
+                  <th className="p-4 text-right">Arquivo e ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -2547,12 +2566,22 @@ function PurchasesView({
                       </td>
                       <td className="p-4">{formatCurrency(purchase.total)}</td>
                       <td className="p-4 text-right">
-                        <PurchaseDocumentActions
-                          document={purchaseDocuments.find(
-                            (document) =>
-                              document.linked_record_id === purchase.id,
-                          )}
-                        />
+                        <div className="flex flex-col items-end gap-2">
+                          <PurchaseDocumentActions
+                            document={purchaseDocuments.find(
+                              (document) =>
+                                document.linked_record_id === purchase.id,
+                            )}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setPurchaseToDelete(purchase)}
+                            className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2.5 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100"
+                          >
+                            <Trash2 size={14} />
+                            Excluir importação
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -2627,6 +2656,22 @@ function PurchasesView({
           </div>
         </aside>
       </div>
+      <ConfirmationDialog
+        isOpen={Boolean(purchaseToDelete)}
+        title="Excluir importação de compra?"
+        description={`A compra #${String(purchaseToDelete?.id || "").padStart(6, "0")} será excluída. O estoque recebido e os títulos financeiros vinculados serão revertidos. A operação será bloqueada se o estoque já utilizado não puder ser devolvido.`}
+        confirmText={deletingPurchase ? "Excluindo..." : "Excluir e reverter"}
+        onCancel={() => {
+          if (!deletingPurchase) setPurchaseToDelete(null);
+        }}
+        onConfirm={() => {
+          if (!purchaseToDelete || deletingPurchase) return;
+          setDeletingPurchase(true);
+          void onDeletePurchase(purchaseToDelete.id)
+            .then(() => setPurchaseToDelete(null))
+            .finally(() => setDeletingPurchase(false));
+        }}
+      />
     </div>
   );
 }

@@ -349,6 +349,8 @@ No cadastro fracionado, o valor de compra representa a embalagem completa. O ERP
 
 O preço sugerido pode usar arredondamento comercial: valor exato, inteiro mais próximo, final `,90` ou final `,99`. O modo é reaplicado automaticamente quando custo, quantidade por embalagem ou margem são alterados. Os finais `,90` e `,99` nunca reduzem o preço abaixo do cálculo da margem.
 
+No histórico de Compras, a ação **Excluir importação** desfaz a operação completa após confirmação: reverte as unidades recebidas no estoque, remove os títulos financeiros vinculados, exclui o registro da compra e remove o arquivo importado. A exclusão é bloqueada quando o estoque atual é insuficiente para devolver todas as unidades daquela entrada, evitando saldo negativo.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

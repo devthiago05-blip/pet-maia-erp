@@ -2332,6 +2332,81 @@ function PurchasesView({
       supplierFilter,
     ],
   );
+  const supplierComparison = useMemo(() => {
+    const minimumCostByProduct = new Map<number, number>();
+    const suppliersByProduct = new Map<number, Set<string>>();
+
+    filteredPurchases.forEach((purchase) => {
+      purchase.product_purchase_items?.forEach((item) => {
+        const cost = Number(item.custo_unitario);
+        const supplierKey = String(
+          purchase.supplier_id || purchase.suppliers?.nome || "unknown",
+        );
+        const currentMinimum = minimumCostByProduct.get(item.product_id);
+        if (currentMinimum === undefined || cost < currentMinimum) {
+          minimumCostByProduct.set(item.product_id, cost);
+        }
+        const productSuppliers =
+          suppliersByProduct.get(item.product_id) || new Set<string>();
+        productSuppliers.add(supplierKey);
+        suppliersByProduct.set(item.product_id, productSuppliers);
+      });
+    });
+
+    const comparison = new Map<
+      string,
+      {
+        supplierId?: number;
+        name: string;
+        purchaseCount: number;
+        total: number;
+        productIds: Set<number>;
+        bestPriceCount: number;
+        comparedItemCount: number;
+        lastPurchaseDate: string;
+      }
+    >();
+
+    filteredPurchases.forEach((purchase) => {
+      const name = purchase.suppliers?.nome || "Fornecedor não informado";
+      const key = String(purchase.supplier_id || name);
+      const current = comparison.get(key) || {
+        supplierId: purchase.supplier_id,
+        name,
+        purchaseCount: 0,
+        total: 0,
+        productIds: new Set<number>(),
+        bestPriceCount: 0,
+        comparedItemCount: 0,
+        lastPurchaseDate: "",
+      };
+
+      current.purchaseCount += 1;
+      current.total += Number(purchase.total || 0);
+      if (purchase.data_compra > current.lastPurchaseDate) {
+        current.lastPurchaseDate = purchase.data_compra;
+      }
+      purchase.product_purchase_items?.forEach((item) => {
+        const cost = Number(item.custo_unitario);
+        const minimum = minimumCostByProduct.get(item.product_id);
+        current.productIds.add(item.product_id);
+        if ((suppliersByProduct.get(item.product_id)?.size || 0) > 1) {
+          current.comparedItemCount += 1;
+          if (minimum !== undefined && Math.abs(cost - minimum) < 0.01) {
+            current.bestPriceCount += 1;
+          }
+        }
+      });
+      comparison.set(key, current);
+    });
+
+    return [...comparison.values()].sort(
+      (left, right) =>
+        right.bestPriceCount - left.bestPriceCount ||
+        right.purchaseCount - left.purchaseCount ||
+        right.total - left.total,
+    );
+  }, [filteredPurchases]);
 
   function clearPurchaseFilters() {
     setSupplierFilter("");
@@ -2486,20 +2561,65 @@ function PurchasesView({
           </div>
         </div>
 
-        <aside className="rounded-xl border bg-white p-4">
-          <h2 className="font-bold">Fornecedores</h2>
-          <div className="mt-3 divide-y">
-            {suppliers.length === 0 ? (
+        <aside className="self-start rounded-xl border bg-white p-4 xl:sticky xl:top-4">
+          <h2 className="font-bold">Comparativo de fornecedores</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Resultado baseado nas compras exibidas pelos filtros.
+          </p>
+          <div className="mt-3 space-y-3">
+            {supplierComparison.length === 0 ? (
               <p className="py-4 text-sm text-slate-500">
-                Nenhum fornecedor cadastrado.
+                Nenhuma compra disponível para comparar.
               </p>
             ) : (
-              suppliers.map((supplier) => (
-                <div key={supplier.id} className="py-3">
-                  <p className="font-medium">{supplier.nome}</p>
-                  <p className="text-xs text-slate-500">
-                    {supplier.contato || supplier.telefone || "Sem contato"}
-                  </p>
+              supplierComparison.map((supplier, index) => (
+                <div
+                  key={`${supplier.supplierId || "unknown"}-${supplier.name}`}
+                  className={`rounded-xl border p-3 ${index === 0 ? "border-emerald-200 bg-emerald-50/60" : "bg-slate-50/60"}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-slate-900">
+                        {supplier.name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Última compra: {formatDate(supplier.lastPurchaseDate)}
+                      </p>
+                    </div>
+                    {index === 0 && supplier.bestPriceCount > 0 && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-bold uppercase text-emerald-700">
+                        Melhor custo
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="rounded-lg bg-white p-2">
+                      <span className="block text-slate-500">Compras</span>
+                      <strong>{supplier.purchaseCount}</strong>
+                    </div>
+                    <div className="rounded-lg bg-white p-2">
+                      <span className="block text-slate-500">Total</span>
+                      <strong>{formatCurrency(supplier.total)}</strong>
+                    </div>
+                    <div className="rounded-lg bg-white p-2">
+                      <span className="block text-slate-500">Ticket médio</span>
+                      <strong>
+                        {formatCurrency(
+                          supplier.total / supplier.purchaseCount,
+                        )}
+                      </strong>
+                    </div>
+                    <div className="rounded-lg bg-white p-2">
+                      <span className="block text-slate-500">Produtos</span>
+                      <strong>{supplier.productIds.size}</strong>
+                    </div>
+                  </div>
+                  {supplier.comparedItemCount > 0 && (
+                    <p className="mt-2 text-xs font-semibold text-slate-600">
+                      Menor custo em {supplier.bestPriceCount} de{" "}
+                      {supplier.comparedItemCount} item(ns) comparado(s)
+                    </p>
+                  )}
                 </div>
               ))
             )}

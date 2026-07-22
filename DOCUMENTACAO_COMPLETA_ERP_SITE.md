@@ -341,6 +341,8 @@ Ao importar XML, PDF ou foto de uma nota, cada item não associado oferece **Cad
 
 Para produtos comprados em pack e vendidos separadamente, o estoque é controlado pela unidade de venda. Exemplo: em `1 PACK = 15 SACHÊS`, a entrada de um pack adiciona 15 sachês. A lista de produtos e o seletor do PDV exibem simultaneamente packs e sachês, identificando o pack aberto. Cada sachê vendido reduz o saldo e o pack somente chega a zero quando o 15º sachê é vendido.
 
+O mesmo controle atende medicamentos e outras embalagens fracionadas, como `CAIXA → CARTELA`, `CAIXA → COMPRIMIDO` e `FARDO → PACOTE`. O cadastro oferece atalhos para essas combinações. A unidade amigável usada no estoque e no PDV é separada da unidade comercial fiscal, que permanece `UN` para manter compatibilidade com a NFC-e.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

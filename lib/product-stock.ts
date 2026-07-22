@@ -11,9 +11,25 @@ function normalizeUnit(unit: string | undefined, fallback: string) {
 
 function pluralizeUnit(unit: string, quantity: number) {
   if (quantity === 1) return unit;
-  if (unit === "PACK") return "PACKS";
-  if (unit === "SACHÊ") return "SACHÊS";
-  return unit;
+  const plurals: Record<string, string> = {
+    PACK: "PACKS",
+    PACOTE: "PACOTES",
+    CAIXA: "CAIXAS",
+    FARDO: "FARDOS",
+    CARTELA: "CARTELAS",
+    COMPRIMIDO: "COMPRIMIDOS",
+    CÁPSULA: "CÁPSULAS",
+    FRASCO: "FRASCOS",
+    AMPOLA: "AMPOLAS",
+    SACHÊ: "SACHÊS",
+    UN: "UN",
+  };
+  return plurals[unit] || unit;
+}
+
+function openContainerLabel(unit: string) {
+  const feminine = ["CAIXA", "CARTELA"].includes(unit);
+  return `${feminine ? "na" : "no"} ${unit.toLowerCase()} ${feminine ? "aberta" : "aberto"}`;
 }
 
 export function getPackStockBreakdown(product: PackStockProduct) {
@@ -28,7 +44,7 @@ export function getPackStockBreakdown(product: PackStockProduct) {
   const isPack =
     unitsPerPack > 1 &&
     purchaseUnit !== fiscalSaleUnit &&
-    ["PACK", "PACOTE", "CAIXA", "FARDO"].includes(purchaseUnit);
+    ["PACK", "PACOTE", "CAIXA", "FARDO", "FRASCO"].includes(purchaseUnit);
 
   if (!isPack) return null;
 
@@ -60,7 +76,7 @@ export function formatPackStock(product: PackStockProduct) {
     summary: `${packsInStock} ${packLabel} · ${stock} ${saleLabel}`,
     detail:
       packsInStock > 0 && unitsInOpenPack > 0
-        ? `${unitsInOpenPack} ${pluralizeUnit(saleUnit, unitsInOpenPack)} no pack aberto`
+        ? `${unitsInOpenPack} ${pluralizeUnit(saleUnit, unitsInOpenPack)} ${openContainerLabel(purchaseUnit)}`
         : `${breakdown.unitsPerPack} ${pluralizeUnit(saleUnit, breakdown.unitsPerPack)} por ${purchaseUnit.toLowerCase()}`,
   };
 }

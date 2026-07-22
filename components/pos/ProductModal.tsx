@@ -600,7 +600,7 @@ export function ProductModal({
                       .toUpperCase()
                       .slice(0, 12);
                     setSaleUnit(normalized);
-                    setUnidadeComercial(normalized || "UN");
+                    if (!unidadeComercial) setUnidadeComercial("UN");
                   }}
                   placeholder="CARTELA"
                 />
@@ -612,6 +612,27 @@ export function ProductModal({
                   onChange={setUnitsPerPurchase}
                   placeholder="Ex.: 10"
                 />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[
+                  ["CAIXA", "CARTELA", "Caixa → cartela"],
+                  ["CAIXA", "COMPRIMIDO", "Caixa → comprimido"],
+                  ["PACK", "SACHÊ", "Pack → sachê"],
+                  ["FARDO", "PACOTE", "Fardo → pacote"],
+                ].map(([purchase, sale, label]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => {
+                      setPurchaseUnit(purchase);
+                      setSaleUnit(sale);
+                      setUnidadeComercial("UN");
+                    }}
+                    className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:border-emerald-400"
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
               <p className="mt-3 rounded-xl bg-white p-3 text-sm font-medium text-emerald-800">
                 Ao comprar 1 {purchaseUnit || "embalagem"}, entrarão{" "}

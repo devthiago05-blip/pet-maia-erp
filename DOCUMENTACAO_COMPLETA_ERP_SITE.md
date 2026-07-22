@@ -331,6 +331,7 @@ Rotas: `/clinica`, `/pets/[id]` e receita pública `/receita/[token]`.
 - Internação, evolução, alta e agenda de medicamentos administrados.
 - Perfis profissionais com CRMV, UF, MAPA e assinatura.
 - Consentimentos clínicos vinculados ao pet, com 20 modelos editáveis: exames de risco, terapêutica, cirurgia, anestesia/sedação, internação, transfusão, odontologia, reprodução/obstetrícia, isolamento, eutanásia, retirada/destinação do corpo, necropsia, doação para ensino, pesquisa clínica, retirada sem alta, recusa de tratamento, transporte e uso de imagem/dados. O tutor assina na tela com dedo, caneta ou mouse; o sistema preserva o texto aceito, responsável, documento opcional, data/hora e profissional, permitindo impressão ou PDF posterior. Os modelos devem ser revisados pelo responsável técnico e adaptados ao caso concreto.
+- Cada termo também possui a opção **Assinar com caneta**, que gera uma página pronta para impressão com identificação do paciente e tutor, CPF/RG, local/data e campos separados para assinatura manual do responsável e do médico-veterinário com carimbo/CRMV.
 
 Serviço: `services/clinical.ts`.
 

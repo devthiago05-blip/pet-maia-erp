@@ -134,6 +134,7 @@ export function ClinicalConsentPanel({
 }) {
   const [open, setOpen] = useState(false);
   const [preview, setPreview] = useState<ClinicalConsent | null>(null);
+  const [paperPreview, setPaperPreview] = useState(false);
   const [type, setType] = useState<ClinicalConsent["consent_type"]>(
     "Procedimento terapêutico",
   );
@@ -218,6 +219,10 @@ export function ClinicalConsentPanel({
     } finally {
       setSaving(false);
     }
+  }
+
+  function openPaperPreview() {
+    setPaperPreview(true);
   }
 
   return (
@@ -357,7 +362,7 @@ export function ClinicalConsentPanel({
                 </p>
               </div>
             </div>
-            <footer className="grid gap-3 border-t p-4 sm:grid-cols-2">
+            <footer className="grid gap-3 border-t p-4 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
@@ -367,11 +372,103 @@ export function ClinicalConsentPanel({
               </button>
               <button
                 type="button"
+                onClick={openPaperPreview}
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#8A0EEA] py-3 font-medium text-[#8A0EEA]"
+              >
+                <Printer size={18} /> Assinar com caneta
+              </button>
+              <button
+                type="button"
                 disabled={saving}
                 onClick={save}
                 className="rounded-xl bg-emerald-600 py-3 font-medium text-white disabled:opacity-50"
               >
                 {saving ? "Salvando..." : "Finalizar e guardar assinatura"}
+              </button>
+            </footer>
+          </div>
+        </div>
+      )}
+      {paperPreview && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto bg-black/45 p-3 sm:p-6">
+          <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white">
+            <header className="flex items-center justify-between border-b p-4 print:hidden">
+              <div>
+                <h2 className="font-bold">Versão para assinatura com caneta</h2>
+                <p className="text-sm text-slate-500">
+                  Confira o texto e imprima duas vias, se necessário.
+                </p>
+              </div>
+              <button
+                aria-label="Fechar"
+                onClick={() => setPaperPreview(false)}
+              >
+                <X />
+              </button>
+            </header>
+            <article className="receipt-print-area min-h-[980px] space-y-7 p-6 text-slate-900 sm:p-10">
+              <BrandLogo className="mx-auto max-w-[240px]" />
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <p>
+                  <b>Paciente:</b> {pet.nome}
+                </p>
+                <p>
+                  <b>Tutor:</b> {pet.tutors?.nome || "-"}
+                </p>
+                <p>
+                  <b>Espécie:</b> {pet.especie || "-"}
+                </p>
+                <p>
+                  <b>Raça:</b> {pet.raca || "-"}
+                </p>
+              </div>
+              <div>
+                <h1 className="text-center text-xl font-bold">{title}</h1>
+                <p className="mt-6 whitespace-pre-wrap text-justify leading-7">
+                  {content}
+                </p>
+              </div>
+              <div className="space-y-5 pt-4 text-sm">
+                <p>
+                  <b>Nome do responsável:</b>{" "}
+                  {signerName || "________________________________________"}
+                </p>
+                <p>
+                  <b>CPF/RG:</b>{" "}
+                  {signerDocument || "________________________________________"}
+                </p>
+                <p>
+                  <b>Local e data:</b> ________________________________________,
+                  ____/____/________
+                </p>
+              </div>
+              <div className="grid gap-16 pt-20 text-center sm:grid-cols-2">
+                <div className="border-t border-slate-700 pt-2 text-sm">
+                  Assinatura do responsável
+                </div>
+                <div className="border-t border-slate-700 pt-2 text-sm">
+                  {professionalName || "Médico-veterinário"}
+                  <br />
+                  Assinatura e carimbo/CRMV
+                </div>
+              </div>
+              <p className="pt-10 text-center text-xs text-slate-500">
+                Declaro que tive oportunidade de fazer perguntas e recebi
+                esclarecimentos em linguagem compreensível.
+              </p>
+            </article>
+            <footer className="grid gap-3 border-t p-4 print:hidden sm:grid-cols-2">
+              <button
+                onClick={() => setPaperPreview(false)}
+                className="rounded-xl border py-3"
+              >
+                Voltar
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#8A0EEA] py-3 text-white"
+              >
+                <Printer size={18} /> Imprimir termo
               </button>
             </footer>
           </div>

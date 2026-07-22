@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { PurchaseDocumentActions } from "@/components/purchases/PurchaseDocumentActions";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   createGroomerDailyPayment,
@@ -27,6 +28,7 @@ import {
   fetchGroomingSupplyMovements,
   updateGroomingEquipment,
 } from "@/services/grooming";
+import { fetchPurchaseDocuments } from "@/services/purchase-recognition";
 import type {
   GroomerDailyPayment,
   GroomingEquipment,
@@ -39,6 +41,7 @@ import type {
   GroomingSupplyMovement,
   GroomingSupplyMovementType,
 } from "@/types/domain";
+import type { PurchaseDocumentArchive } from "@/types/purchase-recognition";
 
 type ActiveTab =
   | "insumos"
@@ -122,6 +125,9 @@ export function GroomingSuppliesManager() {
 
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [movements, setMovements] = useState<GroomingSupplyMovement[]>([]);
+  const [purchaseDocuments, setPurchaseDocuments] = useState<
+    PurchaseDocumentArchive[]
+  >([]);
   const [dailyPayments, setDailyPayments] = useState<GroomerDailyPayment[]>([]);
   const [equipment, setEquipment] = useState<GroomingEquipment[]>([]);
   const [equipmentServices, setEquipmentServices] = useState<
@@ -198,21 +204,23 @@ export function GroomingSuppliesManager() {
       paymentsResponse,
       equipmentResponse,
       equipmentServicesResponse,
-    ] =
-      await Promise.all([
-        fetchGroomingSupplies(),
-        fetchGroomingSupplyMovements(),
-        fetchGroomerDailyPayments(),
-        fetchGroomingEquipment(),
-        fetchGroomingEquipmentServices(),
-      ]);
+      purchaseDocumentsResponse,
+    ] = await Promise.all([
+      fetchGroomingSupplies(),
+      fetchGroomingSupplyMovements(),
+      fetchGroomerDailyPayments(),
+      fetchGroomingEquipment(),
+      fetchGroomingEquipmentServices(),
+      fetchPurchaseDocuments("grooming"),
+    ]);
 
     if (
       isMissingGroomingSchemaError(suppliesResponse.error) ||
       isMissingGroomingSchemaError(movementsResponse.error) ||
       isMissingGroomingSchemaError(paymentsResponse.error) ||
       isMissingGroomingSchemaError(equipmentResponse.error) ||
-      isMissingGroomingSchemaError(equipmentServicesResponse.error)
+      isMissingGroomingSchemaError(equipmentServicesResponse.error) ||
+      isMissingGroomingSchemaError(purchaseDocumentsResponse.error)
     ) {
       setSetupMissing(true);
       setLoading(false);
@@ -231,6 +239,13 @@ export function GroomingSuppliesManager() {
       toast.error("Não foi possível carregar as movimentações.");
     } else {
       setMovements((movementsResponse.data || []) as GroomingSupplyMovement[]);
+    }
+
+    if (purchaseDocumentsResponse.error) {
+      console.error(purchaseDocumentsResponse.error);
+      toast.error("Não foi possível carregar os documentos das compras.");
+    } else {
+      setPurchaseDocuments(purchaseDocumentsResponse.data || []);
     }
 
     if (paymentsResponse.error) {
@@ -269,6 +284,31 @@ export function GroomingSuppliesManager() {
     () => supplies.filter((supply) => supply.active),
     [supplies],
   );
+
+  const documentByMovementId = useMemo(() => {
+    const documentsByDirectId = new Map(
+      purchaseDocuments.map((document) => [
+        document.linked_record_id,
+        document,
+      ]),
+    );
+    const documentByGroup = new Map<string, PurchaseDocumentArchive>();
+    movements.forEach((movement) => {
+      const document = documentsByDirectId.get(movement.id);
+      if (document && movement.purchase_group_id) {
+        documentByGroup.set(movement.purchase_group_id, document);
+      }
+    });
+    return new Map(
+      movements.map((movement) => [
+        movement.id,
+        documentsByDirectId.get(movement.id) ||
+          (movement.purchase_group_id
+            ? documentByGroup.get(movement.purchase_group_id)
+            : undefined),
+      ]),
+    );
+  }, [movements, purchaseDocuments]);
   const activeEquipment = useMemo(
     () => equipment.filter((item) => item.active),
     [equipment],
@@ -1039,6 +1079,7 @@ export function GroomingSuppliesManager() {
                         <th className="p-3">Total</th>
                         <th className="p-3">Validade</th>
                         <th className="p-3">Pagamento</th>
+                        <th className="p-3 text-right">Arquivo</th>
                         <th className="p-3 text-right">Ações</th>
                       </tr>
                     </thead>
@@ -1071,6 +1112,11 @@ export function GroomingSuppliesManager() {
                           </td>
                           <td className="p-3">{movement.payment_status}</td>
                           <td className="p-3 text-right">
+                            <PurchaseDocumentActions
+                              document={documentByMovementId.get(movement.id)}
+                            />
+                          </td>
+                          <td className="p-3 text-right">
                             <button
                               type="button"
                               onClick={() => setMovementToDelete(movement)}
@@ -1086,7 +1132,7 @@ export function GroomingSuppliesManager() {
                       {movements.length === 0 && (
                         <tr>
                           <td
-                            colSpan={8}
+                            colSpan={9}
                             className="p-6 text-center text-slate-500"
                           >
                             Nenhuma movimentação registrada.
@@ -1392,7 +1438,9 @@ export function GroomingSuppliesManager() {
                     onClick={handleSaveEquipment}
                     className="rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
                   >
-                    {editingEquipment ? "Atualizar equipamento" : "Salvar equipamento"}
+                    {editingEquipment
+                      ? "Atualizar equipamento"
+                      : "Salvar equipamento"}
                   </button>
                   {editingEquipment && (
                     <button
@@ -1579,33 +1627,36 @@ export function GroomingSuppliesManager() {
                         {equipment
                           .filter((item) => item.active)
                           .map((item) => (
-                          <tr key={item.id} className="border-b">
-                            <td className="p-3 font-semibold">{item.name}</td>
-                            <td className="p-3">{item.equipment_type}</td>
-                            <td className="p-3">{item.size_or_model || "-"}</td>
-                            <td className="p-3">{item.supplier || "-"}</td>
-                            <td className="p-3">{item.status}</td>
-                            <td className="p-3">
-                              <div className="flex gap-3">
-                                <button
-                                  type="button"
-                                  onClick={() => handleEditEquipment(item)}
-                                  className="font-semibold text-blue-600"
-                                >
-                                  Editar
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => setEquipmentToDelete(item)}
-                                  className="font-semibold text-red-600"
-                                >
-                                  Excluir
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                        {equipment.filter((item) => item.active).length === 0 && (
+                            <tr key={item.id} className="border-b">
+                              <td className="p-3 font-semibold">{item.name}</td>
+                              <td className="p-3">{item.equipment_type}</td>
+                              <td className="p-3">
+                                {item.size_or_model || "-"}
+                              </td>
+                              <td className="p-3">{item.supplier || "-"}</td>
+                              <td className="p-3">{item.status}</td>
+                              <td className="p-3">
+                                <div className="flex gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditEquipment(item)}
+                                    className="font-semibold text-blue-600"
+                                  >
+                                    Editar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEquipmentToDelete(item)}
+                                    className="font-semibold text-red-600"
+                                  >
+                                    Excluir
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        {equipment.filter((item) => item.active).length ===
+                          0 && (
                           <tr>
                             <td
                               colSpan={6}

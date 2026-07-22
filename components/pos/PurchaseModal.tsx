@@ -60,12 +60,14 @@ export function PurchaseModal({
   categories,
   onProductSave,
   onSave,
+  onDocumentArchived,
 }: {
   products: Product[];
   suppliers: Supplier[];
   categories: ProductCategory[];
   onProductSave: (products: Array<NewProductInput | Product>) => Promise<void>;
   onSave: (purchase: PurchaseInput) => Promise<number>;
+  onDocumentArchived?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
@@ -283,6 +285,7 @@ export function PurchaseModal({
             supplierName: supplier?.nome,
           });
           toast.success("Documento original arquivado com a compra.");
+          await onDocumentArchived?.();
         } catch (error) {
           toast.error(
             error instanceof Error

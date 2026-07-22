@@ -39,6 +39,7 @@ import { SaleReturnModal } from "@/components/pos/SaleReturnModal";
 import { StocktakeView } from "@/components/pos/StocktakeView";
 import { SupplierModal } from "@/components/pos/SupplierModal";
 import { SuspendedSalesPanel } from "@/components/pos/SuspendedSalesPanel";
+import { PurchaseDocumentActions } from "@/components/purchases/PurchaseDocumentActions";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { financialPaymentMethods } from "@/lib/financial-options";
@@ -90,6 +91,7 @@ import {
   updatePosQuote,
   updateProduct,
 } from "@/services/pos";
+import { fetchPurchaseDocuments } from "@/services/purchase-recognition";
 import { fetchTutors } from "@/services/tutors";
 import type {
   NewProductCategoryInput,
@@ -109,6 +111,7 @@ import type {
   SuspendedPosSale,
   Tutor,
 } from "@/types/domain";
+import type { PurchaseDocumentArchive } from "@/types/purchase-recognition";
 
 interface CartItem {
   product: Product;
@@ -212,6 +215,9 @@ export default function PosPage() {
   const [cashRegisters, setCashRegisters] = useState<PosCashRegister[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [purchases, setPurchases] = useState<ProductPurchase[]>([]);
+  const [purchaseDocuments, setPurchaseDocuments] = useState<
+    PurchaseDocumentArchive[]
+  >([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [stocktakes, setStocktakes] = useState<ProductStocktake[]>([]);
   const [stocktakeDraft, setStocktakeDraft] =
@@ -328,6 +334,7 @@ export default function PosPage() {
       tutorsResponse,
       suppliersResponse,
       purchasesResponse,
+      purchaseDocumentsResponse,
       purchaseOrdersResponse,
       stocktakesResponse,
       stocktakeDraftResponse,
@@ -342,6 +349,7 @@ export default function PosPage() {
       fetchTutors(),
       fetchSuppliers(),
       fetchProductPurchases(),
+      fetchPurchaseDocuments("pdv"),
       fetchPurchaseOrders(),
       fetchProductStocktakes(),
       fetchProductStocktakeDraft(),
@@ -358,6 +366,7 @@ export default function PosPage() {
       tutorsResponse.error ||
       suppliersResponse.error ||
       purchasesResponse.error ||
+      purchaseDocumentsResponse.error ||
       purchaseOrdersResponse.error ||
       stocktakesResponse.error ||
       stocktakeDraftResponse.error;
@@ -382,6 +391,7 @@ export default function PosPage() {
     setTutors(tutorsResponse.data || []);
     setSuppliers(suppliersResponse.data || []);
     setPurchases((purchasesResponse.data || []) as ProductPurchase[]);
+    setPurchaseDocuments(purchaseDocumentsResponse.data || []);
     setPurchaseOrders((purchaseOrdersResponse.data || []) as PurchaseOrder[]);
     setStocktakes((stocktakesResponse.data || []) as ProductStocktake[]);
     setStocktakeDraft(
@@ -1202,6 +1212,7 @@ export default function PosPage() {
                   categories={categories}
                   onProductSave={handleProductSave}
                   onSave={handlePurchaseSave}
+                  onDocumentArchived={loadData}
                 />
               </div>
             )}
@@ -1341,6 +1352,7 @@ export default function PosPage() {
           ) : view === "purchases" ? (
             <PurchasesView
               purchases={purchases}
+              purchaseDocuments={purchaseDocuments}
               purchaseOrders={purchaseOrders}
               suppliers={suppliers}
               products={products}
@@ -2262,6 +2274,7 @@ function PrintMetric({
 
 function PurchasesView({
   purchases,
+  purchaseDocuments,
   purchaseOrders,
   suppliers,
   products,
@@ -2271,6 +2284,7 @@ function PurchasesView({
   onOrderReceive,
 }: {
   purchases: ProductPurchase[];
+  purchaseDocuments: PurchaseDocumentArchive[];
   purchaseOrders: PurchaseOrder[];
   suppliers: Supplier[];
   products: Product[];
@@ -2311,12 +2325,13 @@ function PurchasesView({
                   <th className="p-4 text-left">Data</th>
                   <th className="p-4 text-left">Pagamento</th>
                   <th className="p-4 text-left">Total</th>
+                  <th className="p-4 text-right">Arquivo</th>
                 </tr>
               </thead>
               <tbody>
                 {purchases.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
                       Nenhuma compra registrada.
                     </td>
                   </tr>
@@ -2355,6 +2370,14 @@ function PurchasesView({
                         )}
                       </td>
                       <td className="p-4">{formatCurrency(purchase.total)}</td>
+                      <td className="p-4 text-right">
+                        <PurchaseDocumentActions
+                          document={purchaseDocuments.find(
+                            (document) =>
+                              document.linked_record_id === purchase.id,
+                          )}
+                        />
+                      </td>
                     </tr>
                   ))
                 )}

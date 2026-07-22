@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import type { PurchaseDocumentArchive } from "@/types/purchase-recognition";
 
 export type PurchaseMappingKind = "pdv" | "grooming";
 
@@ -104,4 +105,28 @@ export async function archivePurchaseDocument({
     await supabase.storage.from("purchase-documents").remove([path]);
     throw saved.error;
   }
+}
+
+export async function fetchPurchaseDocuments(
+  destinationKind: PurchaseMappingKind,
+) {
+  return supabase
+    .from("purchase_documents")
+    .select(
+      "id, destination_kind, linked_record_id, document_number, supplier_name, original_name, mime_type, file_size, storage_path, created_at",
+    )
+    .eq("destination_kind", destinationKind)
+    .order("created_at", { ascending: false })
+    .returns<PurchaseDocumentArchive[]>();
+}
+
+export async function createPurchaseDocumentUrl(
+  document: PurchaseDocumentArchive,
+  download = false,
+) {
+  return supabase.storage
+    .from("purchase-documents")
+    .createSignedUrl(document.storage_path, 60, {
+      download: download ? document.original_name : undefined,
+    });
 }

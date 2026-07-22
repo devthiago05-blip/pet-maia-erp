@@ -18,3 +18,16 @@ export interface RecognizedPurchaseDocument {
   source: "xml" | "pdf" | "image" | "text";
   warnings: string[];
 }
+
+export interface PurchaseDocumentArchive {
+  id: number;
+  destination_kind: "pdv" | "grooming";
+  linked_record_id: number;
+  document_number?: string;
+  supplier_name?: string;
+  original_name: string;
+  mime_type: string;
+  file_size: number;
+  storage_path: string;
+  created_at: string;
+}

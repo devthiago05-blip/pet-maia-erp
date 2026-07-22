@@ -12,8 +12,10 @@ import {
   fetchActiveGroomingSupplies,
 } from "@/services/grooming";
 import {
+  archivePurchaseDocument,
   fetchPurchaseItemMappings,
   normalizePurchaseDescription,
+  type PurchaseDocumentFile,
   savePurchaseItemMapping,
 } from "@/services/purchase-recognition";
 import type { GroomingSupply } from "@/types/domain";
@@ -56,6 +58,8 @@ export function GroomingSupplyBatchEntryForm() {
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [importedDocument, setImportedDocument] =
+    useState<PurchaseDocumentFile | null>(null);
   const [savedMappings, setSavedMappings] = useState<Record<string, number>>(
     {},
   );
@@ -143,8 +147,9 @@ export function GroomingSupplyBatchEntryForm() {
 
   function applyRecognizedDocument(
     document: RecognizedPurchaseDocument,
-    file: File,
+    source: PurchaseDocumentFile,
   ) {
+    setImportedDocument(source);
     const recognizedItems = document.items.map((recognized) => {
       const mappedId =
         savedMappings[normalizePurchaseDescription(recognized.description)];
@@ -170,7 +175,11 @@ export function GroomingSupplyBatchEntryForm() {
     if (document.dueDate) setDueDate(document.dueDate);
     if (document.paymentMethod) setPaymentMethod(document.paymentMethod);
     setNotes((current) =>
-      [current, `Documento importado: ${file.name}`, ...document.warnings]
+      [
+        current,
+        `Documento importado: ${source.file.name}`,
+        ...document.warnings,
+      ]
         .filter(Boolean)
         .join(" · "),
     );
@@ -249,6 +258,26 @@ export function GroomingSupplyBatchEntryForm() {
       return;
     }
 
+    if (importedDocument) {
+      try {
+        const firstMovementId = Number(response.data?.[0]?.id);
+        await archivePurchaseDocument({
+          document: importedDocument,
+          destinationKind: "grooming",
+          linkedRecordId: firstMovementId,
+          documentNumber,
+          supplierName: supplier,
+        });
+        toast.success("Documento original arquivado com a compra.");
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? `A entrada foi salva, mas o arquivo não foi arquivado: ${error.message}`
+            : "A entrada foi salva, mas o arquivo não foi arquivado.",
+        );
+      }
+    }
+
     toast.success("Entrada por nota salva com sucesso.");
 
     setDocumentNumber("");
@@ -258,6 +287,7 @@ export function GroomingSupplyBatchEntryForm() {
     setPaymentMethod("");
     setDueDate("");
     setNotes("");
+    setImportedDocument(null);
     setItems([createEmptyItem()]);
   }
 

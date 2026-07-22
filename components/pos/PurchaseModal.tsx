@@ -8,8 +8,10 @@ import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import { PurchaseDocumentImporter } from "@/components/purchases/PurchaseDocumentImporter";
 import { formatCurrency, formatProductName } from "@/lib/formatters";
 import {
+  archivePurchaseDocument,
   fetchPurchaseItemMappings,
   normalizePurchaseDescription,
+  type PurchaseDocumentFile,
   savePurchaseItemMapping,
 } from "@/services/purchase-recognition";
 import type {
@@ -63,7 +65,7 @@ export function PurchaseModal({
   suppliers: Supplier[];
   categories: ProductCategory[];
   onProductSave: (products: Array<NewProductInput | Product>) => Promise<void>;
-  onSave: (purchase: PurchaseInput) => Promise<void>;
+  onSave: (purchase: PurchaseInput) => Promise<number>;
 }) {
   const [open, setOpen] = useState(false);
   const [supplierId, setSupplierId] = useState("");
@@ -89,6 +91,8 @@ export function PurchaseModal({
     },
   ]);
   const [saving, setSaving] = useState(false);
+  const [importedDocument, setImportedDocument] =
+    useState<PurchaseDocumentFile | null>(null);
   const [savedMappings, setSavedMappings] = useState<Record<string, number>>(
     {},
   );
@@ -149,8 +153,9 @@ export function PurchaseModal({
 
   function applyRecognizedDocument(
     document: RecognizedPurchaseDocument,
-    file: File,
+    source: PurchaseDocumentFile,
   ) {
+    setImportedDocument(source);
     const recognizedLines = document.items.map((item, index) => {
       const mappedId =
         savedMappings[normalizePurchaseDescription(item.description)];
@@ -192,7 +197,11 @@ export function PurchaseModal({
         },
       ]);
     setNotes((current) =>
-      [current, `Documento importado: ${file.name}`, ...document.warnings]
+      [
+        current,
+        `Documento importado: ${source.file.name}`,
+        ...document.warnings,
+      ]
         .filter(Boolean)
         .join(" · "),
     );
@@ -252,7 +261,7 @@ export function PurchaseModal({
     setSaving(true);
 
     try {
-      await onSave({
+      const purchaseId = await onSave({
         supplierId: Number(supplierId),
         documentNumber,
         purchaseDate,
@@ -261,10 +270,32 @@ export function PurchaseModal({
         notes,
         items: parsedItems,
       });
+      if (importedDocument) {
+        const supplier = suppliers.find(
+          (item) => item.id === Number(supplierId),
+        );
+        try {
+          await archivePurchaseDocument({
+            document: importedDocument,
+            destinationKind: "pdv",
+            linkedRecordId: purchaseId,
+            documentNumber,
+            supplierName: supplier?.nome,
+          });
+          toast.success("Documento original arquivado com a compra.");
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `A compra foi salva, mas o arquivo não foi arquivado: ${error.message}`
+              : "A compra foi salva, mas o arquivo não foi arquivado.",
+          );
+        }
+      }
       setOpen(false);
       setSupplierId("");
       setDocumentNumber("");
       setNotes("");
+      setImportedDocument(null);
       setPayments([{ id: 1, paymentMethod: "Boleto", amount: "" }]);
       setLines([
         {

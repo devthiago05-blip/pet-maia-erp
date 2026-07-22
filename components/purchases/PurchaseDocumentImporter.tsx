@@ -5,12 +5,19 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase";
+import {
+  findDuplicatePurchaseDocument,
+  type PurchaseDocumentFile,
+} from "@/services/purchase-recognition";
 import type { RecognizedPurchaseDocument } from "@/types/purchase-recognition";
 
 export function PurchaseDocumentImporter({
   onRecognized,
 }: {
-  onRecognized: (document: RecognizedPurchaseDocument, file: File) => void;
+  onRecognized: (
+    document: RecognizedPurchaseDocument,
+    source: PurchaseDocumentFile,
+  ) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
@@ -18,9 +25,26 @@ export function PurchaseDocumentImporter({
   async function recognize(file?: File) {
     if (!file) return;
     setReading(true);
-    const form = new FormData();
-    form.append("file", file);
     try {
+      const hashBuffer = await crypto.subtle.digest(
+        "SHA-256",
+        await file.arrayBuffer(),
+      );
+      const hash = Array.from(new Uint8Array(hashBuffer), (byte) =>
+        byte.toString(16).padStart(2, "0"),
+      ).join("");
+      const duplicate = await findDuplicatePurchaseDocument(hash);
+      if (duplicate.error) throw duplicate.error;
+      if (duplicate.data) {
+        const area =
+          duplicate.data.destination_kind === "pdv" ? "PDV" : "Banho e Tosa";
+        throw new Error(
+          `Este documento já foi importado em ${area}${duplicate.data.document_number ? ` (nota ${duplicate.data.document_number})` : ""}.`,
+        );
+      }
+
+      const form = new FormData();
+      form.append("file", file);
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error("Sessão expirada. Entre novamente.");
@@ -31,7 +55,7 @@ export function PurchaseDocumentImporter({
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Falha na leitura.");
-      onRecognized(result, file);
+      onRecognized(result, { file, hash });
       toast.success(
         `${result.items.length} item(ns) reconhecido(s). Confira antes de salvar.`,
       );

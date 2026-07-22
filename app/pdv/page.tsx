@@ -970,7 +970,7 @@ export default function PosPage() {
   }
 
   async function handlePurchaseSave(purchase: PurchaseInput) {
-    const { error } = await createProductPurchase(purchase);
+    const { data, error } = await createProductPurchase(purchase);
 
     if (error) {
       toast.error(error.message);
@@ -979,6 +979,7 @@ export default function PosPage() {
 
     toast.success("Compra registrada e estoque atualizado!");
     await loadData();
+    return Number(data);
   }
 
   async function handlePurchaseOrderCreate(input: NewPurchaseOrderInput) {

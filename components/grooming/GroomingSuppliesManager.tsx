@@ -128,6 +128,11 @@ export function GroomingSuppliesManager() {
   const [purchaseDocuments, setPurchaseDocuments] = useState<
     PurchaseDocumentArchive[]
   >([]);
+  const [movementSupplierFilter, setMovementSupplierFilter] = useState("");
+  const [movementDocumentFilter, setMovementDocumentFilter] = useState("");
+  const [movementStartDateFilter, setMovementStartDateFilter] = useState("");
+  const [movementEndDateFilter, setMovementEndDateFilter] = useState("");
+  const [movementOnlyWithFile, setMovementOnlyWithFile] = useState(false);
   const [dailyPayments, setDailyPayments] = useState<GroomerDailyPayment[]>([]);
   const [equipment, setEquipment] = useState<GroomingEquipment[]>([]);
   const [equipmentServices, setEquipmentServices] = useState<
@@ -309,6 +314,46 @@ export function GroomingSuppliesManager() {
       ]),
     );
   }, [movements, purchaseDocuments]);
+  const filteredMovements = useMemo(
+    () =>
+      movements.filter((movement) => {
+        const supplierName = movement.supplier?.toLowerCase() || "";
+        const documentNumber = movement.document_number?.toLowerCase() || "";
+        return (
+          (!movementSupplierFilter ||
+            supplierName.includes(
+              movementSupplierFilter.trim().toLowerCase(),
+            )) &&
+          (!movementDocumentFilter ||
+            documentNumber.includes(
+              movementDocumentFilter.trim().toLowerCase(),
+            )) &&
+          (!movementStartDateFilter ||
+            movement.movement_date >= movementStartDateFilter) &&
+          (!movementEndDateFilter ||
+            movement.movement_date <= movementEndDateFilter) &&
+          (!movementOnlyWithFile ||
+            Boolean(documentByMovementId.get(movement.id)))
+        );
+      }),
+    [
+      documentByMovementId,
+      movementDocumentFilter,
+      movementEndDateFilter,
+      movementOnlyWithFile,
+      movements,
+      movementStartDateFilter,
+      movementSupplierFilter,
+    ],
+  );
+
+  function clearMovementFilters() {
+    setMovementSupplierFilter("");
+    setMovementDocumentFilter("");
+    setMovementStartDateFilter("");
+    setMovementEndDateFilter("");
+    setMovementOnlyWithFile(false);
+  }
   const activeEquipment = useMemo(
     () => equipment.filter((item) => item.active),
     [equipment],
@@ -1068,6 +1113,70 @@ export function GroomingSuppliesManager() {
               </FormCard>
 
               <DataCard title="Últimas movimentações">
+                <div className="mb-4 grid gap-3 rounded-xl border bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-5">
+                  <input
+                    value={movementSupplierFilter}
+                    onChange={(event) =>
+                      setMovementSupplierFilter(event.target.value)
+                    }
+                    placeholder="Filtrar fornecedor"
+                    className="rounded-xl border bg-white px-3 py-2 text-sm"
+                  />
+                  <input
+                    value={movementDocumentFilter}
+                    onChange={(event) =>
+                      setMovementDocumentFilter(event.target.value)
+                    }
+                    placeholder="Número da nota"
+                    className="rounded-xl border bg-white px-3 py-2 text-sm"
+                  />
+                  <label className="grid gap-1 text-xs font-medium text-slate-600">
+                    De
+                    <input
+                      type="date"
+                      value={movementStartDateFilter}
+                      onChange={(event) =>
+                        setMovementStartDateFilter(event.target.value)
+                      }
+                      className="rounded-xl border bg-white px-3 py-2 text-sm font-normal"
+                    />
+                  </label>
+                  <label className="grid gap-1 text-xs font-medium text-slate-600">
+                    Até
+                    <input
+                      type="date"
+                      value={movementEndDateFilter}
+                      onChange={(event) =>
+                        setMovementEndDateFilter(event.target.value)
+                      }
+                      className="rounded-xl border bg-white px-3 py-2 text-sm font-normal"
+                    />
+                  </label>
+                  <div className="flex items-end gap-2">
+                    <label className="flex min-h-10 flex-1 items-center gap-2 rounded-xl border bg-white px-3 py-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={movementOnlyWithFile}
+                        onChange={(event) =>
+                          setMovementOnlyWithFile(event.target.checked)
+                        }
+                        className="accent-[#8A0EEA]"
+                      />
+                      Com arquivo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={clearMovementFilters}
+                      className="min-h-10 rounded-xl border bg-white px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100"
+                    >
+                      Limpar
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-500 sm:col-span-2 xl:col-span-5">
+                    {filteredMovements.length} de {movements.length}{" "}
+                    movimento(s)
+                  </p>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[820px] text-sm">
                     <thead>
@@ -1084,7 +1193,7 @@ export function GroomingSuppliesManager() {
                       </tr>
                     </thead>
                     <tbody>
-                      {movements.map((movement) => (
+                      {filteredMovements.map((movement) => (
                         <tr
                           key={movement.id}
                           className="border-b last:border-0"
@@ -1129,13 +1238,13 @@ export function GroomingSuppliesManager() {
                         </tr>
                       ))}
 
-                      {movements.length === 0 && (
+                      {filteredMovements.length === 0 && (
                         <tr>
                           <td
                             colSpan={9}
                             className="p-6 text-center text-slate-500"
                           >
-                            Nenhuma movimentação registrada.
+                            Nenhuma movimentação encontrada com esses filtros.
                           </td>
                         </tr>
                       )}

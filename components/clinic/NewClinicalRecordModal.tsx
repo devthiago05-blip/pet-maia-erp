@@ -30,6 +30,17 @@ export function NewClinicalRecordModal({
   const [temperatureC, setTemperatureC] = useState(
     String(record?.temperature_c || ""),
   );
+  const [heartRate, setHeartRate] = useState(String(record?.heart_rate || ""));
+  const [respiratoryRate, setRespiratoryRate] = useState(
+    String(record?.respiratory_rate || ""),
+  );
+  const [mucousMembranes, setMucousMembranes] = useState(
+    record?.mucous_membranes || "",
+  );
+  const [hydrationStatus, setHydrationStatus] = useState(
+    record?.hydration_status || "",
+  );
+  const [painScore, setPainScore] = useState(String(record?.pain_score ?? ""));
   const [mainComplaint, setMainComplaint] = useState(
     record?.main_complaint || "",
   );
@@ -62,6 +73,11 @@ export function NewClinicalRecordModal({
 
     const parsedWeight = weightKg ? Number(weightKg) : undefined;
     const parsedTemperature = temperatureC ? Number(temperatureC) : undefined;
+    const parsedHeartRate = heartRate ? Number(heartRate) : undefined;
+    const parsedRespiratoryRate = respiratoryRate
+      ? Number(respiratoryRate)
+      : undefined;
+    const parsedPainScore = painScore !== "" ? Number(painScore) : undefined;
 
     if (
       (parsedWeight !== undefined &&
@@ -69,9 +85,21 @@ export function NewClinicalRecordModal({
       (parsedTemperature !== undefined &&
         (!Number.isFinite(parsedTemperature) ||
           parsedTemperature < 30 ||
-          parsedTemperature > 45))
+          parsedTemperature > 45)) ||
+      (parsedHeartRate !== undefined &&
+        (!Number.isInteger(parsedHeartRate) ||
+          parsedHeartRate < 20 ||
+          parsedHeartRate > 400)) ||
+      (parsedRespiratoryRate !== undefined &&
+        (!Number.isInteger(parsedRespiratoryRate) ||
+          parsedRespiratoryRate < 5 ||
+          parsedRespiratoryRate > 200)) ||
+      (parsedPainScore !== undefined &&
+        (!Number.isInteger(parsedPainScore) ||
+          parsedPainScore < 0 ||
+          parsedPainScore > 10))
     ) {
-      toast.error("Informe peso e temperatura válidos");
+      toast.error("Confira os sinais vitais e a escala de dor.");
       return;
     }
 
@@ -84,6 +112,11 @@ export function NewClinicalRecordModal({
         consultationDate,
         weightKg: parsedWeight,
         temperatureC: parsedTemperature,
+        heartRate: parsedHeartRate,
+        respiratoryRate: parsedRespiratoryRate,
+        mucousMembranes,
+        hydrationStatus,
+        painScore: parsedPainScore,
         mainComplaint: mainComplaint.trim(),
         anamnesis: anamnesis.trim(),
         allergies: allergies.trim(),
@@ -96,6 +129,11 @@ export function NewClinicalRecordModal({
       if (!record) {
         setWeightKg("");
         setTemperatureC("");
+        setHeartRate("");
+        setRespiratoryRate("");
+        setMucousMembranes("");
+        setHydrationStatus("");
+        setPainScore("");
         setMainComplaint("");
         setAnamnesis("");
         setAllergies("");
@@ -221,6 +259,58 @@ export function NewClinicalRecordModal({
                 value={temperatureC}
                 onChange={setTemperatureC}
               />
+              <ClinicalInput
+                label="Frequência cardíaca (bpm)"
+                type="number"
+                min="20"
+                max="400"
+                step="1"
+                value={heartRate}
+                onChange={setHeartRate}
+              />
+              <ClinicalInput
+                label="Frequência respiratória (mpm)"
+                type="number"
+                min="5"
+                max="200"
+                step="1"
+                value={respiratoryRate}
+                onChange={setRespiratoryRate}
+              />
+              <ClinicalSelect
+                label="Mucosas"
+                value={mucousMembranes}
+                onChange={setMucousMembranes}
+                options={[
+                  "",
+                  "Normocoradas",
+                  "Pálidas",
+                  "Congestas",
+                  "Cianóticas",
+                  "Ictéricas",
+                ]}
+              />
+              <ClinicalSelect
+                label="Hidratação"
+                value={hydrationStatus}
+                onChange={setHydrationStatus}
+                options={[
+                  "",
+                  "Normal",
+                  "Desidratação leve",
+                  "Desidratação moderada",
+                  "Desidratação grave",
+                ]}
+              />
+              <ClinicalInput
+                label="Escala de dor (0 a 10)"
+                type="number"
+                min="0"
+                max="10"
+                step="1"
+                value={painScore}
+                onChange={setPainScore}
+              />
               <ClinicalTextarea
                 label="Queixa principal"
                 value={mainComplaint}
@@ -298,11 +388,17 @@ function ClinicalInput({
   label,
   value,
   type = "text",
+  min,
+  max,
+  step,
   onChange,
 }: {
   label: string;
   value: string;
   type?: string;
+  min?: string;
+  max?: string;
+  step?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -310,12 +406,42 @@ function ClinicalInput({
       {label}
       <input
         type={type}
-        min={type === "number" ? "0" : undefined}
-        step={type === "number" ? "0.1" : undefined}
+        min={min ?? (type === "number" ? "0" : undefined)}
+        max={max}
+        step={step ?? (type === "number" ? "0.1" : undefined)}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="rounded-xl border p-3 font-normal"
       />
+    </label>
+  );
+}
+
+function ClinicalSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-medium">
+      {label}
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-xl border p-3 font-normal"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option || "Não informado"}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

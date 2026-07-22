@@ -6,6 +6,8 @@ import type {
   ClinicalExam,
   ClinicalExamInput,
   ClinicalHospitalization,
+  ClinicalPatientAlert,
+  ClinicalPatientAlertInput,
   ClinicalTask,
   MedicationCatalogInput,
   NewClinicalPrescriptionInput,
@@ -82,6 +84,11 @@ export async function saveClinicalRecord(record: NewClinicalRecordInput) {
     consultation_date: record.consultationDate,
     weight_kg: record.weightKg || null,
     temperature_c: record.temperatureC || null,
+    heart_rate: record.heartRate || null,
+    respiratory_rate: record.respiratoryRate || null,
+    mucous_membranes: record.mucousMembranes || null,
+    hydration_status: record.hydrationStatus || null,
+    pain_score: record.painScore ?? null,
     main_complaint: record.mainComplaint,
     anamnesis: record.anamnesis || null,
     allergies: record.allergies || null,
@@ -490,10 +497,79 @@ export async function fetchClinicPatients() {
           next_dose_date,
           reminder_status,
           reminder_confirmed_at
+        ),
+        clinical_patient_alerts (
+          id,
+          pet_id,
+          alert_type,
+          severity,
+          title,
+          details,
+          active,
+          created_at,
+          updated_at
         )
       `,
     )
     .order("nome");
+}
+
+export async function fetchClinicalPatientAlerts(petId: number) {
+  return supabase
+    .from("clinical_patient_alerts")
+    .select("*")
+    .eq("pet_id", petId)
+    .order("active", { ascending: false })
+    .order("severity", { ascending: true })
+    .order("created_at", { ascending: false })
+    .returns<ClinicalPatientAlert[]>();
+}
+
+export async function createClinicalPatientAlert(
+  input: ClinicalPatientAlertInput,
+) {
+  return supabase
+    .from("clinical_patient_alerts")
+    .insert({
+      pet_id: input.petId,
+      alert_type: input.alertType,
+      severity: input.severity,
+      title: input.title.trim(),
+      details: input.details?.trim() || null,
+    })
+    .select()
+    .single<ClinicalPatientAlert>();
+}
+
+export async function updateClinicalPatientAlert(
+  id: number,
+  input: ClinicalPatientAlertInput,
+) {
+  return supabase
+    .from("clinical_patient_alerts")
+    .update({
+      alert_type: input.alertType,
+      severity: input.severity,
+      title: input.title.trim(),
+      details: input.details?.trim() || null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id)
+    .eq("pet_id", input.petId)
+    .select()
+    .single<ClinicalPatientAlert>();
+}
+
+export async function setClinicalPatientAlertActive(
+  id: number,
+  active: boolean,
+) {
+  return supabase
+    .from("clinical_patient_alerts")
+    .update({ active, updated_at: new Date().toISOString() })
+    .eq("id", id)
+    .select()
+    .single<ClinicalPatientAlert>();
 }
 
 export async function fetchClinicalTasks() {

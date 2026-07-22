@@ -80,6 +80,11 @@ export interface ClinicalRecord {
   consultation_date: string;
   weight_kg?: number;
   temperature_c?: number;
+  heart_rate?: number;
+  respiratory_rate?: number;
+  mucous_membranes?: string;
+  hydration_status?: string;
+  pain_score?: number;
   main_complaint: string;
   anamnesis?: string;
   allergies?: string;
@@ -205,6 +210,11 @@ export interface NewClinicalRecordInput {
   consultationDate: string;
   weightKg?: number;
   temperatureC?: number;
+  heartRate?: number;
+  respiratoryRate?: number;
+  mucousMembranes?: string;
+  hydrationStatus?: string;
+  painScore?: number;
   mainComplaint: string;
   anamnesis?: string;
   allergies?: string;
@@ -327,6 +337,39 @@ export interface ClinicPatientOverview extends Pet {
       | "reminder_confirmed_at"
     >
   >;
+  clinicalAlerts?: ClinicalPatientAlert[];
+}
+
+export type ClinicalPatientAlertType =
+  | "Alergia"
+  | "Doença crônica"
+  | "Medicação contínua"
+  | "Cuidado especial"
+  | "Outro";
+
+export type ClinicalPatientAlertSeverity =
+  | "Informativo"
+  | "Atenção"
+  | "Crítico";
+
+export interface ClinicalPatientAlert {
+  id: number;
+  pet_id: number;
+  alert_type: ClinicalPatientAlertType;
+  severity: ClinicalPatientAlertSeverity;
+  title: string;
+  details?: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClinicalPatientAlertInput {
+  petId: number;
+  alertType: ClinicalPatientAlertType;
+  severity: ClinicalPatientAlertSeverity;
+  title: string;
+  details?: string;
 }
 
 export interface ClinicalTask {

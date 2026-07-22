@@ -317,6 +317,8 @@ Rotas: `/clinica`, `/pets/[id]` e receita pública `/receita/[token]`.
 - Prontuário e anamnese.
 - Peso, temperatura, queixa, alergias, medicamentos, diagnóstico e conduta.
 - Ao abrir uma nova consulta, mostra peso, temperatura, alergias e medicamentos da consulta anterior; alergias e medicamentos podem ser copiados com confirmação do veterinário.
+- Alertas clínicos permanentes por paciente: alergia, doença crônica, medicação contínua, cuidado especial ou outro, com gravidade informativa, atenção ou crítica.
+- Triagem ampliada: frequência cardíaca, frequência respiratória, mucosas, hidratação e escala de dor de 0 a 10.
 - Retorno e confirmação de retorno.
 - Prescrições com item simples ou fórmula, dosagem, frequência, duração e instruções.
 - Catálogo de medicamentos e modelos de dosagem.

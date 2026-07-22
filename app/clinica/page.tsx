@@ -50,6 +50,7 @@ import type {
   ClinicalDocumentInput,
   ClinicalExam,
   ClinicalHospitalization,
+  ClinicalPatientAlert,
   ClinicalTask,
   ClinicPatientOverview,
   NewClinicalPrescriptionInput,
@@ -85,6 +86,7 @@ interface ClinicPatientResponse {
     reminder_status?: "Pendente" | "Confirmado";
     reminder_confirmed_at?: string;
   }>;
+  clinical_patient_alerts?: ClinicalPatientAlert[];
 }
 
 interface ReturnQueueItem {
@@ -191,6 +193,9 @@ export default function ClinicPage() {
             lastClinicalRecord: records[0],
             clinicalRecords: records,
             vaccinationRecords: vaccinations,
+            clinicalAlerts: (patient.clinical_patient_alerts || []).filter(
+              (alert) => alert.active,
+            ),
             nextReturnDate,
             nextVaccinationDate,
           };
@@ -236,6 +241,14 @@ export default function ClinicPage() {
   const vaccinationsCount = patients.filter(
     (patient) => patient.nextVaccinationDate,
   ).length;
+  const criticalAlertsCount = patients.reduce(
+    (total, patient) =>
+      total +
+      (patient.clinicalAlerts || []).filter(
+        (alert) => alert.severity === "Crítico",
+      ).length,
+    0,
+  );
   const weeklyReturns = useMemo(() => {
     const today = getDateOnly(new Date());
     const endDate = addDays(today, 7);
@@ -582,7 +595,7 @@ export default function ClinicPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ClinicSummary
               icon={Stethoscope}
               label="Pacientes"
@@ -597,6 +610,12 @@ export default function ClinicPage() {
               icon={Syringe}
               label="Próximas vacinas"
               value={vaccinationsCount}
+            />
+            <ClinicSummary
+              icon={AlertTriangle}
+              label="Alertas críticos"
+              value={criticalAlertsCount}
+              warning={criticalAlertsCount > 0}
             />
           </div>
 
@@ -716,6 +735,20 @@ export default function ClinicPage() {
                       {formatDate(patient.nextVaccinationDate)}
                     </p>
                   </div>
+                  {(patient.clinicalAlerts || []).length > 0 && (
+                    <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
+                      {(patient.clinicalAlerts || [])
+                        .slice(0, 3)
+                        .map((alert) => (
+                          <span
+                            key={alert.id}
+                            className={`rounded-full px-2 py-1 text-xs font-bold ${alert.severity === "Crítico" ? "bg-red-100 text-red-700" : alert.severity === "Atenção" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-700"}`}
+                          >
+                            {alert.alert_type}: {alert.title}
+                          </span>
+                        ))}
+                    </div>
+                  )}
                   <Link
                     href={`/pets/${patient.id}`}
                     className="mt-4 block rounded-xl bg-[#8A0EEA] px-4 py-2 text-center font-medium text-white"
@@ -1682,19 +1715,27 @@ function ClinicSummary({
   icon: Icon,
   label,
   value,
+  warning = false,
 }: {
   icon: typeof Stethoscope;
   label: string;
   value: number;
+  warning?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-4 rounded-xl border bg-white p-4">
-      <div className="rounded-xl bg-purple-50 p-3 text-[#8A0EEA]">
+    <div
+      className={`flex items-center gap-4 rounded-xl border bg-white p-4 ${warning ? "border-red-200 bg-red-50/50" : ""}`}
+    >
+      <div
+        className={`rounded-xl p-3 ${warning ? "bg-red-100 text-red-700" : "bg-purple-50 text-[#8A0EEA]"}`}
+      >
         <Icon size={22} />
       </div>
       <div>
         <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-2xl font-bold">{value}</p>
+        <p className={`text-2xl font-bold ${warning ? "text-red-700" : ""}`}>
+          {value}
+        </p>
       </div>
     </div>
   );

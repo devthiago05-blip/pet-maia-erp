@@ -11,6 +11,7 @@ import { ExamAttachments } from "@/components/clinic/ExamAttachments";
 import { ExamModal } from "@/components/clinic/ExamModal";
 import { NewClinicalRecordModal } from "@/components/clinic/NewClinicalRecordModal";
 import { ParasitePreventionModal } from "@/components/clinic/ParasitePreventionModal";
+import { PatientAlertsPanel } from "@/components/clinic/PatientAlertsPanel";
 import { PrescriptionGroups } from "@/components/clinic/PrescriptionGroups";
 import { VaccinationModal } from "@/components/clinic/VaccinationModal";
 import { Header } from "@/components/layout/Header";
@@ -25,6 +26,7 @@ import {
 } from "@/services/appointments";
 import {
   createClinicalDocument,
+  createClinicalPatientAlert,
   createPetParasitePrevention,
   createPetVaccination,
   deleteClinicalDocument,
@@ -34,12 +36,15 @@ import {
   deletePetVaccination,
   fetchClinicalDocumentsByPet,
   fetchClinicalExamsByPet,
+  fetchClinicalPatientAlerts,
   fetchClinicalRecordsByPet,
   fetchPetParasitePreventions,
   fetchPetVaccinations,
   saveClinicalExam,
   saveClinicalPrescription,
   saveClinicalRecord,
+  setClinicalPatientAlertActive,
+  updateClinicalPatientAlert,
   updateClinicalPrescriptionDocument,
 } from "@/services/clinical";
 import {
@@ -55,6 +60,8 @@ import type {
   ClinicalDocumentInput,
   ClinicalExam,
   ClinicalExamInput,
+  ClinicalPatientAlert,
+  ClinicalPatientAlertInput,
   ClinicalRecord,
   ClinicSettings,
   CompletedAppointmentService,
@@ -189,6 +196,9 @@ export default function PetPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
   const [clinicalRecords, setClinicalRecords] = useState<ClinicalRecord[]>([]);
+  const [clinicalAlerts, setClinicalAlerts] = useState<ClinicalPatientAlert[]>(
+    [],
+  );
   const [clinicalError, setClinicalError] = useState("");
   const [vaccinations, setVaccinations] = useState<PetVaccination[]>([]);
   const [vaccinationError, setVaccinationError] = useState("");
@@ -239,6 +249,7 @@ export default function PetPage() {
         appointmentsResponse,
         financialResponse,
         clinicalResponse,
+        clinicalAlertsResponse,
         vaccinationsResponse,
         parasitePreventionsResponse,
         examsResponse,
@@ -248,6 +259,7 @@ export default function PetPage() {
         fetchAppointmentsByPet(petId),
         fetchFinancialEntriesByPet(petId),
         fetchClinicalRecordsByPet(petId),
+        fetchClinicalPatientAlerts(petId),
         fetchPetVaccinations(petId),
         fetchPetParasitePreventions(petId),
         fetchClinicalExamsByPet(petId),
@@ -270,6 +282,12 @@ export default function PetPage() {
         );
       } else {
         setClinicalRecords(clinicalResponse.data || []);
+      }
+
+      if (clinicalAlertsResponse.error) {
+        console.error(clinicalAlertsResponse.error);
+      } else {
+        setClinicalAlerts(clinicalAlertsResponse.data || []);
       }
 
       if (vaccinationsResponse.error) {
@@ -496,6 +514,57 @@ export default function PetPage() {
     toast.success("Agendamento criado com sucesso!");
     return true;
   }
+  async function handleCreateClinicalAlert(input: ClinicalPatientAlertInput) {
+    const { data, error: createError } =
+      await createClinicalPatientAlert(input);
+    if (createError || !data) {
+      toast.error(createError?.message || "Não foi possível salvar o alerta.");
+      return false;
+    }
+    setClinicalAlerts((current) => [data, ...current]);
+    toast.success("Alerta clínico criado!");
+    return true;
+  }
+
+  async function handleUpdateClinicalAlert(
+    id: number,
+    input: ClinicalPatientAlertInput,
+  ) {
+    const { data, error: updateError } = await updateClinicalPatientAlert(
+      id,
+      input,
+    );
+    if (updateError || !data) {
+      toast.error(
+        updateError?.message || "Não foi possível atualizar o alerta.",
+      );
+      return false;
+    }
+    setClinicalAlerts((current) =>
+      current.map((alert) => (alert.id === id ? data : alert)),
+    );
+    toast.success("Alerta clínico atualizado!");
+    return true;
+  }
+
+  async function handleClinicalAlertActiveChange(id: number, active: boolean) {
+    const { data, error: updateError } = await setClinicalPatientAlertActive(
+      id,
+      active,
+    );
+    if (updateError || !data) {
+      toast.error("Não foi possível alterar o alerta.");
+      return false;
+    }
+    setClinicalAlerts((current) =>
+      current.map((alert) => (alert.id === id ? data : alert)),
+    );
+    toast.success(
+      active ? "Alerta reativado!" : "Alerta marcado como inativo.",
+    );
+    return true;
+  }
+
   async function handleCreateClinicalRecord(record: NewClinicalRecordInput) {
     const { error: createError } = await saveClinicalRecord(record);
 
@@ -822,6 +891,13 @@ export default function PetPage() {
                     pendingValue={pendingValue}
                     nextVaccine={nextVaccine}
                   />
+                  <PatientAlertsPanel
+                    petId={pet.id}
+                    alerts={clinicalAlerts}
+                    onCreate={handleCreateClinicalAlert}
+                    onUpdate={handleUpdateClinicalAlert}
+                    onActiveChange={handleClinicalAlertActiveChange}
+                  />
                   <PetAlerts
                     lastBathAppointment={lastBathAppointment}
                     daysSinceLastBath={daysSinceLastBath}
@@ -1066,6 +1142,23 @@ function ClinicalHistory({
                         {record.temperature_c} °C
                       </span>
                     )}
+                    {record.heart_rate && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        FC {record.heart_rate} bpm
+                      </span>
+                    )}
+                    {record.respiratory_rate && (
+                      <span className="rounded-lg bg-slate-100 px-3 py-1">
+                        FR {record.respiratory_rate} mpm
+                      </span>
+                    )}
+                    {record.pain_score != null && (
+                      <span
+                        className={`rounded-lg px-3 py-1 ${record.pain_score >= 7 ? "bg-red-100 text-red-700" : record.pain_score >= 4 ? "bg-amber-100 text-amber-800" : "bg-emerald-50 text-emerald-700"}`}
+                      >
+                        Dor {record.pain_score}/10
+                      </span>
+                    )}
                     {record.return_date && (
                       <span className="rounded-lg bg-purple-50 px-3 py-1 text-[#8A0EEA]">
                         Retorno: {formatDate(record.return_date)}
@@ -1078,6 +1171,14 @@ function ClinicalHistory({
                   value={record.main_complaint}
                 />
                 <ClinicalText label="Anamnese" value={record.anamnesis} />
+                <ClinicalText
+                  label="Mucosas e hidratação"
+                  value={
+                    [record.mucous_membranes, record.hydration_status]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
+                />
                 <ClinicalText label="Alergias" value={record.allergies} />
                 <ClinicalText
                   label="Medicamentos em uso"

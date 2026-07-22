@@ -57,9 +57,7 @@ export async function POST(request: Request) {
       text = result.text;
       source = "pdf";
     } else if (file.type.startsWith("image/")) {
-      const { recognize } = await import("tesseract.js");
-      const result = await recognize(Buffer.from(bytes), "por");
-      text = result.data.text;
+      text = await recognizeInvoiceImage(bytes);
       source = "image";
     } else {
       text = new TextDecoder("utf-8").decode(bytes);
@@ -75,6 +73,54 @@ export async function POST(request: Request) {
       },
       { status: 422 },
     );
+  }
+}
+
+async function recognizeInvoiceImage(bytes: Uint8Array) {
+  const [{ default: sharp }, { createWorker, PSM }] = await Promise.all([
+    import("sharp"),
+    import("tesseract.js"),
+  ]);
+  const image = sharp(Buffer.from(bytes)).autoOrient();
+  const metadata = await image.metadata();
+  const width = metadata.width || 1200;
+  const height = metadata.height || 1600;
+  const targetWidth = Math.min(1800, Math.round(width * 1.8));
+  const fullImage = await image
+    .clone()
+    .resize({ width: targetWidth })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .toBuffer();
+  const tableTop = Math.max(0, Math.round(height * 0.35));
+  const tableHeight = Math.min(
+    height - tableTop,
+    Math.max(200, Math.round(height * 0.42)),
+  );
+  const tableImage = await image
+    .clone()
+    .extract({ left: 0, top: tableTop, width, height: tableHeight })
+    .resize({ width: targetWidth })
+    .grayscale()
+    .normalize()
+    .sharpen()
+    .toBuffer();
+
+  const worker = await createWorker("por", undefined, {
+    cachePath: process.env.VERCEL ? "/tmp" : process.cwd(),
+  });
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+    const fullResult = await worker.recognize(fullImage);
+    await worker.setParameters({
+      tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+      preserve_interword_spaces: "1",
+    });
+    const tableResult = await worker.recognize(tableImage);
+    return `${fullResult.data.text}\nOCR_TABLE_START\n${tableResult.data.text}`;
+  } finally {
+    await worker.terminate();
   }
 }
 
@@ -133,6 +179,22 @@ function parseReceiptText(
         total,
       });
   }
+  const tableMarker = normalizedLines.indexOf("OCR_TABLE_START");
+  items.push(
+    ...parseInvoiceTableItems(
+      tableMarker >= 0
+        ? normalizedLines.slice(tableMarker + 1)
+        : normalizedLines,
+    ),
+  );
+  const uniqueItems = Array.from(
+    new Map(
+      items.map((item) => [
+        `${normalizeItemKey(item.description)}-${item.quantity}-${item.total}`,
+        item,
+      ]),
+    ).values(),
+  );
   const joined = normalizedLines.join("\n");
   const totalMatch = joined.match(
     /(?:TOTAL(?:\s+DA\s+NOTA)?|VALOR\s+TOTAL)\D{0,12}(\d+[.,]\d{2})/i,
@@ -150,15 +212,90 @@ function parseReceiptText(
       ? `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`
       : undefined,
     paymentMethod: paymentMatch?.[1],
-    total: totalMatch ? parseNumber(totalMatch[1]) : sumItems(items),
-    items,
+    total: totalMatch ? parseNumber(totalMatch[1]) : sumItems(uniqueItems),
+    items: uniqueItems,
     source,
-    warnings: items.length
+    warnings: uniqueItems.length
       ? ["Confira os itens reconhecidos antes de finalizar."]
       : [
           "O cabeçalho foi lido, mas os itens precisam ser informados ou ajustados manualmente.",
         ],
   };
+}
+
+function parseInvoiceTableItems(lines: string[]): RecognizedPurchaseItem[] {
+  const found: RecognizedPurchaseItem[] = [];
+  const productPattern = /([A-ZÀ-Ú][A-ZÀ-Ú0-9 ./+-]{3,}?)\W*LOTE\b/i;
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/[|[\]]/g, " ").replace(/\s+/g, " ");
+    const product = line.match(productPattern);
+    if (!product) continue;
+    const unitPosition = line.toUpperCase().lastIndexOf("UN");
+    if (unitPosition < 0) continue;
+    const values = line.slice(unitPosition + 2).match(/\d+[.,]?\d*/g) || [];
+    if (values.length < 3) continue;
+
+    const rawUnitCost = parseInvoiceMoney(values[1]!);
+    const rawTotal = parseInvoiceMoney(values[2]!);
+    const quantityOptions = parseInvoiceQuantityOptions(values[0]!);
+    const quantity =
+      quantityOptions.reduce((best, option) =>
+        Math.abs(option * rawUnitCost - rawTotal) <
+        Math.abs(best * rawUnitCost - rawTotal)
+          ? option
+          : best,
+      ) || 1;
+    const expectedTotal = quantity * rawUnitCost;
+    const differenceRatio =
+      rawTotal > 0 ? Math.abs(rawTotal - expectedTotal) / rawTotal : 1;
+    const trustTotal =
+      differenceRatio <= 0.08 || rawTotal > expectedTotal * 1.5;
+    const total = trustTotal ? rawTotal : expectedTotal;
+    const unitCost = trustTotal ? total / quantity : rawUnitCost;
+
+    if (quantity > 0 && unitCost > 0 && total > 0) {
+      found.push({
+        description: cleanOcrDescription(product[1]),
+        quantity,
+        unitCost,
+        total,
+      });
+    }
+  }
+  return found;
+}
+
+function parseInvoiceQuantityOptions(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (/^[1-9]000$/.test(digits)) return [Number(digits) / 1000];
+  const parsed = parseNumber(value);
+  const options = [parsed > 100 ? parsed / 1000 : parsed];
+  if (!/[.,]/.test(value) && parsed >= 10 && parsed < 100) {
+    options.push(parsed / 10);
+  }
+  return options.filter((option) => option > 0);
+}
+
+function parseInvoiceMoney(value: string) {
+  if (!/[.,]/.test(value)) {
+    const digits = value.replace(/\D/g, "");
+    return digits.length >= 3 ? Number(digits) / 100 : Number(digits);
+  }
+  return parseNumber(value);
+}
+
+function cleanOcrDescription(value: string) {
+  return value
+    .replace(/^\d+\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase()
+    .replace(/^(?:[A-Z0-9]{1,2}\s+)+/, "");
+}
+
+function normalizeItemKey(value: string) {
+  return value.replace(/[^A-Z0-9]/gi, "").toLowerCase();
 }
 
 function tag(xml: string, name: string) {

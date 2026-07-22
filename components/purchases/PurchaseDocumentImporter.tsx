@@ -21,10 +21,14 @@ export function PurchaseDocumentImporter({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [reading, setReading] = useState(false);
+  const [readingMessage, setReadingMessage] = useState("");
+  const [readError, setReadError] = useState("");
 
   async function recognize(file?: File) {
     if (!file) return;
     setReading(true);
+    setReadError("");
+    setReadingMessage("Preparando o arquivo...");
     try {
       const hashBuffer = await crypto.subtle.digest(
         "SHA-256",
@@ -45,28 +49,55 @@ export function PurchaseDocumentImporter({
 
       const form = new FormData();
       form.append("file", file);
+      setReadingMessage(
+        file.type.startsWith("image/")
+          ? "Lendo a foto e procurando os produtos..."
+          : "Lendo o documento...",
+      );
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error("Sessão expirada. Entre novamente.");
-      const response = await fetch("/api/purchases/recognize", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: form,
-      });
-      const result = await response.json();
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(), 55000);
+      let response: Response;
+      try {
+        response = await fetch("/api/purchases/recognize", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+          signal: controller.signal,
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+      const result = await response.json().catch(() => null);
+      if (!result) {
+        throw new Error(
+          "A leitura foi interrompida pelo servidor. Tente novamente ou envie o XML/PDF.",
+        );
+      }
       if (!response.ok) throw new Error(result.error || "Falha na leitura.");
+      if (!result.items?.length) {
+        throw new Error(
+          "Não consegui identificar os produtos nessa foto. Tente enquadrar somente a nota, com boa luz e sem inclinação.",
+        );
+      }
       onRecognized(result, { file, hash });
       toast.success(
         `${result.items.length} item(ns) reconhecido(s). Confira antes de salvar.`,
       );
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível ler o documento.",
-      );
+      const message =
+        error instanceof DOMException && error.name === "AbortError"
+          ? "A leitura demorou mais de 55 segundos e foi cancelada. Tente uma foto menor ou envie o XML/PDF."
+          : error instanceof Error
+            ? error.message
+            : "Não foi possível ler o documento.";
+      setReadError(message);
+      toast.error(message);
     } finally {
       setReading(false);
+      setReadingMessage("");
       if (inputRef.current) inputRef.current.value = "";
     }
   }
@@ -106,6 +137,16 @@ export function PurchaseDocumentImporter({
           {reading ? "Reconhecendo..." : "Selecionar arquivo"}
         </button>
       </div>
+      {readingMessage && (
+        <p className="mt-3 text-sm font-medium text-[#8A0EEA]">
+          {readingMessage} Isso pode levar alguns segundos.
+        </p>
+      )}
+      {readError && (
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+          {readError}
+        </div>
+      )}
     </div>
   );
 }

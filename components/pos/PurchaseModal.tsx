@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Link2, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Link2, Plus, Search, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -471,18 +471,16 @@ export function PurchaseModal({
                         <span className="inline-flex items-center gap-1">
                           <Link2 size={14} /> Produto correspondente no ERP
                         </span>
-                        <select
+                        <ProductAssociationSearch
+                          products={products}
                           value={line.productId}
-                          onChange={(event) => {
-                            const targetId = Number(event.target.value);
+                          pending={!line.productId}
+                          onChange={(value) => {
+                            const targetId = Number(value);
                             const product = products.find(
                               (item) => item.id === targetId,
                             );
-                            updateLine(
-                              line.id,
-                              "productId",
-                              event.target.value,
-                            );
+                            updateLine(line.id, "productId", value);
                             updateLine(
                               line.id,
                               "productName",
@@ -503,33 +501,7 @@ export function PurchaseModal({
                               );
                             }
                           }}
-                          className={`rounded-xl border bg-white p-3 text-sm font-normal ${!line.productId ? "border-amber-400 ring-2 ring-amber-100" : "border-emerald-300"}`}
-                        >
-                          <option value="">
-                            Selecione o produto para associar
-                          </option>
-                          {Array.from(
-                            new Set(
-                              products
-                                .filter((product) => product.ativo)
-                                .map((product) => product.nome),
-                            ),
-                          ).map((name) => (
-                            <optgroup key={name} label={name}>
-                              {products
-                                .filter(
-                                  (product) =>
-                                    product.ativo && product.nome === name,
-                                )
-                                .map((product) => (
-                                  <option key={product.id} value={product.id}>
-                                    {formatProductName(product)} ·{" "}
-                                    {product.sku || "sem código"}
-                                  </option>
-                                ))}
-                            </optgroup>
-                          ))}
-                        </select>
+                        />
                       </label>
                       <label className="grid gap-1 text-xs font-medium text-slate-500">
                         Qtd. {selectedProduct?.purchase_unit || "UN"}
@@ -805,6 +777,107 @@ function StepTitle({
         </h3>
         <p className="text-sm text-slate-500">{description}</p>
       </div>
+    </div>
+  );
+}
+
+function ProductAssociationSearch({
+  products,
+  value,
+  pending,
+  onChange,
+}: {
+  products: Product[];
+  value: string;
+  pending: boolean;
+  onChange: (value: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const selected = products.find((product) => String(product.id) === value);
+  const activeProducts = products.filter((product) => product.ativo);
+  const normalizedQuery = normalize(query);
+  const filtered = activeProducts
+    .filter((product) => {
+      if (!normalizedQuery) return true;
+      return normalize(
+        [
+          product.nome,
+          product.sku,
+          product.barcode,
+          product.categoria,
+          product.tamanho,
+          product.cor,
+          product.sabor,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      ).includes(normalizedQuery);
+    })
+    .slice(0, 40);
+  const selectedLabel = selected
+    ? `${formatProductName(selected)} · ${selected.sku || selected.barcode || "sem código"}`
+    : "";
+
+  return (
+    <div className="relative">
+      <Search
+        size={17}
+        className="pointer-events-none absolute left-3 top-1/2 z-10 -translate-y-1/2 text-slate-400"
+      />
+      <input
+        value={open ? query : selectedLabel}
+        onFocus={() => {
+          setQuery("");
+          setOpen(true);
+        }}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setOpen(true);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") setOpen(false);
+          if (event.key === "Enter" && filtered.length === 1) {
+            event.preventDefault();
+            onChange(String(filtered[0]!.id));
+            setOpen(false);
+          }
+        }}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        placeholder="Digite nome, código ou código de barras"
+        className={`w-full rounded-xl border bg-white py-3 pl-10 pr-3 text-sm font-normal outline-none ${pending ? "border-amber-400 ring-2 ring-amber-100" : "border-emerald-300"}`}
+      />
+      {open && (
+        <div className="absolute z-30 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border bg-white p-1 shadow-xl">
+          {filtered.length ? (
+            filtered.map((product) => (
+              <button
+                key={product.id}
+                type="button"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onChange(String(product.id));
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className={`block w-full rounded-lg px-3 py-2 text-left hover:bg-purple-50 ${String(product.id) === value ? "bg-purple-50" : ""}`}
+              >
+                <strong className="block text-sm text-slate-800">
+                  {formatProductName(product)}
+                </strong>
+                <span className="text-xs text-slate-500">
+                  {product.sku || product.barcode || "Sem código"}
+                  {product.categoria ? ` · ${product.categoria}` : ""}
+                </span>
+              </button>
+            ))
+          ) : (
+            <div className="p-3 text-center text-sm text-slate-500">
+              Nenhum produto encontrado. Use “Cadastrar este produto”.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,28 @@
 "use client";
 
 import { Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { QuickProductModal } from "@/components/pos/QuickProductModal";
+import { PurchaseDocumentImporter } from "@/components/purchases/PurchaseDocumentImporter";
 import { formatCurrency, formatProductName } from "@/lib/formatters";
-import type { Product, Supplier } from "@/types/domain";
+import {
+  fetchPurchaseItemMappings,
+  normalizePurchaseDescription,
+  savePurchaseItemMapping,
+} from "@/services/purchase-recognition";
+import type {
+  NewProductInput,
+  Product,
+  ProductCategory,
+  Supplier,
+} from "@/types/domain";
+import type { RecognizedPurchaseDocument } from "@/types/purchase-recognition";
 
 interface PurchaseLine {
   id: number;
+  originalDescription: string;
   productName: string;
   productId: string;
   quantity: string;
@@ -41,10 +55,14 @@ export interface PurchaseInput {
 export function PurchaseModal({
   products,
   suppliers,
+  categories,
+  onProductSave,
   onSave,
 }: {
   products: Product[];
   suppliers: Supplier[];
+  categories: ProductCategory[];
+  onProductSave: (products: Array<NewProductInput | Product>) => Promise<void>;
   onSave: (purchase: PurchaseInput) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -63,6 +81,7 @@ export function PurchaseModal({
   const [lines, setLines] = useState<PurchaseLine[]>([
     {
       id: 1,
+      originalDescription: "",
       productName: "",
       productId: "",
       quantity: "1",
@@ -70,6 +89,22 @@ export function PurchaseModal({
     },
   ]);
   const [saving, setSaving] = useState(false);
+  const [savedMappings, setSavedMappings] = useState<Record<string, number>>(
+    {},
+  );
+
+  useEffect(() => {
+    void fetchPurchaseItemMappings("pdv").then(({ data }) => {
+      setSavedMappings(
+        Object.fromEntries(
+          (data || []).map((item) => [
+            item.normalized_description,
+            Number(item.target_id),
+          ]),
+        ),
+      );
+    });
+  }, []);
 
   const total = useMemo(
     () =>
@@ -103,12 +138,64 @@ export function PurchaseModal({
       ...current,
       {
         id: Math.max(...current.map((line) => line.id), 0) + 1,
+        originalDescription: "",
         productName: "",
         productId: "",
         quantity: "1",
         unitCost: "",
       },
     ]);
+  }
+
+  function applyRecognizedDocument(
+    document: RecognizedPurchaseDocument,
+    file: File,
+  ) {
+    const recognizedLines = document.items.map((item, index) => {
+      const mappedId =
+        savedMappings[normalizePurchaseDescription(item.description)];
+      const product =
+        products.find((candidate) => candidate.id === mappedId) ||
+        findBestMatch(
+          item.description,
+          products,
+          (candidate) =>
+            `${candidate.nome} ${candidate.sku || ""} ${candidate.barcode || ""}`,
+        );
+      return {
+        id: index + 1,
+        originalDescription: item.description,
+        productName: product?.nome || "",
+        productId: product ? String(product.id) : "",
+        quantity: String(item.quantity || 1),
+        unitCost: String(
+          item.unitCost || item.total / Math.max(item.quantity, 1) || "",
+        ),
+      };
+    });
+    if (recognizedLines.length) setLines(recognizedLines);
+    if (document.documentNumber) setDocumentNumber(document.documentNumber);
+    if (document.purchaseDate) setPurchaseDate(document.purchaseDate);
+    if (document.dueDate) setDueDate(document.dueDate);
+    const supplier = findBestMatch(
+      document.supplierName || "",
+      suppliers.filter((item) => item.ativo),
+      (item) => `${item.nome} ${item.documento || ""}`,
+    );
+    if (supplier) setSupplierId(String(supplier.id));
+    if (document.paymentMethod)
+      setPayments([
+        {
+          id: 1,
+          paymentMethod: normalizePayment(document.paymentMethod),
+          amount: document.total ? String(document.total) : "",
+        },
+      ]);
+    setNotes((current) =>
+      [current, `Documento importado: ${file.name}`, ...document.warnings]
+        .filter(Boolean)
+        .join(" · "),
+    );
   }
 
   async function handleSave() {
@@ -182,6 +269,7 @@ export function PurchaseModal({
       setLines([
         {
           id: 1,
+          originalDescription: "",
           productName: "",
           productId: "",
           quantity: "1",
@@ -209,6 +297,15 @@ export function PurchaseModal({
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
             <h2 className="mb-5 text-xl font-bold">Entrada de produtos</h2>
+            <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
+              <PurchaseDocumentImporter
+                onRecognized={applyRecognizedDocument}
+              />
+              <QuickProductModal
+                categories={categories}
+                onSave={onProductSave}
+              />
+            </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <label className="grid gap-2 text-sm font-medium">
                 Fornecedor
@@ -270,6 +367,14 @@ export function PurchaseModal({
                     key={line.id}
                     className="grid gap-3 rounded-xl border p-3 lg:grid-cols-[minmax(150px,1fr)_minmax(180px,1.4fr)_100px_150px_40px]"
                   >
+                    {line.originalDescription && (
+                      <div className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800 lg:col-span-5">
+                        Item reconhecido:{" "}
+                        <strong>{line.originalDescription}</strong>
+                        {!line.productId &&
+                          " · Associe a um produto cadastrado."}
+                      </div>
+                    )}
                     <select
                       value={line.productName}
                       onChange={(event) => {
@@ -293,9 +398,24 @@ export function PurchaseModal({
                     </select>
                     <select
                       value={line.productId}
-                      onChange={(event) =>
-                        updateLine(line.id, "productId", event.target.value)
-                      }
+                      onChange={(event) => {
+                        updateLine(line.id, "productId", event.target.value);
+                        if (line.originalDescription && event.target.value) {
+                          const targetId = Number(event.target.value);
+                          const key = normalizePurchaseDescription(
+                            line.originalDescription,
+                          );
+                          setSavedMappings((current) => ({
+                            ...current,
+                            [key]: targetId,
+                          }));
+                          void savePurchaseItemMapping(
+                            "pdv",
+                            line.originalDescription,
+                            targetId,
+                          );
+                        }
+                      }}
                       className="rounded-xl border p-3"
                     >
                       <option value="">Variação</option>
@@ -553,4 +673,52 @@ export function PurchaseModal({
       )}
     </>
   );
+}
+
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function findBestMatch<T>(
+  source: string,
+  options: T[],
+  label: (item: T) => string,
+) {
+  const normalizedSource = normalize(source);
+  if (!normalizedSource) return undefined;
+  const sourceWords = new Set(
+    normalizedSource.split(" ").filter((word) => word.length > 2),
+  );
+  return options
+    .map((option) => {
+      const candidate = normalize(label(option));
+      const matches = [...sourceWords].filter((word) =>
+        candidate.includes(word),
+      ).length;
+      return {
+        option,
+        score:
+          candidate === normalizedSource
+            ? 100
+            : matches / Math.max(sourceWords.size, 1),
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .find((item) => item.score >= 0.5)?.option;
+}
+
+function normalizePayment(value: string) {
+  const normalized = normalize(value);
+  if (normalized.includes("pix")) return "PIX";
+  if (normalized.includes("dinheiro")) return "Dinheiro";
+  if (normalized.includes("debito")) return "Cartão de débito";
+  if (normalized.includes("credito")) return "Cartão de crédito";
+  if (normalized.includes("transfer")) return "Transferência";
+  return "Boleto";
 }

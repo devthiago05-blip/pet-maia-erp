@@ -5,14 +5,23 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { PurchaseDocumentImporter } from "@/components/purchases/PurchaseDocumentImporter";
 import {
+  createGroomingSupply,
   createGroomingSupplyPurchaseBatch,
   fetchActiveGroomingSupplies,
 } from "@/services/grooming";
+import {
+  fetchPurchaseItemMappings,
+  normalizePurchaseDescription,
+  savePurchaseItemMapping,
+} from "@/services/purchase-recognition";
 import type { GroomingSupply } from "@/types/domain";
+import type { RecognizedPurchaseDocument } from "@/types/purchase-recognition";
 
 interface BatchItem {
   id: string;
+  originalDescription: string;
   supplyId: number;
   quantity: string;
   unitCost: string;
@@ -27,6 +36,7 @@ function getTodayDate() {
 function createEmptyItem(): BatchItem {
   return {
     id: crypto.randomUUID(),
+    originalDescription: "",
     supplyId: 0,
     quantity: "",
     unitCost: "",
@@ -46,6 +56,9 @@ export function GroomingSupplyBatchEntryForm() {
   const [supplies, setSupplies] = useState<GroomingSupply[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedMappings, setSavedMappings] = useState<Record<string, number>>(
+    {},
+  );
 
   const [documentNumber, setDocumentNumber] = useState("");
   const [supplier, setSupplier] = useState("");
@@ -77,6 +90,19 @@ export function GroomingSupplyBatchEntryForm() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void loadSupplies();
   }, [loadSupplies]);
+
+  useEffect(() => {
+    void fetchPurchaseItemMappings("grooming").then(({ data }) => {
+      setSavedMappings(
+        Object.fromEntries(
+          (data || []).map((item) => [
+            item.normalized_description,
+            Number(item.target_id),
+          ]),
+        ),
+      );
+    });
+  }, []);
 
   const total = useMemo(
     () =>
@@ -115,11 +141,81 @@ export function GroomingSupplyBatchEntryForm() {
     );
   }
 
+  function applyRecognizedDocument(
+    document: RecognizedPurchaseDocument,
+    file: File,
+  ) {
+    const recognizedItems = document.items.map((recognized) => {
+      const mappedId =
+        savedMappings[normalizePurchaseDescription(recognized.description)];
+      const matched =
+        supplies.find((item) => item.id === mappedId) ||
+        findBestSupply(recognized.description, supplies);
+      return {
+        ...createEmptyItem(),
+        originalDescription: recognized.description,
+        supplyId: matched?.id || 0,
+        quantity: String(recognized.quantity || 1),
+        unitCost: String(
+          recognized.unitCost ||
+            recognized.total / Math.max(recognized.quantity, 1) ||
+            "",
+        ),
+      };
+    });
+    if (recognizedItems.length) setItems(recognizedItems);
+    if (document.documentNumber) setDocumentNumber(document.documentNumber);
+    if (document.supplierName) setSupplier(document.supplierName);
+    if (document.purchaseDate) setMovementDate(document.purchaseDate);
+    if (document.dueDate) setDueDate(document.dueDate);
+    if (document.paymentMethod) setPaymentMethod(document.paymentMethod);
+    setNotes((current) =>
+      [current, `Documento importado: ${file.name}`, ...document.warnings]
+        .filter(Boolean)
+        .join(" · "),
+    );
+  }
+
+  async function createSupplyFromItem(item: BatchItem) {
+    if (!item.originalDescription) return;
+    const response = await createGroomingSupply({
+      name: item.originalDescription,
+      category: "Geral",
+      unit: "unidade",
+      minimumStock: 0,
+      supplier,
+      active: true,
+      notes: "Cadastrado durante importação de documento.",
+    });
+    if (response.error) {
+      toast.error(response.error.message);
+      return;
+    }
+    const refreshed = await fetchActiveGroomingSupplies();
+    const created = (refreshed.data || []).find(
+      (supply) =>
+        normalize(supply.name) === normalize(item.originalDescription),
+    );
+    if (created) {
+      setSupplies(refreshed.data || []);
+      updateItem(item.id, "supplyId", String(created.id));
+      const key = normalizePurchaseDescription(item.originalDescription);
+      setSavedMappings((current) => ({ ...current, [key]: created.id }));
+      void savePurchaseItemMapping(
+        "grooming",
+        item.originalDescription,
+        created.id,
+      );
+      toast.success("Insumo cadastrado e associado!");
+    }
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const validItems = items.filter(
-      (item) => item.supplyId > 0 && Number(item.quantity.replace(",", ".")) > 0,
+      (item) =>
+        item.supplyId > 0 && Number(item.quantity.replace(",", ".")) > 0,
     );
 
     if (validItems.length === 0) {
@@ -187,6 +283,7 @@ export function GroomingSupplyBatchEntryForm() {
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
+          <PurchaseDocumentImporter onRecognized={applyRecognizedDocument} />
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
             <label className="space-y-1">
               <span className="text-sm font-medium text-slate-700">
@@ -303,15 +400,48 @@ export function GroomingSupplyBatchEntryForm() {
                     key={item.id}
                     className="grid gap-3 rounded-2xl border bg-slate-50 p-3 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto]"
                   >
+                    {item.originalDescription && (
+                      <div className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800 lg:col-span-6">
+                        Item reconhecido:{" "}
+                        <strong>{item.originalDescription}</strong>
+                        {item.supplyId === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => void createSupplyFromItem(item)}
+                            className="ml-2 font-bold text-[#8A0EEA] underline"
+                          >
+                            Cadastrar este insumo
+                          </button>
+                        )}
+                      </div>
+                    )}
                     <label className="space-y-1">
                       <span className="text-xs font-medium text-slate-600">
                         Produto {index + 1}
                       </span>
                       <select
                         value={item.supplyId}
-                        onChange={(event) =>
-                          updateItem(item.id, "supplyId", event.target.value)
-                        }
+                        onChange={(event) => {
+                          updateItem(item.id, "supplyId", event.target.value);
+                          if (
+                            item.originalDescription &&
+                            event.target.value !== "0"
+                          ) {
+                            const targetId = Number(event.target.value);
+                            const key = normalizePurchaseDescription(
+                              item.originalDescription,
+                            );
+                            setSavedMappings((current) => ({
+                              ...current,
+                              [key]: targetId,
+                            }));
+                            void savePurchaseItemMapping(
+                              "grooming",
+                              item.originalDescription,
+                              targetId,
+                            );
+                          }
+                        }}
                         className="w-full rounded-xl border px-3 py-2"
                         required
                       >
@@ -424,4 +554,32 @@ export function GroomingSupplyBatchEntryForm() {
       </div>
     </div>
   );
+}
+
+function normalize(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function findBestSupply(description: string, supplies: GroomingSupply[]) {
+  const source = normalize(description);
+  const words = new Set(source.split(" ").filter((word) => word.length > 2));
+  return supplies
+    .map((supply) => {
+      const candidate = normalize(supply.name);
+      const matches = [...words].filter((word) =>
+        candidate.includes(word),
+      ).length;
+      return {
+        supply,
+        score: candidate === source ? 100 : matches / Math.max(words.size, 1),
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .find((item) => item.score >= 0.5)?.supply;
 }

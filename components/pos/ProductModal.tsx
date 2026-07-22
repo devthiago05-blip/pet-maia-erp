@@ -47,11 +47,19 @@ interface ProductVariationForm {
 
 function createVariation(product?: Product): ProductVariationForm {
   const costPrice = Number(product?.preco_custo || 0);
+  const unitsPerPurchase = Math.max(
+    1,
+    Number(product?.units_per_purchase || 1),
+  );
   const salePrice = Number(product?.preco_venda || 0);
   const margin =
     product?.profit_margin !== undefined
       ? Number(product.profit_margin)
       : calculateMargin(costPrice, salePrice);
+  const suggestedSalePrice =
+    unitsPerPurchase > 1 && product?.profit_margin !== undefined
+      ? calculateSalePrice(costPrice, margin)
+      : salePrice;
 
   return {
     id: 1,
@@ -59,9 +67,11 @@ function createVariation(product?: Product): ProductVariationForm {
     cor: product?.cor || "",
     sabor: product?.sabor || "",
     barcode: product?.barcode || product?.sku || "",
-    precoCusto: String(product?.preco_custo || ""),
+    precoCusto: product?.preco_custo
+      ? formatDecimal(costPrice * unitsPerPurchase)
+      : "",
     margem: costPrice > 0 && salePrice > 0 ? formatDecimal(margin) : "",
-    precoVenda: String(product?.preco_venda || ""),
+    precoVenda: suggestedSalePrice ? formatDecimal(suggestedSalePrice) : "",
     estoque: String(product?.estoque ?? 0),
     estoqueMinimo: String(product?.estoque_minimo ?? 0),
   };
@@ -101,6 +111,12 @@ function formatDecimal(value: number) {
 
 function calculateSalePrice(costPrice: number, margin: number) {
   return costPrice + costPrice * (margin / 100);
+}
+
+function calculateUnitCost(packageCost: number, unitsPerPurchase: number) {
+  return Number(
+    formatDecimal(packageCost / Math.max(1, unitsPerPurchase || 1)),
+  );
 }
 
 function calculateMargin(costPrice: number, salePrice: number) {
@@ -212,8 +228,12 @@ export function ProductModal({
 
         const next = { ...variation, [field]: value };
 
-        const costPrice = Number(
+        const packageCost = Number(
           field === "precoCusto" ? value : next.precoCusto,
+        );
+        const costPrice = calculateUnitCost(
+          packageCost,
+          Number(unitsPerPurchase),
         );
 
         if (field === "margem") {
@@ -331,7 +351,10 @@ export function ProductModal({
     const parsedVariations = variations.map((variation) => ({
       ...variation,
       barcodeValue: variation.barcode.trim(),
-      precoCustoNumber: Number(variation.precoCusto),
+      precoCustoNumber: calculateUnitCost(
+        Number(variation.precoCusto),
+        Number(unitsPerPurchase),
+      ),
       margemNumber: Number(variation.margem || 0),
       precoVendaNumber: Number(variation.precoVenda),
       estoqueNumber: Number(variation.estoque),
@@ -609,7 +632,28 @@ export function ProductModal({
                   type="number"
                   integer
                   value={unitsPerPurchase}
-                  onChange={setUnitsPerPurchase}
+                  onChange={(value) => {
+                    setUnitsPerPurchase(value);
+                    const nextUnits = Math.max(1, Number(value || 1));
+                    setVariations((current) =>
+                      current.map((variation) => {
+                        const unitCost = calculateUnitCost(
+                          Number(variation.precoCusto),
+                          nextUnits,
+                        );
+                        const margin = Number(variation.margem);
+                        return {
+                          ...variation,
+                          precoVenda:
+                            Number.isFinite(unitCost) && Number.isFinite(margin)
+                              ? formatDecimal(
+                                  calculateSalePrice(unitCost, margin),
+                                )
+                              : variation.precoVenda,
+                        };
+                      }),
+                    );
+                  }}
                   placeholder="Ex.: 10"
                 />
               </div>
@@ -821,7 +865,11 @@ export function ProductModal({
                       }
                     />
                     <ProductInput
-                      label="Valor de compra"
+                      label={
+                        Number(unitsPerPurchase) > 1
+                          ? `Custo de 1 ${purchaseUnit || "embalagem"}`
+                          : "Valor de compra"
+                      }
                       type="number"
                       value={variation.precoCusto}
                       onChange={(value) =>
@@ -866,12 +914,26 @@ export function ProductModal({
                     />
                   </div>
                   <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
+                    {Number(unitsPerPurchase) > 1 && (
+                      <span className="mb-1 block font-semibold text-emerald-700">
+                        Custo por {saleUnit || "unidade"}:{" "}
+                        {formatCurrency(
+                          calculateUnitCost(
+                            Number(variation.precoCusto || 0),
+                            Number(unitsPerPurchase),
+                          ),
+                        )}
+                      </span>
+                    )}
                     <span className="font-semibold">Lucro por unidade:</span>{" "}
                     {formatCurrency(
                       Math.max(
                         0,
                         Number(variation.precoVenda || 0) -
-                          Number(variation.precoCusto || 0),
+                          calculateUnitCost(
+                            Number(variation.precoCusto || 0),
+                            Number(unitsPerPurchase),
+                          ),
                       ),
                     )}{" "}
                     <span className="text-slate-400">

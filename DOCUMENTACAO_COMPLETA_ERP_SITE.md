@@ -345,6 +345,8 @@ O mesmo controle atende medicamentos e outras embalagens fracionadas, como `CAIX
 
 No PDV, o produto é apresentado pela unidade efetivamente vendida, não pela embalagem de compra. Por exemplo, um produto cadastrado como `PACK → SACHÊ` aparece como “Sachê” no card, com estoque e preço por sachê; a informação de packs permanece na gestão de estoque.
 
+No cadastro fracionado, o valor de compra representa a embalagem completa. O ERP divide esse custo pela quantidade interna e aplica a margem sobre o custo unitário. Exemplo: pack com 15 sachês comprado por R$ 40,00 resulta em custo unitário arredondado de R$ 2,67; com margem de 50%, o preço sugerido do sachê é R$ 4,01.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

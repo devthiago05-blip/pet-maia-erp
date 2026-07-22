@@ -13,6 +13,11 @@ import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 interface QuickProductModalProps {
   categories: ProductCategory[];
   onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
+  triggerLabel?: string;
+  initialName?: string;
+  initialCost?: string;
+  onCreated?: (name: string) => void;
+  className?: string;
 }
 
 interface QuickVariation {
@@ -44,6 +49,11 @@ function generateProductCode(index: number) {
 export function QuickProductModal({
   categories,
   onSave,
+  triggerLabel = "Produto rápido",
+  initialName = "",
+  initialCost = "",
+  onCreated,
+  className,
 }: QuickProductModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
@@ -73,6 +83,13 @@ export function QuickProductModal({
     setUnidadeComercial("UN");
     setVariations([createQuickVariation()]);
     setFiscalOpen(false);
+  }
+
+  function openModal() {
+    reset();
+    setNome(initialName);
+    setPrecoCusto(initialCost);
+    setOpen(true);
   }
 
   function updateVariation(
@@ -203,6 +220,7 @@ export function QuickProductModal({
     setSaving(true);
     try {
       await onSave(products);
+      onCreated?.(products[0]?.nome || nome.trim());
       if (fiscalPending)
         toast.warning(
           "Produto salvo. Complete a tributação antes de emitir NFC-e.",
@@ -220,10 +238,13 @@ export function QuickProductModal({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-xl border border-[#8A0EEA] px-4 py-2 font-semibold text-[#8A0EEA]"
+        onClick={openModal}
+        className={
+          className ||
+          "rounded-xl border border-[#8A0EEA] px-4 py-2 font-semibold text-[#8A0EEA]"
+        }
       >
-        Produto rapido
+        {triggerLabel}
       </button>
 
       {open && (

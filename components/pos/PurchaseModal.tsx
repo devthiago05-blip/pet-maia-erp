@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, Link2, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -126,6 +126,7 @@ export function PurchaseModal({
     0,
   );
   const paymentDifference = total - paymentTotal;
+  const unresolvedCount = lines.filter((line) => !line.productId).length;
 
   function updateLine(
     id: number,
@@ -165,7 +166,7 @@ export function PurchaseModal({
         products.find((candidate) => candidate.id === mappedId) ||
         findBestMatch(
           item.description,
-          products,
+          products.filter((candidate) => candidate.ativo),
           (candidate) =>
             `${candidate.nome} ${candidate.sku || ""} ${candidate.barcode || ""}`,
         );
@@ -218,6 +219,13 @@ export function PurchaseModal({
 
     if (!supplierId) {
       toast.error("Selecione um fornecedor");
+      return;
+    }
+
+    if (unresolvedCount > 0) {
+      toast.error(
+        `Associe ou cadastre os ${unresolvedCount} produto(s) pendente(s) antes de registrar a compra.`,
+      );
       return;
     }
 
@@ -330,209 +338,271 @@ export function PurchaseModal({
       {open && (
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
           <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
-            <h2 className="mb-5 text-xl font-bold">Entrada de produtos</h2>
-            <div className="mb-5 grid gap-3 sm:grid-cols-[1fr_auto]">
-              <PurchaseDocumentImporter
-                onRecognized={applyRecognizedDocument}
-              />
-              <QuickProductModal
-                categories={categories}
-                onSave={onProductSave}
-              />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <label className="grid gap-2 text-sm font-medium">
-                Fornecedor
-                <select
-                  value={supplierId}
-                  onChange={(event) => setSupplierId(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                >
-                  <option value="">Selecione</option>
-                  {suppliers
-                    .filter((supplier) => supplier.ativo)
-                    .map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>
-                        {supplier.nome}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Vencimento
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(event) => setDueDate(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                />
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Nota / Documento
-                <input
-                  value={documentNumber}
-                  onChange={(event) => setDocumentNumber(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                />
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                Data da compra
-                <input
-                  type="date"
-                  value={purchaseDate}
-                  onChange={(event) => setPurchaseDate(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                />
-              </label>
+            <div className="mb-5">
+              <h2 className="text-xl font-bold">Entrada de produtos</h2>
+              <p className="text-sm text-slate-500">
+                Importe a nota, associe cada item e confira o pagamento.
+              </p>
             </div>
 
-            <div className="mt-5 space-y-3">
-              {lines.map((line) => {
-                const selectedProduct = products.find(
-                  (product) => String(product.id) === line.productId,
-                );
-                const conversion = Math.max(
-                  1,
-                  Number(selectedProduct?.units_per_purchase || 1),
-                );
-
-                return (
-                  <div
-                    key={line.id}
-                    className="grid gap-3 rounded-xl border p-3 lg:grid-cols-[minmax(150px,1fr)_minmax(180px,1.4fr)_100px_150px_40px]"
+            <section className="rounded-2xl border p-4">
+              <StepTitle
+                number="1"
+                title="Nota e fornecedor"
+                description="Importe o XML, PDF ou foto. Os dados encontrados serão preenchidos abaixo."
+              />
+              <div className="mt-4">
+                <PurchaseDocumentImporter
+                  onRecognized={applyRecognizedDocument}
+                />
+              </div>
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <label className="grid gap-2 text-sm font-medium">
+                  Fornecedor
+                  <select
+                    value={supplierId}
+                    onChange={(event) => setSupplierId(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
                   >
-                    {line.originalDescription && (
-                      <div className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800 lg:col-span-5">
-                        Item reconhecido:{" "}
-                        <strong>{line.originalDescription}</strong>
-                        {!line.productId &&
-                          " · Associe a um produto cadastrado."}
-                      </div>
-                    )}
-                    <select
-                      value={line.productName}
-                      onChange={(event) => {
-                        updateLine(line.id, "productName", event.target.value);
-                        updateLine(line.id, "productId", "");
-                      }}
-                      className="rounded-xl border p-3"
-                    >
-                      <option value="">Produto</option>
-                      {Array.from(
-                        new Set(
-                          products
-                            .filter((product) => product.ativo)
-                            .map((product) => product.nome),
-                        ),
-                      ).map((name) => (
-                        <option key={name} value={name}>
-                          {name}
+                    <option value="">Selecione</option>
+                    {suppliers
+                      .filter((supplier) => supplier.ativo)
+                      .map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>
+                          {supplier.nome}
                         </option>
                       ))}
-                    </select>
-                    <select
-                      value={line.productId}
-                      onChange={(event) => {
-                        updateLine(line.id, "productId", event.target.value);
-                        if (line.originalDescription && event.target.value) {
-                          const targetId = Number(event.target.value);
-                          const key = normalizePurchaseDescription(
-                            line.originalDescription,
-                          );
-                          setSavedMappings((current) => ({
-                            ...current,
-                            [key]: targetId,
-                          }));
-                          void savePurchaseItemMapping(
-                            "pdv",
-                            line.originalDescription,
-                            targetId,
-                          );
-                        }
-                      }}
-                      className="rounded-xl border p-3"
-                    >
-                      <option value="">Variação</option>
-                      {products
-                        .filter(
-                          (product) =>
-                            product.ativo && product.nome === line.productName,
-                        )
-                        .map((product) => (
-                          <option key={product.id} value={product.id}>
-                            {product.sku} · {formatProductName(product)}
-                          </option>
-                        ))}
-                    </select>
-                    <label className="grid gap-1 text-xs font-medium text-slate-500">
-                      Qtd. {selectedProduct?.purchase_unit || "UN"}
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        value={line.quantity}
-                        onChange={(event) =>
-                          updateLine(line.id, "quantity", event.target.value)
-                        }
-                        aria-label="Quantidade de compra"
-                        className="rounded-xl border p-3 text-sm text-slate-900"
-                      />
-                    </label>
-                    <label className="grid gap-1 text-xs font-medium text-slate-500">
-                      Custo por {selectedProduct?.purchase_unit || "unidade"}
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={line.unitCost}
-                        onChange={(event) =>
-                          updateLine(line.id, "unitCost", event.target.value)
-                        }
-                        placeholder="0,00"
-                        className="rounded-xl border p-3 text-sm text-slate-900"
-                      />
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setLines((current) =>
-                          current.filter((item) => item.id !== line.id),
-                        )
-                      }
-                      disabled={lines.length === 1}
-                      aria-label="Remover item"
-                      className="flex items-center justify-center rounded-xl border text-red-600 disabled:opacity-30"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                    {selectedProduct && conversion > 1 && (
-                      <p className="rounded-lg bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 lg:col-span-5">
-                        {line.quantity || 0} {selectedProduct.purchase_unit} ={" "}
-                        {Number(line.quantity || 0) * conversion}{" "}
-                        {selectedProduct.sale_unit} no estoque
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                  </select>
+                </label>
+                <label className="grid gap-2 text-sm font-medium">
+                  Vencimento
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(event) => setDueDate(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium">
+                  Nota / Documento
+                  <input
+                    value={documentNumber}
+                    onChange={(event) => setDocumentNumber(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+                <label className="grid gap-2 text-sm font-medium">
+                  Data da compra
+                  <input
+                    type="date"
+                    value={purchaseDate}
+                    onChange={(event) => setPurchaseDate(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
+                  />
+                </label>
+              </div>
+            </section>
 
-            <button
-              type="button"
-              onClick={addLine}
-              className="mt-3 flex items-center gap-2 text-sm font-medium text-[#8A0EEA]"
-            >
-              <Plus size={17} />
-              Adicionar item
-            </button>
+            <section className="mt-5 rounded-2xl border p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <StepTitle
+                  number="2"
+                  title="Associar produtos"
+                  description="Para cada item da nota, escolha o produto correspondente no ERP ou cadastre um novo."
+                />
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${unresolvedCount ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-700"}`}
+                >
+                  {unresolvedCount
+                    ? `${unresolvedCount} pendente(s)`
+                    : "Todos associados"}
+                </span>
+              </div>
+              <div className="mt-4 space-y-3">
+                {lines.map((line) => {
+                  const selectedProduct = products.find(
+                    (product) => String(product.id) === line.productId,
+                  );
+                  const conversion = Math.max(
+                    1,
+                    Number(selectedProduct?.units_per_purchase || 1),
+                  );
+
+                  return (
+                    <div
+                      key={line.id}
+                      className={`grid gap-3 rounded-2xl border p-3 lg:grid-cols-[minmax(280px,1fr)_100px_150px_40px] ${line.productId ? "border-emerald-200 bg-emerald-50/30" : "border-amber-200 bg-amber-50/30"}`}
+                    >
+                      {line.originalDescription && (
+                        <div className="flex flex-col gap-3 rounded-xl bg-white p-3 lg:col-span-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                              Item encontrado na nota
+                            </p>
+                            <strong className="mt-1 block text-sm text-slate-900">
+                              {line.originalDescription}
+                            </strong>
+                            <p
+                              className={`mt-1 text-xs font-semibold ${line.productId ? "text-emerald-700" : "text-amber-700"}`}
+                            >
+                              {line.productId
+                                ? "Produto associado"
+                                : "Escolha um produto abaixo ou cadastre um novo"}
+                            </p>
+                          </div>
+                          {!line.productId && (
+                            <QuickProductModal
+                              categories={categories}
+                              onSave={onProductSave}
+                              triggerLabel="Cadastrar este produto"
+                              initialName={line.originalDescription}
+                              initialCost={line.unitCost}
+                              onCreated={() =>
+                                toast.success(
+                                  "Produto cadastrado. Agora selecione-o no campo de associação.",
+                                )
+                              }
+                              className="shrink-0 rounded-xl bg-[#8A0EEA] px-4 py-2 text-sm font-semibold text-white"
+                            />
+                          )}
+                        </div>
+                      )}
+                      <label className="grid gap-1 text-xs font-bold text-slate-600">
+                        <span className="inline-flex items-center gap-1">
+                          <Link2 size={14} /> Produto correspondente no ERP
+                        </span>
+                        <select
+                          value={line.productId}
+                          onChange={(event) => {
+                            const targetId = Number(event.target.value);
+                            const product = products.find(
+                              (item) => item.id === targetId,
+                            );
+                            updateLine(
+                              line.id,
+                              "productId",
+                              event.target.value,
+                            );
+                            updateLine(
+                              line.id,
+                              "productName",
+                              product?.nome || "",
+                            );
+                            if (line.originalDescription && targetId) {
+                              const key = normalizePurchaseDescription(
+                                line.originalDescription,
+                              );
+                              setSavedMappings((current) => ({
+                                ...current,
+                                [key]: targetId,
+                              }));
+                              void savePurchaseItemMapping(
+                                "pdv",
+                                line.originalDescription,
+                                targetId,
+                              );
+                            }
+                          }}
+                          className={`rounded-xl border bg-white p-3 text-sm font-normal ${!line.productId ? "border-amber-400 ring-2 ring-amber-100" : "border-emerald-300"}`}
+                        >
+                          <option value="">
+                            Selecione o produto para associar
+                          </option>
+                          {Array.from(
+                            new Set(
+                              products
+                                .filter((product) => product.ativo)
+                                .map((product) => product.nome),
+                            ),
+                          ).map((name) => (
+                            <optgroup key={name} label={name}>
+                              {products
+                                .filter(
+                                  (product) =>
+                                    product.ativo && product.nome === name,
+                                )
+                                .map((product) => (
+                                  <option key={product.id} value={product.id}>
+                                    {formatProductName(product)} ·{" "}
+                                    {product.sku || "sem código"}
+                                  </option>
+                                ))}
+                            </optgroup>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="grid gap-1 text-xs font-medium text-slate-500">
+                        Qtd. {selectedProduct?.purchase_unit || "UN"}
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          value={line.quantity}
+                          onChange={(event) =>
+                            updateLine(line.id, "quantity", event.target.value)
+                          }
+                          aria-label="Quantidade de compra"
+                          className="rounded-xl border p-3 text-sm text-slate-900"
+                        />
+                      </label>
+                      <label className="grid gap-1 text-xs font-medium text-slate-500">
+                        Custo por {selectedProduct?.purchase_unit || "unidade"}
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={line.unitCost}
+                          onChange={(event) =>
+                            updateLine(line.id, "unitCost", event.target.value)
+                          }
+                          placeholder="0,00"
+                          className="rounded-xl border p-3 text-sm text-slate-900"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setLines((current) =>
+                            current.filter((item) => item.id !== line.id),
+                          )
+                        }
+                        disabled={lines.length === 1}
+                        aria-label="Remover item"
+                        className="flex min-h-11 items-center justify-center rounded-xl border bg-white text-red-600 disabled:opacity-30"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                      {selectedProduct && conversion > 1 && (
+                        <p className="rounded-lg bg-emerald-50 p-2 text-xs font-semibold text-emerald-700 lg:col-span-4">
+                          {line.quantity || 0} {selectedProduct.purchase_unit} ={" "}
+                          {Number(line.quantity || 0) * conversion}{" "}
+                          {selectedProduct.sale_unit} no estoque
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={addLine}
+                className="mt-3 flex items-center gap-2 text-sm font-medium text-[#8A0EEA]"
+              >
+                <Plus size={17} />
+                Adicionar item
+              </button>
+            </section>
 
             <section className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-4">
+              <StepTitle
+                number="3"
+                title="Pagamento"
+                description="Confira o total e informe uma ou mais formas de pagamento."
+              />
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-bold text-slate-900">
-                    Formas de pagamento
-                  </h3>
-                  <p className="text-sm text-slate-500">
+                  <p className="mt-3 text-sm text-slate-500">
                     Divida o total entre duas ou mais formas, se necessário.
                   </p>
                 </div>
@@ -668,15 +738,18 @@ export function PurchaseModal({
               </div>
             </section>
 
-            <label className="mt-5 grid gap-2 text-sm font-medium">
-              Observações
+            <details className="mt-5 rounded-2xl border bg-slate-50 p-4">
+              <summary className="cursor-pointer text-sm font-bold text-slate-700">
+                Observações opcionais
+              </summary>
               <textarea
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
-                className="resize-none rounded-xl border p-3 font-normal"
+                className="mt-3 w-full resize-none rounded-xl border bg-white p-3 text-sm font-normal"
+                placeholder="Informações adicionais sobre esta compra"
               />
-            </label>
+            </details>
 
             <div className="mt-5 flex items-center justify-between border-t pt-4">
               <span className="font-medium">Total da compra</span>
@@ -706,6 +779,33 @@ export function PurchaseModal({
         </div>
       )}
     </>
+  );
+}
+
+function StepTitle({
+  number,
+  title,
+  description,
+}: {
+  number: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#8A0EEA] text-sm font-bold text-white">
+        {number}
+      </span>
+      <div>
+        <h3 className="flex items-center gap-2 font-bold text-slate-900">
+          {title}
+          {number === "2" && (
+            <CheckCircle2 size={17} className="text-emerald-600" />
+          )}
+        </h3>
+        <p className="text-sm text-slate-500">{description}</p>
+      </div>
+    </div>
   );
 }
 

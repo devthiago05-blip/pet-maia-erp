@@ -352,8 +352,8 @@ export function PurchaseModal({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4">
-          <div className="my-auto max-h-[calc(100dvh-2rem)] w-full max-w-4xl overflow-y-auto rounded-xl bg-white p-4 sm:p-6">
+        <div className="erp-modal-overlay" role="dialog" aria-modal="true">
+          <div className="erp-modal-panel max-w-4xl">
             <div className="mb-5">
               <h2 className="text-xl font-bold">Entrada de produtos</h2>
               <p className="text-sm text-slate-500">

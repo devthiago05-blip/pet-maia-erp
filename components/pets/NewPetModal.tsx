@@ -171,8 +171,8 @@ export function NewPetModal({
       )}
 
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
-          <div className="max-h-[calc(100dvh-2rem)] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
+        <div className="erp-modal-overlay" role="dialog" aria-modal="true">
+          <div className="erp-modal-panel max-w-xl">
             <h2 className="mb-4 text-xl font-bold sm:text-2xl">Novo Pet</h2>
             <p className="mb-4 text-sm text-slate-500">
               Campos com * são obrigatórios.

@@ -156,12 +156,12 @@ export function EditFinancialModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center"
+      className="erp-modal-overlay"
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-financial-title"
     >
-      <div className="max-h-[calc(100dvh-2rem)] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-4 shadow-xl sm:p-6">
+      <div className="erp-modal-panel max-w-2xl">
         <div className="mb-5">
           <h2
             id="edit-financial-title"

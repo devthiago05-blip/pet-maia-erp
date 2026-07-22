@@ -433,6 +433,16 @@ export function PurchaseModal({
                     1,
                     Number(selectedProduct?.units_per_purchase || 1),
                   );
+                  const registeredPurchaseCost = selectedProduct
+                    ? Number(selectedProduct.preco_custo || 0) * conversion
+                    : 0;
+                  const importedPurchaseCost = Number(line.unitCost || 0);
+                  const costDifference =
+                    importedPurchaseCost - registeredPurchaseCost;
+                  const hasCostDifference =
+                    Boolean(selectedProduct) &&
+                    importedPurchaseCost > 0 &&
+                    Math.abs(costDifference) >= 0.01;
 
                   return (
                     <div
@@ -557,6 +567,25 @@ export function PurchaseModal({
                           {Number(line.quantity || 0) * conversion}{" "}
                           {selectedProduct.sale_unit} no estoque
                         </p>
+                      )}
+                      {hasCostDifference && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 lg:col-span-4">
+                          <strong className="block font-bold">
+                            Custo diferente do cadastro
+                          </strong>
+                          <span>
+                            Cadastrado: {formatCurrency(registeredPurchaseCost)}
+                            {" · "}Na nota:{" "}
+                            {formatCurrency(importedPurchaseCost)}
+                            {" · "}
+                            {costDifference > 0 ? "Aumento" : "Redução"} de{" "}
+                            {formatCurrency(Math.abs(costDifference))}
+                            {registeredPurchaseCost > 0 &&
+                              ` (${Math.abs((costDifference / registeredPurchaseCost) * 100).toFixed(1)}%)`}
+                            . Apenas informativo; o custo cadastrado não será
+                            alterado automaticamente.
+                          </span>
+                        </div>
                       )}
                     </div>
                   );

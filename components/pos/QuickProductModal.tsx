@@ -368,7 +368,7 @@ export function QuickProductModal({
               <QuickInput
                 label="Produto"
                 value={nome}
-                onChange={(value) => setNome(normalizeProductName(value))}
+                onChange={(value) => setNome(value.toLocaleUpperCase("pt-BR"))}
                 placeholder="Ex: Coleira nylon"
               />
               <label className="grid gap-2 text-sm font-medium">

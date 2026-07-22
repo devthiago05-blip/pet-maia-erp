@@ -316,6 +316,7 @@ Rotas: `/clinica`, `/pets/[id]` e receita pública `/receita/[token]`.
 
 - Prontuário e anamnese.
 - Peso, temperatura, queixa, alergias, medicamentos, diagnóstico e conduta.
+- Ao abrir uma nova consulta, mostra peso, temperatura, alergias e medicamentos da consulta anterior; alergias e medicamentos podem ser copiados com confirmação do veterinário.
 - Retorno e confirmação de retorno.
 - Prescrições com item simples ou fórmula, dosagem, frequência, duração e instruções.
 - Catálogo de medicamentos e modelos de dosagem.
@@ -529,4 +530,3 @@ Depois de uma mudança relevante:
 - Registrar novas variáveis apenas pelo nome, nunca pelo valor.
 - Atualizar migrações, buckets, regras e fluxos afetados.
 - Manter a seção do próximo chat coerente com as regras vigentes.
-

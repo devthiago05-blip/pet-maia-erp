@@ -1016,6 +1016,7 @@ function ClinicalHistory({
           <NewClinicalRecordModal
             petId={pet.id}
             defaultProfessionalName={professionalName}
+            previousRecord={records[0]}
             onSave={onSave}
           />
         )}

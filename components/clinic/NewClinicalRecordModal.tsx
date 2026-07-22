@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle, History } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -10,11 +11,13 @@ export function NewClinicalRecordModal({
   defaultProfessionalName,
   onSave,
   record,
+  previousRecord,
 }: {
   petId: number;
   defaultProfessionalName: string;
   onSave: (record: NewClinicalRecordInput) => Promise<void>;
   record?: ClinicalRecord;
+  previousRecord?: ClinicalRecord;
 }) {
   const [open, setOpen] = useState(false);
   const [consultationDate, setConsultationDate] = useState(
@@ -39,6 +42,13 @@ export function NewClinicalRecordModal({
   const [conduct, setConduct] = useState(record?.conduct || "");
   const [returnDate, setReturnDate] = useState(record?.return_date || "");
   const [saving, setSaving] = useState(false);
+
+  function copyPreviousClinicalData() {
+    if (!previousRecord) return;
+    setAllergies(previousRecord.allergies || "");
+    setCurrentMedications(previousRecord.current_medications || "");
+    toast.success("Alergias e medicamentos copiados da última consulta.");
+  }
 
   async function handleSave() {
     if (
@@ -121,6 +131,72 @@ export function NewClinicalRecordModal({
             <h2 className="text-xl font-bold">
               {record ? "Editar consulta clínica" : "Nova consulta clínica"}
             </h2>
+            {!record && previousRecord && (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="flex items-center gap-2 text-sm font-bold text-amber-900">
+                      <History size={17} /> Referência da última consulta
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-amber-900">
+                      <span className="rounded-lg bg-white/80 px-2 py-1">
+                        Data:{" "}
+                        {formatClinicalDate(previousRecord.consultation_date)}
+                      </span>
+                      {previousRecord.weight_kg && (
+                        <span className="rounded-lg bg-white/80 px-2 py-1">
+                          Peso: {previousRecord.weight_kg} kg
+                        </span>
+                      )}
+                      {previousRecord.temperature_c && (
+                        <span className="rounded-lg bg-white/80 px-2 py-1">
+                          Temperatura: {previousRecord.temperature_c} °C
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {(previousRecord.allergies ||
+                    previousRecord.current_medications) && (
+                    <button
+                      type="button"
+                      onClick={copyPreviousClinicalData}
+                      className="shrink-0 rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-100"
+                    >
+                      Copiar dados clínicos
+                    </button>
+                  )}
+                </div>
+                {(previousRecord.allergies ||
+                  previousRecord.current_medications) && (
+                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                    {previousRecord.allergies && (
+                      <div className="rounded-xl bg-white/80 p-3">
+                        <strong className="flex items-center gap-1 text-amber-800">
+                          <AlertTriangle size={15} /> Alergias registradas
+                        </strong>
+                        <p className="mt-1 whitespace-pre-line text-slate-700">
+                          {previousRecord.allergies}
+                        </p>
+                      </div>
+                    )}
+                    {previousRecord.current_medications && (
+                      <div className="rounded-xl bg-white/80 p-3">
+                        <strong className="text-amber-800">
+                          Medicamentos em uso
+                        </strong>
+                        <p className="mt-1 whitespace-pre-line text-slate-700">
+                          {previousRecord.current_medications}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <p className="mt-3 text-xs text-amber-800">
+                  Confirme com o tutor antes de manter essas informações no novo
+                  atendimento.
+                </p>
+              </div>
+            )}
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               <ClinicalInput
                 label="Data da consulta"
@@ -209,6 +285,12 @@ export function NewClinicalRecordModal({
         </div>
       )}
     </>
+  );
+}
+
+function formatClinicalDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(
+    new Date(`${value}T00:00:00Z`),
   );
 }
 

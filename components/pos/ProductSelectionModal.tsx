@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency, formatProductName } from "@/lib/formatters";
+import { formatPackStock } from "@/lib/product-stock";
 import type { Product } from "@/types/domain";
 
 export function ProductSelectionModal({
@@ -25,6 +26,9 @@ export function ProductSelectionModal({
     (product) => String(product.id) === productId,
   );
   const isBulkFeed = selectedProduct?.sale_unit === "100G";
+  const selectedPackStock = selectedProduct
+    ? formatPackStock(selectedProduct)
+    : null;
   const totalStock = useMemo(
     () => products.reduce((total, product) => total + product.estoque, 0),
     [products],
@@ -149,6 +153,17 @@ export function ProductSelectionModal({
                     {selectedProduct.sale_unit || "un."}
                   </strong>
                 </div>
+                {selectedPackStock && (
+                  <div className="mt-3 rounded-lg bg-purple-50 p-3 text-sm text-purple-900">
+                    <strong className="block">
+                      {selectedPackStock.summary}
+                    </strong>
+                    <span className="text-xs text-purple-700">
+                      {selectedPackStock.detail}. Cada venda desconta a unidade;
+                      o pack zera ao vender a última.
+                    </span>
+                  </div>
+                )}
                 {isBulkFeed && Number(quantity) > 0 && (
                   <p className="mt-3 rounded-lg bg-emerald-50 p-2 text-center text-sm font-bold text-emerald-700">
                     Peso: {Number(quantity) * 100} g · Total:{" "}

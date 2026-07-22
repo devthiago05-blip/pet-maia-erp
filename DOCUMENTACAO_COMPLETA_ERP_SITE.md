@@ -339,6 +339,8 @@ Serviço: `services/clinical.ts`.
 
 Ao importar XML, PDF ou foto de uma nota, cada item não associado oferece **Cadastro rápido** e **Cadastro completo**. O cadastro completo permite definir unidade de compra (ex.: CAIXA/PACK), unidade de venda (ex.: UN) e quantidade de unidades de venda por embalagem. Exemplo: `1 PACK = 12 UN`; ao registrar a entrada de 3 packs, o estoque recebe 36 unidades disponíveis para venda no PDV.
 
+Para produtos comprados em pack e vendidos separadamente, o estoque é controlado pela unidade de venda. Exemplo: em `1 PACK = 15 SACHÊS`, a entrada de um pack adiciona 15 sachês. A lista de produtos e o seletor do PDV exibem simultaneamente packs e sachês, identificando o pack aberto. Cada sachê vendido reduz o saldo e o pack somente chega a zero quando o 15º sachê é vendido.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

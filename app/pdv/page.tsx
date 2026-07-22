@@ -49,6 +49,7 @@ import {
   formatProductName,
 } from "@/lib/formatters";
 import { isProductFiscalReady } from "@/lib/product-fiscal";
+import { formatPackStock } from "@/lib/product-stock";
 import {
   addPosCashMovement,
   archiveProduct,
@@ -3644,6 +3645,7 @@ function ProductsView({
           visibleProducts.map((product) => {
             const lowStock = product.estoque <= product.estoque_minimo;
             const fiscalReady = isProductFiscalReady(product);
+            const packStock = formatPackStock(product);
 
             return (
               <article
@@ -3684,8 +3686,13 @@ function ProductsView({
                     <p
                       className={`text-xl font-bold ${lowStock ? "text-red-600" : "text-slate-900"}`}
                     >
-                      {product.estoque}
+                      {packStock?.summary || product.estoque}
                     </p>
+                    {packStock && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {packStock.detail}
+                      </p>
+                    )}
                   </div>
                   <span
                     className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -3761,69 +3768,80 @@ function ProductsView({
                   </td>
                 </tr>
               ) : (
-                visibleProducts.map((product) => (
-                  <tr
-                    key={product.id}
-                    className={`border-t ${!product.ativo ? "bg-slate-50 text-slate-500" : ""}`}
-                  >
-                    <td className="p-4">
-                      {product.ativo && (
-                        <input
-                          type="checkbox"
-                          checked={selectedProductIds.includes(product.id)}
-                          onChange={() => toggleProductSelection(product.id)}
-                          aria-label={`Selecionar ${formatProductName(product)}`}
-                          className="size-4 accent-[#8A0EEA]"
-                        />
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <p className="font-medium">
-                        {formatProductName(product)}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {product.barcode || product.sku || "Sem código"}
-                      </p>
-                    </td>
-                    <td className="p-4">{product.categoria || "-"}</td>
-                    <td className="p-4">
-                      {formatCurrency(product.preco_venda)}
-                    </td>
-                    <td
-                      className={`p-4 font-medium ${product.estoque <= product.estoque_minimo ? "text-red-600" : ""}`}
+                visibleProducts.map((product) => {
+                  const packStock = formatPackStock(product);
+
+                  return (
+                    <tr
+                      key={product.id}
+                      className={`border-t ${!product.ativo ? "bg-slate-50 text-slate-500" : ""}`}
                     >
-                      {product.estoque}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col items-start gap-1">
-                        <span>{product.ativo ? "Ativo" : "Inativo"}</span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isProductFiscalReady(product) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}
-                        >
-                          {isProductFiscalReady(product)
-                            ? "Fiscal completo"
-                            : "Fiscal pendente"}
+                      <td className="p-4">
+                        {product.ativo && (
+                          <input
+                            type="checkbox"
+                            checked={selectedProductIds.includes(product.id)}
+                            onChange={() => toggleProductSelection(product.id)}
+                            aria-label={`Selecionar ${formatProductName(product)}`}
+                            className="size-4 accent-[#8A0EEA]"
+                          />
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <p className="font-medium">
+                          {formatProductName(product)}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {product.barcode || product.sku || "Sem código"}
+                        </p>
+                      </td>
+                      <td className="p-4">{product.categoria || "-"}</td>
+                      <td className="p-4">
+                        {formatCurrency(product.preco_venda)}
+                      </td>
+                      <td
+                        className={`p-4 font-medium ${product.estoque <= product.estoque_minimo ? "text-red-600" : ""}`}
+                      >
+                        <span className="block">
+                          {packStock?.summary || product.estoque}
                         </span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-wrap gap-3">
-                        <ProductModal
-                          product={product}
-                          categories={categories}
-                          onSave={onSave}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setProductToDelete(product)}
-                          className="text-red-600"
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                        {packStock && (
+                          <span className="mt-1 block text-xs font-normal text-slate-500">
+                            {packStock.detail}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span>{product.ativo ? "Ativo" : "Inativo"}</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${isProductFiscalReady(product) ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-800"}`}
+                          >
+                            {isProductFiscalReady(product)
+                              ? "Fiscal completo"
+                              : "Fiscal pendente"}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex flex-wrap gap-3">
+                          <ProductModal
+                            product={product}
+                            categories={categories}
+                            onSave={onSave}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setProductToDelete(product)}
+                            className="text-red-600"
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

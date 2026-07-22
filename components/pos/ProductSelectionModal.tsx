@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { formatCurrency, formatProductName } from "@/lib/formatters";
-import { formatPackStock } from "@/lib/product-stock";
+import { formatFractionalSale, formatPackStock } from "@/lib/product-stock";
 import type { Product } from "@/types/domain";
 
 export function ProductSelectionModal({
@@ -28,6 +28,10 @@ export function ProductSelectionModal({
   const isBulkFeed = selectedProduct?.sale_unit === "100G";
   const selectedPackStock = selectedProduct
     ? formatPackStock(selectedProduct)
+    : null;
+  const salePresentation = formatFractionalSale(products[0]);
+  const selectedSalePresentation = selectedProduct
+    ? formatFractionalSale(selectedProduct)
     : null;
   const totalStock = useMemo(
     () => products.reduce((total, product) => total + product.estoque, 0),
@@ -69,11 +73,13 @@ export function ProductSelectionModal({
         <div className="flex items-start justify-between gap-3">
           <Package className="text-[#8A0EEA]" size={22} />
           <span className="text-xs font-medium text-slate-500">
-            {totalStock} {products[0]?.sale_unit || "un."}
+            {products.length === 1
+              ? salePresentation.stock
+              : `${totalStock} ${salePresentation.unit}`}
           </span>
         </div>
         <p className="mt-2 line-clamp-2 font-bold leading-snug sm:mt-3">
-          {name}
+          {products.length === 1 ? salePresentation.name : name}
         </p>
         <p className="mt-1 line-clamp-2 text-xs text-slate-500 sm:text-sm">
           {category || "Sem categoria"} · {products.length}{" "}
@@ -82,9 +88,9 @@ export function ProductSelectionModal({
         <p className="mt-2 text-base font-bold text-[#8A0EEA] sm:text-lg">
           {products.length > 1 ? "A partir de " : ""}
           {formatCurrency(minimumPrice)}
-          {products.length === 1 && products[0].sale_unit && (
+          {products.length === 1 && (
             <span className="ml-1 text-xs font-medium text-slate-500">
-              /{products[0].sale_unit}
+              /{salePresentation.unit}
             </span>
           )}
         </p>
@@ -95,7 +101,9 @@ export function ProductSelectionModal({
           <div className="w-full max-w-lg rounded-xl bg-white p-4 sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold">{name}</h2>
+                <h2 className="text-xl font-bold">
+                  {selectedSalePresentation?.name || name}
+                </h2>
                 <p className="text-sm text-slate-500">
                   Escolha a variação e a quantidade
                   {isBulkFeed ? " de ração" : ""}
@@ -145,12 +153,12 @@ export function ProductSelectionModal({
               <div className="mt-4 rounded-xl bg-slate-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-sm text-slate-500">
-                    {selectedProduct.sku} · {selectedProduct.estoque}{" "}
-                    {selectedProduct.sale_unit || "un."} disponíveis
+                    {selectedProduct.sku} · {selectedSalePresentation?.stock}{" "}
+                    disponíveis
                   </span>
                   <strong className="text-[#8A0EEA]">
                     {formatCurrency(selectedProduct.preco_venda)} /
-                    {selectedProduct.sale_unit || "un."}
+                    {selectedSalePresentation?.unit || "un."}
                   </strong>
                 </div>
                 {selectedPackStock && (

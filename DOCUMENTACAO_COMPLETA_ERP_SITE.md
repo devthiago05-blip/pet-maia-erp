@@ -343,6 +343,8 @@ Para produtos comprados em pack e vendidos separadamente, o estoque é controlad
 
 O mesmo controle atende medicamentos e outras embalagens fracionadas, como `CAIXA → CARTELA`, `CAIXA → COMPRIMIDO` e `FARDO → PACOTE`. O cadastro oferece atalhos para essas combinações. A unidade amigável usada no estoque e no PDV é separada da unidade comercial fiscal, que permanece `UN` para manter compatibilidade com a NFC-e.
 
+No PDV, o produto é apresentado pela unidade efetivamente vendida, não pela embalagem de compra. Por exemplo, um produto cadastrado como `PACK → SACHÊ` aparece como “Sachê” no card, com estoque e preço por sachê; a informação de packs permanece na gestão de estoque.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

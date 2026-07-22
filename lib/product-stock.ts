@@ -80,3 +80,36 @@ export function formatPackStock(product: PackStockProduct) {
         : `${breakdown.unitsPerPack} ${pluralizeUnit(saleUnit, breakdown.unitsPerPack)} por ${purchaseUnit.toLowerCase()}`,
   };
 }
+
+export function formatFractionalSale(product: PackStockProduct) {
+  const breakdown = getPackStockBreakdown(product);
+  if (!breakdown) {
+    const saleUnit = normalizeUnit(product.sale_unit, "UN");
+    return {
+      name: product.nome,
+      stock: `${product.estoque} ${pluralizeUnit(saleUnit, product.estoque)}`,
+      unit: saleUnit,
+    };
+  }
+
+  const replacements: Record<string, string> = {
+    PACK: breakdown.saleUnit,
+    PACOTE: breakdown.saleUnit,
+    CAIXA: breakdown.saleUnit,
+    FARDO: breakdown.saleUnit,
+    FRASCO: breakdown.saleUnit,
+  };
+  const purchasePattern = new RegExp(`^${breakdown.purchaseUnit}\\s+`, "i");
+  const saleName = purchasePattern.test(product.nome)
+    ? product.nome.replace(
+        purchasePattern,
+        `${replacements[breakdown.purchaseUnit]} `,
+      )
+    : product.nome;
+
+  return {
+    name: saleName,
+    stock: `${breakdown.stock} ${pluralizeUnit(breakdown.saleUnit, breakdown.stock)}`,
+    unit: breakdown.saleUnit,
+  };
+}

@@ -68,6 +68,8 @@ import {
   createProducts,
   createPurchaseOrder,
   createSupplier,
+  deleteInactiveProduct,
+  deleteInactiveProducts,
   deletePosQuote,
   deleteProductPurchase,
   deleteProductStocktakeDraft,
@@ -923,14 +925,24 @@ export default function PosPage() {
   }
 
   async function handleProductDelete(product: Product) {
-    const { error } = await archiveProduct(product.id);
+    const { error } = product.ativo
+      ? await archiveProduct(product.id)
+      : await deleteInactiveProduct(product.id);
 
     if (error) {
-      toast.error(error.message);
+      toast.error(
+        error.code === "23503"
+          ? "Este produto possui movimentações vinculadas e não pode ser apagado definitivamente. Mantenha-o inativo para preservar o histórico."
+          : error.message,
+      );
       throw error;
     }
 
-    toast.success("Produto excluído do catálogo");
+    toast.success(
+      product.ativo
+        ? "Produto movido para inativos"
+        : "Produto inativo excluído definitivamente",
+    );
     setCart((current) =>
       current.filter((item) => item.product.id !== product.id),
     );
@@ -938,19 +950,43 @@ export default function PosPage() {
   }
 
   async function handleProductsBulkDelete(productIds: number[]) {
-    const { data, error } = await archiveProducts(productIds);
-
-    if (error) {
-      toast.error(error.message);
-      throw error;
+    const selectedProducts = products.filter((product) =>
+      productIds.includes(product.id),
+    );
+    const activeIds = selectedProducts
+      .filter((product) => product.ativo)
+      .map((product) => product.id);
+    const inactiveIds = selectedProducts
+      .filter((product) => !product.ativo)
+      .map((product) => product.id);
+    const archiveResult = activeIds.length
+      ? await archiveProducts(activeIds)
+      : { data: [], error: null };
+    if (archiveResult.error) {
+      toast.error(archiveResult.error.message);
+      throw archiveResult.error;
+    }
+    const deleteResult = inactiveIds.length
+      ? await deleteInactiveProducts(inactiveIds)
+      : { data: [], error: null };
+    if (deleteResult.error) {
+      toast.error(
+        deleteResult.error.code === "23503"
+          ? "Um ou mais produtos possuem movimentações vinculadas. Eles foram mantidos inativos para preservar o histórico."
+          : deleteResult.error.message,
+      );
+      throw deleteResult.error;
     }
 
-    const archivedIds = new Set((data || []).map((product) => product.id));
+    const changedIds = new Set([
+      ...(archiveResult.data || []).map((product) => product.id),
+      ...(deleteResult.data || []).map((product) => product.id),
+    ]);
     setCart((current) =>
-      current.filter((item) => !archivedIds.has(item.product.id)),
+      current.filter((item) => !changedIds.has(item.product.id)),
     );
     toast.success(
-      `${archivedIds.size} produto${archivedIds.size === 1 ? " foi excluído" : "s foram excluídos"} do catálogo`,
+      `${changedIds.size} produto${changedIds.size === 1 ? " processado" : "s processados"} com sucesso`,
     );
     await loadData();
   }
@@ -3559,7 +3595,7 @@ function ProductsView({
     if (statusFilter === "inactive") return !product.ativo;
     return true;
   });
-  const selectableProducts = visibleProducts.filter((product) => product.ativo);
+  const selectableProducts = visibleProducts;
   const allVisibleSelected =
     selectableProducts.length > 0 &&
     selectableProducts.every((product) =>
@@ -3697,17 +3733,15 @@ function ProductsView({
                 key={product.id}
                 className={`rounded-2xl border bg-white p-4 shadow-sm ${!product.ativo ? "border-slate-300 opacity-80" : ""}`}
               >
-                {product.ativo && (
-                  <label className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-600">
-                    <input
-                      type="checkbox"
-                      checked={selectedProductIds.includes(product.id)}
-                      onChange={() => toggleProductSelection(product.id)}
-                      className="size-5 accent-[#8A0EEA]"
-                    />
-                    Selecionar
-                  </label>
-                )}
+                <label className="mb-3 inline-flex cursor-pointer items-center gap-2 text-sm font-semibold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={selectedProductIds.includes(product.id)}
+                    onChange={() => toggleProductSelection(product.id)}
+                    className="size-5 accent-[#8A0EEA]"
+                  />
+                  Selecionar
+                </label>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h3 className="break-words font-bold text-slate-900">
@@ -3822,15 +3856,13 @@ function ProductsView({
                       className={`border-t ${!product.ativo ? "bg-slate-50 text-slate-500" : ""}`}
                     >
                       <td className="p-4">
-                        {product.ativo && (
-                          <input
-                            type="checkbox"
-                            checked={selectedProductIds.includes(product.id)}
-                            onChange={() => toggleProductSelection(product.id)}
-                            aria-label={`Selecionar ${formatProductName(product)}`}
-                            className="size-4 accent-[#8A0EEA]"
-                          />
-                        )}
+                        <input
+                          type="checkbox"
+                          checked={selectedProductIds.includes(product.id)}
+                          onChange={() => toggleProductSelection(product.id)}
+                          aria-label={`Selecionar ${formatProductName(product)}`}
+                          className="size-4 accent-[#8A0EEA]"
+                        />
                       </td>
                       <td className="p-4">
                         <p className="font-medium">
@@ -3896,7 +3928,11 @@ function ProductsView({
       <ConfirmationDialog
         isOpen={Boolean(productToDelete)}
         title="Excluir produto"
-        description={`Deseja excluir ${productToDelete ? formatProductName(productToDelete) : "este produto"} do catálogo? O histórico de compras e vendas será preservado.`}
+        description={
+          productToDelete?.ativo
+            ? `Deseja retirar ${formatProductName(productToDelete)} do catálogo? Ele ficará disponível na aba Inativos.`
+            : `Deseja excluir ${productToDelete ? formatProductName(productToDelete) : "este produto"} definitivamente? Esta ação não pode ser desfeita.`
+        }
         confirmText={deleting ? "Excluindo..." : "Excluir"}
         onConfirm={handleConfirmDelete}
         onCancel={() => {

@@ -152,6 +152,25 @@ export async function archiveProducts(ids: number[]) {
     .select("id");
 }
 
+export async function deleteInactiveProduct(id: number) {
+  return supabase
+    .from("products")
+    .delete()
+    .eq("id", id)
+    .eq("ativo", false)
+    .select("id")
+    .single();
+}
+
+export async function deleteInactiveProducts(ids: number[]) {
+  return supabase
+    .from("products")
+    .delete()
+    .in("id", ids)
+    .eq("ativo", false)
+    .select("id");
+}
+
 export async function fetchSuppliers() {
   return supabase.from("suppliers").select("*").order("nome");
 }

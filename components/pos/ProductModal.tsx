@@ -498,7 +498,7 @@ export function ProductModal({
         typeof document !== "undefined" &&
         createPortal(
           <div className="erp-modal-overlay" role="dialog" aria-modal="true">
-            <div className="erp-modal-panel max-w-6xl bg-white opacity-100">
+            <div className="erp-modal-panel max-w-6xl bg-white pb-36 opacity-100 sm:pb-6">
               <h2 className="text-xl font-bold">
                 {product ? "Editar produto" : "Novo produto"}
               </h2>
@@ -1031,7 +1031,7 @@ export function ProductModal({
                 ))}
               </div>
 
-              <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex flex-col-reverse gap-3 border-t bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:mx-0 sm:flex-row sm:rounded-xl sm:border sm:p-3">
+              <div className="fixed inset-x-0 bottom-0 z-[60] flex flex-col-reverse gap-3 border-t bg-white px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_24px_rgba(15,23,42,0.12)] sm:sticky sm:mx-0 sm:mt-6 sm:flex-row sm:rounded-xl sm:border sm:p-3">
                 <button
                   type="button"
                   onClick={handleClose}

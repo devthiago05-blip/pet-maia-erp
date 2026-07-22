@@ -1237,7 +1237,7 @@ export default function PosPage() {
             />
           </div>
 
-          <div className="flex w-full gap-1 overflow-x-auto rounded-xl bg-white p-1 shadow-sm sm:w-fit">
+          <div className="sticky top-[73px] z-20 -mx-3 flex w-[calc(100%+1.5rem)] gap-1 overflow-x-auto border-y border-slate-200/70 bg-white/90 p-2 shadow-sm backdrop-blur-xl sm:static sm:mx-0 sm:w-fit sm:rounded-xl sm:border sm:p-1">
             {[
               ["sale", "Venda"],
               ["cash", "Caixa"],
@@ -4270,7 +4270,9 @@ function Summary({
   const displayValue = textValue ?? (currency ? formatCurrency(value) : value);
 
   return (
-    <div className="min-w-0 rounded-xl border bg-white p-3 sm:p-4">
+    <div
+      className={`min-w-0 rounded-2xl border bg-white p-3 shadow-[0_4px_18px_rgba(15,23,42,0.04)] sm:p-4 ${warning ? "border-red-100 bg-gradient-to-br from-white to-red-50/50" : "border-slate-200/80"}`}
+    >
       <p className="text-sm text-slate-500">{label}</p>
       <p
         className={`mt-1 truncate text-xl font-bold sm:text-2xl ${warning ? "text-red-600" : ""}`}

@@ -229,7 +229,7 @@ export function Header() {
   }
 
   return (
-    <header className="relative border-b border-slate-200 bg-white py-3 pr-4 pl-16 sm:py-4 md:pl-8">
+    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 py-3 pr-4 pl-16 shadow-[0_1px_12px_rgba(15,23,42,0.04)] backdrop-blur-xl sm:py-4 md:pl-8">
       <div className="flex min-w-0 items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-slate-800 sm:text-2xl">
@@ -250,7 +250,7 @@ export function Header() {
             <button
               type="button"
               onClick={() => setNotificationsOpen((current) => !current)}
-              className="relative flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100"
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50 hover:text-[#8A0EEA]"
               aria-label="Abrir notificações"
               aria-expanded={notificationsOpen}
             >
@@ -329,7 +329,7 @@ export function Header() {
           </div>
 
           <div className="hidden items-center gap-3 sm:flex">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#8A0EEA] font-bold text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#A62AF4] to-[#7000C9] font-bold text-white shadow-sm ring-2 ring-purple-100">
               {initial}
             </div>
             <div className="hidden lg:block">

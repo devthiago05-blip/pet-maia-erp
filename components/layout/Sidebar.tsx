@@ -99,10 +99,10 @@ function MenuItems({ onNavigate }: { onNavigate?: () => void }) {
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition",
+                "relative flex items-center gap-3 rounded-xl px-4 py-3 font-medium transition",
                 isActive
-                  ? "bg-purple-50 text-[#8A0EEA]"
-                  : "text-slate-700 hover:bg-slate-100",
+                  ? "bg-gradient-to-r from-purple-100 to-purple-50 text-[#7800C7] shadow-sm ring-1 ring-purple-100"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
               )}
             >
               <Icon size={20} />
@@ -123,7 +123,7 @@ export function Sidebar() {
         type="button"
         aria-label="Abrir menu"
         onClick={() => setOpen(true)}
-        className="fixed top-4 left-4 z-50 rounded-xl bg-white p-2 shadow md:hidden"
+        className="fixed top-4 left-4 z-50 rounded-xl border border-slate-200 bg-white/95 p-2 text-slate-700 shadow-lg backdrop-blur md:hidden"
       >
         <Menu size={24} />
       </button>
@@ -155,7 +155,7 @@ export function Sidebar() {
         </aside>
       )}
 
-      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-white p-5 shadow-sm md:block lg:w-72 lg:p-6">
+      <aside className="sticky top-0 hidden h-screen w-64 shrink-0 overflow-y-auto border-r border-slate-200 bg-gradient-to-b from-white to-slate-50/80 p-5 shadow-[4px_0_24px_rgba(15,23,42,0.03)] md:block lg:w-72 lg:p-6">
         <div className="mb-10">
           <BrandLogo priority className="max-w-[210px]" />
           <p className="mt-2 text-sm text-gray-500">

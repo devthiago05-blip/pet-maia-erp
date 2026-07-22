@@ -4,6 +4,7 @@ import { FileSearch, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { PurchaseImageEditor } from "@/components/purchases/PurchaseImageEditor";
 import { supabase } from "@/lib/supabase";
 import {
   findDuplicatePurchaseDocument,
@@ -23,6 +24,17 @@ export function PurchaseDocumentImporter({
   const [reading, setReading] = useState(false);
   const [readingMessage, setReadingMessage] = useState("");
   const [readError, setReadError] = useState("");
+  const [imageToEdit, setImageToEdit] = useState<File | null>(null);
+
+  function selectFile(file?: File) {
+    if (!file) return;
+    setReadError("");
+    if (file.type.startsWith("image/")) {
+      setImageToEdit(file);
+      return;
+    }
+    void recognize(file);
+  }
 
   async function recognize(file?: File) {
     if (!file) return;
@@ -109,7 +121,7 @@ export function PurchaseDocumentImporter({
         type="file"
         accept=".xml,.pdf,.txt,image/jpeg,image/png,image/webp"
         capture="environment"
-        onChange={(event) => void recognize(event.target.files?.[0])}
+        onChange={(event) => selectFile(event.target.files?.[0])}
         className="hidden"
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -146,6 +158,19 @@ export function PurchaseDocumentImporter({
         <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
           {readError}
         </div>
+      )}
+      {imageToEdit && (
+        <PurchaseImageEditor
+          file={imageToEdit}
+          onCancel={() => {
+            setImageToEdit(null);
+            if (inputRef.current) inputRef.current.value = "";
+          }}
+          onConfirm={(file) => {
+            setImageToEdit(null);
+            void recognize(file);
+          }}
+        />
       )}
     </div>
   );

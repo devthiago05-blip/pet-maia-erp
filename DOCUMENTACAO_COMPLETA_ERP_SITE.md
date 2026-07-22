@@ -351,6 +351,8 @@ O preço sugerido pode usar arredondamento comercial: valor exato, inteiro mais 
 
 No histórico de Compras, a ação **Excluir importação** desfaz a operação completa após confirmação: reverte as unidades recebidas no estoque, remove os títulos financeiros vinculados, exclui o registro da compra e remove o arquivo importado. A exclusão é bloqueada quando o estoque atual é insuficiente para devolver todas as unidades daquela entrada, evitando saldo negativo.
 
+Ao visualizar um XML importado, o ERP não abre mais o texto bruto. Uma tela organizada apresenta número e série da nota, fornecedor e documento, emissão, destinatário, total, frete, desconto, pagamentos e uma tabela responsiva com os produtos, códigos, NCM, CFOP, quantidades e valores. O botão **Baixar** continua disponibilizando o XML original.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

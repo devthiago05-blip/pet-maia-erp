@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { ProductModal } from "@/components/pos/ProductModal";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import { PurchaseDocumentImporter } from "@/components/purchases/PurchaseDocumentImporter";
 import { formatCurrency, formatProductName } from "@/lib/formatters";
@@ -477,19 +478,34 @@ export function PurchaseModal({
                             </p>
                           </div>
                           {!line.productId && (
-                            <QuickProductModal
-                              categories={categories}
-                              onSave={onProductSave}
-                              triggerLabel="Cadastrar este produto"
-                              initialName={line.originalDescription}
-                              initialCost={line.unitCost}
-                              onCreated={() =>
-                                toast.success(
-                                  "Produto cadastrado. Agora selecione-o no campo de associação.",
-                                )
-                              }
-                              className="shrink-0 rounded-xl bg-[#8A0EEA] px-4 py-2 text-sm font-semibold text-white"
-                            />
+                            <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
+                              <QuickProductModal
+                                categories={categories}
+                                onSave={onProductSave}
+                                triggerLabel="Cadastro rápido"
+                                initialName={line.originalDescription}
+                                initialCost={line.unitCost}
+                                onCreated={() =>
+                                  toast.success(
+                                    "Produto cadastrado. Agora selecione-o na associação.",
+                                  )
+                                }
+                                className="rounded-xl border border-[#8A0EEA] bg-white px-4 py-2 text-sm font-semibold text-[#8A0EEA]"
+                              />
+                              <ProductModal
+                                categories={categories}
+                                onSave={onProductSave}
+                                triggerLabel="Cadastro completo"
+                                initialName={line.originalDescription}
+                                initialCost={line.unitCost}
+                                onCreated={() =>
+                                  toast.success(
+                                    "Produto completo cadastrado. Agora selecione-o na associação.",
+                                  )
+                                }
+                                className="rounded-xl bg-[#8A0EEA] px-4 py-2 text-sm font-semibold text-white"
+                              />
+                            </div>
                           )}
                         </div>
                       )}

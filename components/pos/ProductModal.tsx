@@ -25,6 +25,11 @@ interface ProductModalProps {
   product?: Product;
   categories: ProductCategory[];
   onSave: (products: Array<NewProductInput | Product>) => Promise<void>;
+  triggerLabel?: string;
+  initialName?: string;
+  initialCost?: string;
+  onCreated?: (name: string) => void;
+  className?: string;
 }
 
 interface ProductVariationForm {
@@ -62,11 +67,17 @@ function createVariation(product?: Product): ProductVariationForm {
   };
 }
 
-function createProductForm(product?: Product) {
+function createProductForm(
+  product?: Product,
+  initialName = "",
+  initialCost = "",
+) {
+  const variation = createVariation(product);
+  if (!product && initialCost) variation.precoCusto = initialCost;
   return {
-    nome: product?.nome || "",
+    nome: product?.nome || initialName,
     categoryId: String(product?.category_id || ""),
-    variations: [createVariation(product)],
+    variations: [variation],
     ativo: product?.ativo ?? true,
     ncm: product?.ncm || "",
     cfop: product?.cfop || "",
@@ -104,14 +115,21 @@ export function ProductModal({
   product,
   categories,
   onSave,
+  triggerLabel = "Novo produto",
+  initialName = "",
+  initialCost = "",
+  onCreated,
+  className,
 }: ProductModalProps) {
   const [open, setOpen] = useState(false);
-  const [nome, setNome] = useState(() => createProductForm(product).nome);
+  const [nome, setNome] = useState(
+    () => createProductForm(product, initialName, initialCost).nome,
+  );
   const [categoryId, setCategoryId] = useState(
-    () => createProductForm(product).categoryId,
+    () => createProductForm(product, initialName, initialCost).categoryId,
   );
   const [variations, setVariations] = useState<ProductVariationForm[]>(
-    () => createProductForm(product).variations,
+    () => createProductForm(product, initialName, initialCost).variations,
   );
   const [ativo, setAtivo] = useState(() => createProductForm(product).ativo);
   const [ncm, setNcm] = useState(() => createProductForm(product).ncm);
@@ -141,25 +159,28 @@ export function ProductModal({
   const [saving, setSaving] = useState(false);
   const [fiscalOpen, setFiscalOpen] = useState(false);
 
-  const loadForm = useCallback((nextProduct?: Product) => {
-    const nextForm = createProductForm(nextProduct);
+  const loadForm = useCallback(
+    (nextProduct?: Product) => {
+      const nextForm = createProductForm(nextProduct, initialName, initialCost);
 
-    setNome(nextForm.nome);
-    setCategoryId(nextForm.categoryId);
-    setVariations(nextForm.variations);
-    setAtivo(nextForm.ativo);
-    setNcm(nextForm.ncm);
-    setCfop(nextForm.cfop);
-    setOrigemMercadoria(nextForm.origemMercadoria);
-    setCsosn(nextForm.csosn);
-    setUnidadeComercial(nextForm.unidadeComercial);
-    setImageUrl(nextForm.imageUrl);
-    setPurchaseUnit(nextForm.purchaseUnit);
-    setSaleUnit(nextForm.saleUnit);
-    setUnitsPerPurchase(nextForm.unitsPerPurchase);
-    setLookupSource("");
-    setFiscalOpen(false);
-  }, []);
+      setNome(nextForm.nome);
+      setCategoryId(nextForm.categoryId);
+      setVariations(nextForm.variations);
+      setAtivo(nextForm.ativo);
+      setNcm(nextForm.ncm);
+      setCfop(nextForm.cfop);
+      setOrigemMercadoria(nextForm.origemMercadoria);
+      setCsosn(nextForm.csosn);
+      setUnidadeComercial(nextForm.unidadeComercial);
+      setImageUrl(nextForm.imageUrl);
+      setPurchaseUnit(nextForm.purchaseUnit);
+      setSaleUnit(nextForm.saleUnit);
+      setUnitsPerPurchase(nextForm.unitsPerPurchase);
+      setLookupSource("");
+      setFiscalOpen(false);
+    },
+    [initialCost, initialName],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -389,6 +410,7 @@ export function ProductModal({
     setSaving(true);
     try {
       await onSave(products);
+      if (!product) onCreated?.(nome.trim());
       if (fiscalPending)
         toast.warning(
           "Produto salvo. Complete a tributação antes de emitir NFC-e.",
@@ -411,12 +433,13 @@ export function ProductModal({
           setOpen(true);
         }}
         className={
-          product
+          className ||
+          (product
             ? "text-blue-600"
-            : "rounded-xl bg-[#8A0EEA] px-4 py-2 text-white"
+            : "rounded-xl bg-[#8A0EEA] px-4 py-2 text-white")
         }
       >
-        {product ? "Editar" : "Novo produto"}
+        {product ? "Editar" : triggerLabel}
       </button>
 
       {open && (

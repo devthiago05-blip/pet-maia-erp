@@ -43,6 +43,7 @@ interface ProductVariationForm {
   precoVenda: string;
   estoque: string;
   estoqueMinimo: string;
+  roundingMode: "exact" | "nearest" | "ninety" | "ninetyNine";
 }
 
 function createVariation(product?: Product): ProductVariationForm {
@@ -74,6 +75,7 @@ function createVariation(product?: Product): ProductVariationForm {
     precoVenda: suggestedSalePrice ? formatDecimal(suggestedSalePrice) : "",
     estoque: String(product?.estoque ?? 0),
     estoqueMinimo: String(product?.estoque_minimo ?? 0),
+    roundingMode: "exact",
   };
 }
 
@@ -111,6 +113,32 @@ function formatDecimal(value: number) {
 
 function calculateSalePrice(costPrice: number, margin: number) {
   return costPrice + costPrice * (margin / 100);
+}
+
+function applyCommercialRounding(
+  value: number,
+  mode: ProductVariationForm["roundingMode"],
+) {
+  if (!Number.isFinite(value)) return value;
+  if (mode === "nearest") return Math.round(value);
+  if (mode === "ninety" || mode === "ninetyNine") {
+    const cents = mode === "ninety" ? 0.9 : 0.99;
+    const base = Math.floor(value);
+    const candidate = base + cents;
+    return candidate >= value ? candidate : base + 1 + cents;
+  }
+  return value;
+}
+
+function calculateSuggestedSalePrice(
+  costPrice: number,
+  margin: number,
+  roundingMode: ProductVariationForm["roundingMode"],
+) {
+  return applyCommercialRounding(
+    calculateSalePrice(costPrice, margin),
+    roundingMode,
+  );
 }
 
 function calculateUnitCost(packageCost: number, unitsPerPurchase: number) {
@@ -241,7 +269,7 @@ export function ProductModal({
 
           if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
             next.precoVenda = formatDecimal(
-              calculateSalePrice(costPrice, margin),
+              calculateSuggestedSalePrice(costPrice, margin, next.roundingMode),
             );
           }
         }
@@ -252,7 +280,7 @@ export function ProductModal({
 
           if (Number.isFinite(costPrice) && Number.isFinite(margin)) {
             next.precoVenda = formatDecimal(
-              calculateSalePrice(costPrice, margin),
+              calculateSuggestedSalePrice(costPrice, margin, next.roundingMode),
             );
           } else if (Number.isFinite(costPrice) && Number.isFinite(salePrice)) {
             next.margem = formatDecimal(calculateMargin(costPrice, salePrice));
@@ -647,7 +675,11 @@ export function ProductModal({
                           precoVenda:
                             Number.isFinite(unitCost) && Number.isFinite(margin)
                               ? formatDecimal(
-                                  calculateSalePrice(unitCost, margin),
+                                  calculateSuggestedSalePrice(
+                                    unitCost,
+                                    margin,
+                                    variation.roundingMode,
+                                  ),
                                 )
                               : variation.precoVenda,
                         };
@@ -885,6 +917,51 @@ export function ProductModal({
                         updateVariation(variation.id, "margem", value)
                       }
                     />
+
+                    <div className="grid gap-2 text-sm font-medium lg:col-span-2">
+                      Arredondamento do preço
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          ["exact", "Exato"],
+                          ["nearest", "Inteiro próximo"],
+                          ["ninety", "Final ,90"],
+                          ["ninetyNine", "Final ,99"],
+                        ].map(([mode, label]) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => {
+                              setVariations((current) =>
+                                current.map((item) => {
+                                  if (item.id !== variation.id) return item;
+                                  const roundingMode =
+                                    mode as ProductVariationForm["roundingMode"];
+                                  const unitCost = calculateUnitCost(
+                                    Number(item.precoCusto),
+                                    Number(unitsPerPurchase),
+                                  );
+                                  const margin = Number(item.margem);
+                                  return {
+                                    ...item,
+                                    roundingMode,
+                                    precoVenda: formatDecimal(
+                                      calculateSuggestedSalePrice(
+                                        unitCost,
+                                        margin,
+                                        roundingMode,
+                                      ),
+                                    ),
+                                  };
+                                }),
+                              );
+                            }}
+                            className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${variation.roundingMode === mode ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]" : "bg-white text-slate-600 hover:border-purple-300"}`}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
                     <ProductInput
                       label="Valor de venda"

@@ -347,6 +347,8 @@ No PDV, o produto é apresentado pela unidade efetivamente vendida, não pela em
 
 No cadastro fracionado, o valor de compra representa a embalagem completa. O ERP divide esse custo pela quantidade interna e aplica a margem sobre o custo unitário. Exemplo: pack com 15 sachês comprado por R$ 40,00 resulta em custo unitário arredondado de R$ 2,67; com margem de 50%, o preço sugerido do sachê é R$ 4,01.
 
+O preço sugerido pode usar arredondamento comercial: valor exato, inteiro mais próximo, final `,90` ou final `,99`. O modo é reaplicado automaticamente quando custo, quantidade por embalagem ou margem são alterados. Os finais `,90` e `,99` nunca reduzem o preço abaixo do cálculo da margem.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

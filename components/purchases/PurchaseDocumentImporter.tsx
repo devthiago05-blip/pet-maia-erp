@@ -58,7 +58,7 @@ export function PurchaseDocumentImporter({
       const token = data.session?.access_token;
       if (!token) throw new Error("Sessão expirada. Entre novamente.");
       const controller = new AbortController();
-      const timeout = window.setTimeout(() => controller.abort(), 55000);
+      const timeout = window.setTimeout(() => controller.abort(), 40000);
       let response: Response;
       try {
         response = await fetch("/api/purchases/recognize", {
@@ -89,7 +89,7 @@ export function PurchaseDocumentImporter({
     } catch (error) {
       const message =
         error instanceof DOMException && error.name === "AbortError"
-          ? "A leitura demorou mais de 55 segundos e foi cancelada. Tente uma foto menor ou envie o XML/PDF."
+          ? "A leitura demorou mais de 40 segundos e foi cancelada. Tente uma foto menor ou envie o XML/PDF."
           : error instanceof Error
             ? error.message
             : "Não foi possível ler o documento.";

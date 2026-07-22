@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { NextResponse } from "next/server";
 
 import { requireAuthenticatedUser } from "@/lib/server-auth";
@@ -85,14 +87,7 @@ async function recognizeInvoiceImage(bytes: Uint8Array) {
   const metadata = await image.metadata();
   const width = metadata.width || 1200;
   const height = metadata.height || 1600;
-  const targetWidth = Math.min(1800, Math.round(width * 1.8));
-  const fullImage = await image
-    .clone()
-    .resize({ width: targetWidth })
-    .grayscale()
-    .normalize()
-    .sharpen()
-    .toBuffer();
+  const targetWidth = Math.min(1400, Math.round(width * 1.5));
   const tableTop = Math.max(0, Math.round(height * 0.35));
   const tableHeight = Math.min(
     height - tableTop,
@@ -108,17 +103,18 @@ async function recognizeInvoiceImage(bytes: Uint8Array) {
     .toBuffer();
 
   const worker = await createWorker("por", undefined, {
+    langPath: path.join(process.cwd(), "public", "tesseract"),
     cachePath: process.env.VERCEL ? "/tmp" : process.cwd(),
+    cacheMethod: "none",
+    gzip: true,
   });
   try {
-    await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
-    const fullResult = await worker.recognize(fullImage);
     await worker.setParameters({
       tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
       preserve_interword_spaces: "1",
     });
     const tableResult = await worker.recognize(tableImage);
-    return `${fullResult.data.text}\nOCR_TABLE_START\n${tableResult.data.text}`;
+    return tableResult.data.text;
   } finally {
     await worker.terminate();
   }
@@ -237,22 +233,37 @@ function parseInvoiceTableItems(lines: string[]): RecognizedPurchaseItem[] {
     if (values.length < 3) continue;
 
     const rawUnitCost = parseInvoiceMoney(values[1]!);
-    const rawTotal = parseInvoiceMoney(values[2]!);
+    const totalCandidates = values
+      .slice(2, 7)
+      .map(parseInvoiceMoney)
+      .filter((value) => value > 0);
+    if (!totalCandidates.length) continue;
     const quantityOptions = parseInvoiceQuantityOptions(values[0]!);
-    const quantity =
-      quantityOptions.reduce((best, option) =>
-        Math.abs(option * rawUnitCost - rawTotal) <
-        Math.abs(best * rawUnitCost - rawTotal)
-          ? option
-          : best,
-      ) || 1;
+    if (!quantityOptions.length) continue;
+    const combinations = quantityOptions.flatMap((option) =>
+      totalCandidates.map((candidate) => ({
+        quantity: option,
+        candidate,
+        difference:
+          Math.abs(option * rawUnitCost - candidate) /
+          Math.max(candidate, 0.01),
+      })),
+    );
+    const best = combinations.reduce((current, item) =>
+      item.difference < current.difference ? item : current,
+    );
+    const quantity = best.quantity || 1;
     const expectedTotal = quantity * rawUnitCost;
-    const differenceRatio =
-      rawTotal > 0 ? Math.abs(rawTotal - expectedTotal) / rawTotal : 1;
-    const trustTotal =
-      differenceRatio <= 0.08 || rawTotal > expectedTotal * 1.5;
-    const total = trustTotal ? rawTotal : expectedTotal;
-    const unitCost = trustTotal ? total / quantity : rawUnitCost;
+    const largestCandidate = Math.max(...totalCandidates);
+    const largestRatio = largestCandidate / Math.max(expectedTotal, 0.01);
+    const trustBest = best.difference <= 0.08;
+    const trustLargest = !trustBest && largestRatio > 1.5 && largestRatio < 8;
+    const total = trustBest
+      ? best.candidate
+      : trustLargest
+        ? largestCandidate
+        : expectedTotal;
+    const unitCost = trustBest || trustLargest ? total / quantity : rawUnitCost;
 
     if (quantity > 0 && unitCost > 0 && total > 0) {
       found.push({

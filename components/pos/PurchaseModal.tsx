@@ -1,6 +1,13 @@
 "use client";
 
-import { CheckCircle2, Link2, Plus, Search, Trash2 } from "lucide-react";
+import {
+  CheckCircle2,
+  History,
+  Link2,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -18,6 +25,7 @@ import type {
   NewProductInput,
   Product,
   ProductCategory,
+  ProductPurchase,
   Supplier,
 } from "@/types/domain";
 import type { RecognizedPurchaseDocument } from "@/types/purchase-recognition";
@@ -56,6 +64,7 @@ export interface PurchaseInput {
 
 export function PurchaseModal({
   products,
+  purchases,
   suppliers,
   categories,
   onProductSave,
@@ -63,6 +72,7 @@ export function PurchaseModal({
   onDocumentArchived,
 }: {
   products: Product[];
+  purchases: ProductPurchase[];
   suppliers: Supplier[];
   categories: ProductCategory[];
   onProductSave: (products: Array<NewProductInput | Product>) => Promise<void>;
@@ -587,6 +597,13 @@ export function PurchaseModal({
                           </span>
                         </div>
                       )}
+                      {selectedProduct && (
+                        <ProductPriceHistory
+                          product={selectedProduct}
+                          purchases={purchases}
+                          currentInvoiceCost={importedPurchaseCost}
+                        />
+                      )}
                     </div>
                   );
                 })}
@@ -814,6 +831,124 @@ function StepTitle({
         <p className="text-sm text-slate-500">{description}</p>
       </div>
     </div>
+  );
+}
+
+function ProductPriceHistory({
+  product,
+  purchases,
+  currentInvoiceCost,
+}: {
+  product: Product;
+  purchases: ProductPurchase[];
+  currentInvoiceCost: number;
+}) {
+  const history = purchases
+    .flatMap((purchase) =>
+      (purchase.product_purchase_items || [])
+        .filter((item) => item.product_id === product.id)
+        .map((item) => ({
+          purchaseId: purchase.id,
+          date: purchase.data_compra,
+          supplier: purchase.suppliers?.nome || "Fornecedor não informado",
+          document: purchase.numero_documento,
+          cost: Number(item.custo_unitario),
+        })),
+    )
+    .sort(
+      (left, right) =>
+        right.date.localeCompare(left.date) ||
+        right.purchaseId - left.purchaseId,
+    );
+
+  if (!history.length) return null;
+
+  const last = history[0]!;
+  const cheapest = history.reduce((best, item) =>
+    item.cost < best.cost ? item : best,
+  );
+  const comparisonCost = currentInvoiceCost || last.cost;
+  const difference = comparisonCost - last.cost;
+  const variation = last.cost > 0 ? (difference / last.cost) * 100 : 0;
+
+  return (
+    <details className="rounded-xl border border-sky-200 bg-sky-50/70 p-3 lg:col-span-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-sky-900">
+        <span className="inline-flex items-center gap-2">
+          <History size={16} /> Histórico de preços deste produto
+        </span>
+        <span className="text-xs font-semibold text-sky-700">
+          Último: {formatCurrency(last.cost)}
+        </span>
+      </summary>
+      <div className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+        <div className="rounded-lg bg-white p-3">
+          <span className="block text-slate-500">Última compra</span>
+          <strong className="mt-1 block text-slate-900">
+            {formatCurrency(last.cost)} · {last.supplier}
+          </strong>
+          <span className="text-slate-500">
+            {formatPurchaseDate(last.date)}
+          </span>
+        </div>
+        <div className="rounded-lg bg-white p-3">
+          <span className="block text-slate-500">Menor preço recente</span>
+          <strong className="mt-1 block text-emerald-700">
+            {formatCurrency(cheapest.cost)} · {cheapest.supplier}
+          </strong>
+          <span className="text-slate-500">
+            {formatPurchaseDate(cheapest.date)}
+          </span>
+        </div>
+        <div className="rounded-lg bg-white p-3">
+          <span className="block text-slate-500">
+            Nota atual x última compra
+          </span>
+          <strong
+            className={`mt-1 block ${difference > 0 ? "text-amber-700" : difference < 0 ? "text-emerald-700" : "text-slate-700"}`}
+          >
+            {difference === 0
+              ? "Mesmo preço"
+              : `${difference > 0 ? "Aumento" : "Redução"} de ${formatCurrency(Math.abs(difference))}`}
+          </strong>
+          {difference !== 0 && (
+            <span className="text-slate-500">
+              {Math.abs(variation).toFixed(1)}% de variação
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="mt-2 overflow-x-auto rounded-lg border bg-white">
+        <table className="w-full min-w-[520px] text-left text-xs">
+          <thead className="bg-slate-50 text-slate-500">
+            <tr>
+              <th className="px-3 py-2">Data</th>
+              <th className="px-3 py-2">Fornecedor</th>
+              <th className="px-3 py-2">Documento</th>
+              <th className="px-3 py-2 text-right">Custo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {history.slice(0, 5).map((item) => (
+              <tr key={`${item.purchaseId}-${product.id}`} className="border-t">
+                <td className="px-3 py-2">{formatPurchaseDate(item.date)}</td>
+                <td className="px-3 py-2">{item.supplier}</td>
+                <td className="px-3 py-2">{item.document || "—"}</td>
+                <td className="px-3 py-2 text-right font-bold">
+                  {formatCurrency(item.cost)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </details>
+  );
+}
+
+function formatPurchaseDate(value: string) {
+  return new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" }).format(
+    new Date(`${value}T00:00:00Z`),
   );
 }
 

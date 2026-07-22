@@ -1208,6 +1208,7 @@ export default function PosPage() {
                 <SupplierModal onSave={handleSupplierSave} />
                 <PurchaseModal
                   products={products}
+                  purchases={purchases}
                   suppliers={suppliers}
                   categories={categories}
                   onProductSave={handleProductSave}

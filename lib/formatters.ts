@@ -21,12 +21,16 @@ export function formatDate(value: string | null | undefined) {
   return date.toLocaleDateString("pt-BR");
 }
 
+export function normalizeProductName(value: string | null | undefined) {
+  return (value || "").trim().toLocaleUpperCase("pt-BR");
+}
+
 export function formatProductName(product: Product) {
   const variation = [product.tamanho, product.cor, product.sabor].filter(
     Boolean,
   );
 
   return variation.length > 0
-    ? `${product.nome} - ${variation.join(" / ")}`
-    : product.nome;
+    ? `${normalizeProductName(product.nome)} - ${variation.join(" / ")}`
+    : normalizeProductName(product.nome);
 }

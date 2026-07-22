@@ -4,6 +4,7 @@ import { Download, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { normalizeProductName } from "@/lib/formatters";
 import type { NewProductInput, Product, ProductCategory } from "@/types/domain";
 
 interface ProductCsvImportModalProps {
@@ -268,7 +269,7 @@ export function ProductCsvImportModal({
       const code = row.codigo.trim() || generateImportCode(row.rowNumber);
 
       return {
-        nome: row.nome.trim(),
+        nome: normalizeProductName(row.nome),
         sku: code,
         barcode: code,
         profit_margin:

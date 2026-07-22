@@ -554,3 +554,9 @@ Depois de uma mudança relevante:
 - Registrar novas variáveis apenas pelo nome, nunca pelo valor.
 - Atualizar migrações, buckets, regras e fluxos afetados.
 - Manter a seção do próximo chat coerente com as regras vigentes.
+
+# Atualização de produtos — 22/07/2026
+
+- Os nomes dos produtos são padronizados automaticamente em letras maiúsculas.
+- A regra vale para cadastro completo, cadastro rápido, edição, importação CSV, leitura de código de barras e importações de notas.
+- O banco de dados também possui uma proteção para normalizar integrações e atualizar os registros antigos.

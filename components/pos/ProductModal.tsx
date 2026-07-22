@@ -14,7 +14,7 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { BarcodeScannerModal } from "@/components/pos/BarcodeScannerModal";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, normalizeProductName } from "@/lib/formatters";
 import {
   normalizeFiscalCode,
   validateProductFiscalFields,
@@ -88,7 +88,7 @@ function createProductForm(
   const variation = createVariation(product);
   if (!product && initialCost) variation.precoCusto = initialCost;
   return {
-    nome: product?.nome || initialName,
+    nome: normalizeProductName(product?.nome || initialName),
     categoryId: String(product?.category_id || ""),
     variations: [variation],
     ativo: product?.ativo ?? true,
@@ -330,7 +330,7 @@ export function ProductModal({
       const suggestedName = [result.name, result.brand]
         .filter(Boolean)
         .join(" - ");
-      if (suggestedName) setNome(suggestedName);
+      if (suggestedName) setNome(normalizeProductName(suggestedName));
       if (result.imageUrl) setImageUrl(result.imageUrl);
       if (result.ncmSuggestion) {
         setNcm(result.ncmSuggestion);
@@ -433,7 +433,7 @@ export function ProductModal({
     const products = parsedVariations.map(
       (variation): NewProductInput | Product => ({
         ...(product ? { id: product.id } : {}),
-        nome: nome.trim(),
+        nome: normalizeProductName(nome),
         sku: variation.barcodeValue || product?.sku,
         barcode: variation.barcodeValue || product?.barcode || product?.sku,
         profit_margin: variation.margemNumber,
@@ -504,7 +504,11 @@ export function ProductModal({
               </h2>
 
               <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <ProductInput label="Nome" value={nome} onChange={setNome} />
+                <ProductInput
+                  label="Nome"
+                  value={nome}
+                  onChange={(value) => setNome(normalizeProductName(value))}
+                />
                 <label className="grid gap-2 text-sm font-medium">
                   Categoria
                   <select

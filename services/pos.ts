@@ -1,3 +1,4 @@
+import { normalizeProductName } from "@/lib/formatters";
 import { supabase } from "@/lib/supabase";
 import type {
   NewProductCategoryInput,
@@ -89,6 +90,7 @@ export async function createProducts(products: NewProductInput[]) {
   return supabase.from("products").insert(
     products.map((product) => ({
       ...product,
+      nome: normalizeProductName(product.nome),
       sku: product.sku || product.barcode || null,
       barcode: product.barcode || product.sku || null,
       profit_margin: product.profit_margin ?? 0,
@@ -100,7 +102,7 @@ export async function updateProduct(product: Product) {
   return supabase
     .from("products")
     .update({
-      nome: product.nome,
+      nome: normalizeProductName(product.nome),
       sku: product.sku || product.barcode || null,
       barcode: product.barcode || product.sku || null,
       profit_margin: product.profit_margin ?? 0,

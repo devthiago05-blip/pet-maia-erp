@@ -4,6 +4,7 @@ import { ChevronDown, Plus, ReceiptText, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { normalizeProductName } from "@/lib/formatters";
 import {
   normalizeFiscalCode,
   validateProductFiscalFields,
@@ -87,7 +88,7 @@ export function QuickProductModal({
 
   function openModal() {
     reset();
-    setNome(initialName);
+    setNome(normalizeProductName(initialName));
     setPrecoCusto(initialCost);
     setOpen(true);
   }
@@ -193,7 +194,7 @@ export function QuickProductModal({
     }
 
     const products: NewProductInput[] = parsedVariations.map((variation) => ({
-      nome: nome.trim(),
+      nome: normalizeProductName(nome),
       sku: variation.codigo,
       barcode: variation.codigo,
       profit_margin:
@@ -367,7 +368,7 @@ export function QuickProductModal({
               <QuickInput
                 label="Produto"
                 value={nome}
-                onChange={setNome}
+                onChange={(value) => setNome(normalizeProductName(value))}
                 placeholder="Ex: Coleira nylon"
               />
               <label className="grid gap-2 text-sm font-medium">

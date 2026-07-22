@@ -159,17 +159,18 @@ export function PurchaseModal({
     source: PurchaseDocumentFile,
   ) {
     setImportedDocument(source);
+    let exactMatchCount = 0;
     const recognizedLines = document.items.map((item, index) => {
       const mappedId =
         savedMappings[normalizePurchaseDescription(item.description)];
-      const product =
-        products.find((candidate) => candidate.id === mappedId) ||
-        findBestMatch(
-          item.description,
-          products.filter((candidate) => candidate.ativo),
-          (candidate) =>
-            `${candidate.nome} ${candidate.sku || ""} ${candidate.barcode || ""}`,
-        );
+      const savedProduct = products.find(
+        (candidate) => candidate.id === mappedId && candidate.ativo,
+      );
+      const exactProduct = savedProduct
+        ? undefined
+        : findExactProductMatch(item, products);
+      const product = savedProduct || exactProduct;
+      if (exactProduct) exactMatchCount += 1;
       return {
         id: index + 1,
         originalDescription: item.description,
@@ -182,6 +183,11 @@ export function PurchaseModal({
       };
     });
     if (recognizedLines.length) setLines(recognizedLines);
+    if (exactMatchCount > 0) {
+      toast.success(
+        `${exactMatchCount} produto(s) associado(s) automaticamente por código exato.`,
+      );
+    }
     if (document.documentNumber) setDocumentNumber(document.documentNumber);
     if (document.purchaseDate) setPurchaseDate(document.purchaseDate);
     if (document.dueDate) setDueDate(document.dueDate);
@@ -931,6 +937,43 @@ function productMatchScore(source: string, product: Product) {
     name.length > 3 && normalizedSource.includes(name) ? 100 : 0;
 
   return phraseBonus + nameMatches * 12 + detailMatches * 3;
+}
+
+function findExactProductMatch(
+  item: RecognizedPurchaseDocument["items"][number],
+  products: Product[],
+) {
+  const activeProducts = products.filter((product) => product.ativo);
+  const importedBarcode = normalizeProductCode(item.barcode || "");
+
+  if (importedBarcode) {
+    const barcodeMatch = activeProducts.find((product) =>
+      [product.barcode, product.sku]
+        .map((code) => normalizeProductCode(code || ""))
+        .some((code) => code === importedBarcode),
+    );
+    if (barcodeMatch) return barcodeMatch;
+  }
+
+  const descriptionCodes = new Set(
+    item.description
+      .split(/\s+/)
+      .map(normalizeProductCode)
+      .filter((code) => code.length >= 4),
+  );
+
+  return activeProducts.find((product) =>
+    [product.sku, product.barcode]
+      .map((code) => normalizeProductCode(code || ""))
+      .some((code) => code.length >= 4 && descriptionCodes.has(code)),
+  );
+}
+
+function normalizeProductCode(value: string) {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
 }
 
 function normalize(value: string) {

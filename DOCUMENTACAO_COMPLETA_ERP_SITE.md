@@ -353,6 +353,8 @@ No histórico de Compras, a ação **Excluir importação** desfaz a operação 
 
 Ao visualizar um XML importado, o ERP não abre mais o texto bruto. Uma tela organizada apresenta número e série da nota, fornecedor e documento, emissão, destinatário, total, frete, desconto, pagamentos e uma tabela responsiva com os produtos, códigos, NCM, CFOP, quantidades e valores. O botão **Baixar** continua disponibilizando o XML original.
 
+No celular, o modal completo de produto é renderizado acima do catálogo e da navegação inferior, com fundo opaco, rolagem interna e rodapé fixo. Os botões **Salvar** e **Cancelar** permanecem acessíveis mesmo em formulários longos ou ao editar produtos inativos.
+
 Dados clínicos são sensíveis. Manter autenticação, RLS, trilha de reemissão e acesso mínimo necessário.
 
 ## 18. CRM e BI

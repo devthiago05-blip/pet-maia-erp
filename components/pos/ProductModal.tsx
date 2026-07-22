@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { BarcodeScannerModal } from "@/components/pos/BarcodeScannerModal";
@@ -493,558 +494,568 @@ export function ProductModal({
         {product ? "Editar" : triggerLabel}
       </button>
 
-      {open && (
-        <div className="erp-modal-overlay" role="dialog" aria-modal="true">
-          <div className="erp-modal-panel max-w-6xl">
-            <h2 className="text-xl font-bold">
-              {product ? "Editar produto" : "Novo produto"}
-            </h2>
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="erp-modal-overlay" role="dialog" aria-modal="true">
+            <div className="erp-modal-panel max-w-6xl bg-white opacity-100">
+              <h2 className="text-xl font-bold">
+                {product ? "Editar produto" : "Novo produto"}
+              </h2>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <ProductInput label="Nome" value={nome} onChange={setNome} />
-              <label className="grid gap-2 text-sm font-medium">
-                Categoria
-                <select
-                  value={categoryId}
-                  onChange={(event) => setCategoryId(event.target.value)}
-                  className="rounded-xl border p-3 font-normal"
-                >
-                  <option value="">Selecione</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.nome}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex items-center gap-3 self-end rounded-xl border p-3">
-                <input
-                  type="checkbox"
-                  checked={ativo}
-                  onChange={(event) => setAtivo(event.target.checked)}
-                />
-                Produto ativo
-              </label>
-            </div>
-
-            <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
-              <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                <div className="flex-1">
-                  <p className="flex items-center gap-2 font-bold text-slate-900">
-                    <Barcode size={18} /> Preenchimento pelo código de barras
-                  </p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Digite ou escaneie o GTIN/EAN para consultar a base pública.
-                  </p>
-                </div>
-                <ProductInput
-                  label="Código de barras"
-                  value={variations[0]?.barcode || ""}
-                  onChange={(value) =>
-                    updateVariation(
-                      variations[0].id,
-                      "barcode",
-                      value.replace(/\D/g, "").slice(0, 14),
-                    )
-                  }
-                />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setScannerOpen(true)}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-700 bg-white px-3 py-3 font-semibold text-sky-700"
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <ProductInput label="Nome" value={nome} onChange={setNome} />
+                <label className="grid gap-2 text-sm font-medium">
+                  Categoria
+                  <select
+                    value={categoryId}
+                    onChange={(event) => setCategoryId(event.target.value)}
+                    className="rounded-xl border p-3 font-normal"
                   >
-                    <Camera size={18} />
-                    <span className="sm:hidden xl:inline">Câmera</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => void handleBarcodeLookup()}
-                    disabled={lookingUp}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60"
-                  >
-                    <Search size={17} />{" "}
-                    {lookingUp ? "Consultando..." : "Buscar informações"}
-                  </button>
-                </div>
+                    <option value="">Selecione</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-3 self-end rounded-xl border p-3">
+                  <input
+                    type="checkbox"
+                    checked={ativo}
+                    onChange={(event) => setAtivo(event.target.checked)}
+                  />
+                  Produto ativo
+                </label>
               </div>
-              {(imageUrl || lookupSource) && (
-                <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
-                  {imageUrl && (
-                    <>
-                      {/* A origem da imagem varia conforme o produto retornado pela base pública. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imageUrl}
-                        alt="Produto encontrado"
-                        className="h-16 w-16 rounded-lg object-contain"
-                      />
-                    </>
-                  )}
-                  <div className="text-sm">
-                    <p className="font-semibold">
-                      Dados sugeridos - revise antes de salvar
+
+              <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+                  <div className="flex-1">
+                    <p className="flex items-center gap-2 font-bold text-slate-900">
+                      <Barcode size={18} /> Preenchimento pelo código de barras
                     </p>
-                    {lookupSource && (
-                      <p className="text-slate-500">Fonte: {lookupSource}</p>
-                    )}
+                    <p className="mt-1 text-sm text-slate-500">
+                      Digite ou escaneie o GTIN/EAN para consultar a base
+                      pública.
+                    </p>
+                  </div>
+                  <ProductInput
+                    label="Código de barras"
+                    value={variations[0]?.barcode || ""}
+                    onChange={(value) =>
+                      updateVariation(
+                        variations[0].id,
+                        "barcode",
+                        value.replace(/\D/g, "").slice(0, 14),
+                      )
+                    }
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setScannerOpen(true)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-700 bg-white px-3 py-3 font-semibold text-sky-700"
+                    >
+                      <Camera size={18} />
+                      <span className="sm:hidden xl:inline">Câmera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void handleBarcodeLookup()}
+                      disabled={lookingUp}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-sky-700 px-4 py-3 font-semibold text-white disabled:opacity-60"
+                    >
+                      <Search size={17} />{" "}
+                      {lookingUp ? "Consultando..." : "Buscar informações"}
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
+                {(imageUrl || lookupSource) && (
+                  <div className="mt-3 flex items-center gap-3 rounded-xl bg-white p-3">
+                    {imageUrl && (
+                      <>
+                        {/* A origem da imagem varia conforme o produto retornado pela base pública. */}
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={imageUrl}
+                          alt="Produto encontrado"
+                          className="h-16 w-16 rounded-lg object-contain"
+                        />
+                      </>
+                    )}
+                    <div className="text-sm">
+                      <p className="font-semibold">
+                        Dados sugeridos - revise antes de salvar
+                      </p>
+                      {lookupSource && (
+                        <p className="text-slate-500">Fonte: {lookupSource}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-            <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="font-bold text-slate-900">
-                    Compra e venda por unidades diferentes
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    Use para medicamentos em cartela ou ração vendida a granel.
-                  </p>
+              <div className="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900">
+                      Compra e venda por unidades diferentes
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Use para medicamentos em cartela ou ração vendida a
+                      granel.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[10, 15, 20, 25].map((weight) => (
+                      <button
+                        key={weight}
+                        type="button"
+                        onClick={() => {
+                          setPurchaseUnit("SACO");
+                          setSaleUnit("100G");
+                          setUnidadeComercial("UN");
+                          setUnitsPerPurchase(String(weight * 10));
+                          toast.success(
+                            `Ração a granel: saco de ${weight} kg configurado`,
+                          );
+                        }}
+                        className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:border-emerald-400"
+                      >
+                        Saco {weight} kg
+                      </button>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {[10, 15, 20, 25].map((weight) => (
+                <p className="mt-1 text-sm text-slate-500">
+                  Na ração a granel, cada unidade vendida representa uma porção
+                  de 100 g, facilitando pesar e cobrar no PDV.
+                </p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <ProductInput
+                    label="Unidade de compra"
+                    value={purchaseUnit}
+                    onChange={(value) =>
+                      setPurchaseUnit(
+                        value
+                          .replace(/[^A-Za-zÀ-ÿ]/g, "")
+                          .toUpperCase()
+                          .slice(0, 12),
+                      )
+                    }
+                    placeholder="CAIXA"
+                  />
+                  <ProductInput
+                    label="Unidade de venda"
+                    value={saleUnit}
+                    onChange={(value) => {
+                      const normalized = value
+                        .replace(/[^A-Za-zÀ-ÿ]/g, "")
+                        .toUpperCase()
+                        .slice(0, 12);
+                      setSaleUnit(normalized);
+                      if (!unidadeComercial) setUnidadeComercial("UN");
+                    }}
+                    placeholder="CARTELA"
+                  />
+                  <ProductInput
+                    label="Unidades por compra"
+                    type="number"
+                    integer
+                    value={unitsPerPurchase}
+                    onChange={(value) => {
+                      setUnitsPerPurchase(value);
+                      const nextUnits = Math.max(1, Number(value || 1));
+                      setVariations((current) =>
+                        current.map((variation) => {
+                          const unitCost = calculateUnitCost(
+                            Number(variation.precoCusto),
+                            nextUnits,
+                          );
+                          const margin = Number(variation.margem);
+                          return {
+                            ...variation,
+                            precoVenda:
+                              Number.isFinite(unitCost) &&
+                              Number.isFinite(margin)
+                                ? formatDecimal(
+                                    calculateSuggestedSalePrice(
+                                      unitCost,
+                                      margin,
+                                      variation.roundingMode,
+                                    ),
+                                  )
+                                : variation.precoVenda,
+                          };
+                        }),
+                      );
+                    }}
+                    placeholder="Ex.: 10"
+                  />
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {[
+                    ["CAIXA", "CARTELA", "Caixa → cartela"],
+                    ["CAIXA", "COMPRIMIDO", "Caixa → comprimido"],
+                    ["PACK", "SACHÊ", "Pack → sachê"],
+                    ["FARDO", "PACOTE", "Fardo → pacote"],
+                  ].map(([purchase, sale, label]) => (
                     <button
-                      key={weight}
+                      key={label}
                       type="button"
                       onClick={() => {
-                        setPurchaseUnit("SACO");
-                        setSaleUnit("100G");
+                        setPurchaseUnit(purchase);
+                        setSaleUnit(sale);
                         setUnidadeComercial("UN");
-                        setUnitsPerPurchase(String(weight * 10));
-                        toast.success(
-                          `Ração a granel: saco de ${weight} kg configurado`,
-                        );
                       }}
                       className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:border-emerald-400"
                     >
-                      Saco {weight} kg
+                      {label}
                     </button>
                   ))}
                 </div>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">
-                Na ração a granel, cada unidade vendida representa uma porção de
-                100 g, facilitando pesar e cobrar no PDV.
-              </p>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <ProductInput
-                  label="Unidade de compra"
-                  value={purchaseUnit}
-                  onChange={(value) =>
-                    setPurchaseUnit(
-                      value
-                        .replace(/[^A-Za-zÀ-ÿ]/g, "")
-                        .toUpperCase()
-                        .slice(0, 12),
-                    )
-                  }
-                  placeholder="CAIXA"
-                />
-                <ProductInput
-                  label="Unidade de venda"
-                  value={saleUnit}
-                  onChange={(value) => {
-                    const normalized = value
-                      .replace(/[^A-Za-zÀ-ÿ]/g, "")
-                      .toUpperCase()
-                      .slice(0, 12);
-                    setSaleUnit(normalized);
-                    if (!unidadeComercial) setUnidadeComercial("UN");
-                  }}
-                  placeholder="CARTELA"
-                />
-                <ProductInput
-                  label="Unidades por compra"
-                  type="number"
-                  integer
-                  value={unitsPerPurchase}
-                  onChange={(value) => {
-                    setUnitsPerPurchase(value);
-                    const nextUnits = Math.max(1, Number(value || 1));
-                    setVariations((current) =>
-                      current.map((variation) => {
-                        const unitCost = calculateUnitCost(
-                          Number(variation.precoCusto),
-                          nextUnits,
-                        );
-                        const margin = Number(variation.margem);
-                        return {
-                          ...variation,
-                          precoVenda:
-                            Number.isFinite(unitCost) && Number.isFinite(margin)
-                              ? formatDecimal(
-                                  calculateSuggestedSalePrice(
-                                    unitCost,
-                                    margin,
-                                    variation.roundingMode,
-                                  ),
-                                )
-                              : variation.precoVenda,
-                        };
-                      }),
-                    );
-                  }}
-                  placeholder="Ex.: 10"
-                />
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {[
-                  ["CAIXA", "CARTELA", "Caixa → cartela"],
-                  ["CAIXA", "COMPRIMIDO", "Caixa → comprimido"],
-                  ["PACK", "SACHÊ", "Pack → sachê"],
-                  ["FARDO", "PACOTE", "Fardo → pacote"],
-                ].map(([purchase, sale, label]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    onClick={() => {
-                      setPurchaseUnit(purchase);
-                      setSaleUnit(sale);
-                      setUnidadeComercial("UN");
-                    }}
-                    className="rounded-lg border border-emerald-200 bg-white px-3 py-2 text-xs font-bold text-emerald-700 transition hover:border-emerald-400"
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-3 rounded-xl bg-white p-3 text-sm font-medium text-emerald-800">
-                Ao comprar 1 {purchaseUnit || "embalagem"}, entrarão{" "}
-                {Math.max(1, Number(unitsPerPurchase || 1))}{" "}
-                {saleUnit || "unidades"} no estoque.
-                {saleUnit === "100G" && (
-                  <span className="mt-1 block font-normal text-emerald-700">
-                    Exemplo: vender quantidade 5 no PDV corresponde a 500 g.
-                  </span>
-                )}
-              </p>
-            </div>
-
-            <div className="mt-5 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50/50">
-              <button
-                type="button"
-                onClick={() => setFiscalOpen((current) => !current)}
-                aria-expanded={fiscalOpen}
-                className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-purple-50"
-              >
-                <span className="flex min-w-0 items-center gap-3">
-                  <span className="rounded-xl bg-white p-2 text-[#8A0EEA]">
-                    <ReceiptText size={20} />
-                  </span>
-                  <span>
-                    <strong className="block text-slate-900">
-                      Dados fiscais para NFC-e
-                    </strong>
-                    <small className="block text-slate-500">
-                      {ncm || cfop || csosn
-                        ? "Existem informações fiscais preenchidas"
-                        : "Opcional agora; necessário somente para emitir NFC-e"}
-                    </small>
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#8A0EEA]">
-                  {fiscalOpen ? "Ocultar" : "Mostrar"}
-                  <ChevronDown
-                    size={18}
-                    className={`transition ${fiscalOpen ? "rotate-180" : ""}`}
-                  />
-                </span>
-              </button>
-              {fiscalOpen && (
-                <div className="border-t border-purple-100 p-4">
-                  <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-                    Preenchimento opcional agora. NCM, CFOP e tributação serão
-                    necessários antes de emitir NFC-e.
-                  </p>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <ProductInput
-                      label="NCM (8 dígitos)"
-                      value={ncm}
-                      onChange={(value) =>
-                        setNcm(normalizeFiscalCode(value, 8))
-                      }
-                    />
-                    <ProductInput
-                      label="CFOP (4 dígitos)"
-                      value={cfop}
-                      onChange={(value) =>
-                        setCfop(normalizeFiscalCode(value, 4))
-                      }
-                    />
-                    <label className="grid gap-2 text-sm font-medium">
-                      Origem
-                      <select
-                        value={origemMercadoria}
-                        onChange={(event) =>
-                          setOrigemMercadoria(event.target.value)
-                        }
-                        className="rounded-xl border bg-white p-3 font-normal"
-                      >
-                        <option value="0">0 - Nacional</option>
-                        <option value="1">1 - Importação direta</option>
-                        <option value="2">
-                          2 - Estrangeira, mercado interno
-                        </option>
-                        <option value="3">
-                          3 - Nacional, importado &gt; 40%
-                        </option>
-                        <option value="4">4 - Processo básico</option>
-                        <option value="5">5 - Nacional, importado ≤ 40%</option>
-                        <option value="6">6 - Importado, sem similar</option>
-                        <option value="7">7 - Interno, sem similar</option>
-                        <option value="8">
-                          8 - Nacional, importado &gt; 70%
-                        </option>
-                      </select>
-                    </label>
-                    <ProductInput
-                      label="CSOSN / CST"
-                      value={csosn}
-                      onChange={(value) =>
-                        setCsosn(normalizeFiscalCode(value, 3))
-                      }
-                    />
-                    <ProductInput
-                      label="Unidade"
-                      value={unidadeComercial}
-                      onChange={(value) =>
-                        setUnidadeComercial(
-                          value
-                            .replace(/[^A-Za-z]/g, "")
-                            .toUpperCase()
-                            .slice(0, 6),
-                        )
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-6 flex items-center justify-between gap-4">
-              <div>
-                <h3 className="font-bold">Variações e estoque</h3>
-                <p className="text-sm text-slate-500">
-                  Deixe tamanho, cor e sabor vazios para um produto simples.
+                <p className="mt-3 rounded-xl bg-white p-3 text-sm font-medium text-emerald-800">
+                  Ao comprar 1 {purchaseUnit || "embalagem"}, entrarão{" "}
+                  {Math.max(1, Number(unitsPerPurchase || 1))}{" "}
+                  {saleUnit || "unidades"} no estoque.
+                  {saleUnit === "100G" && (
+                    <span className="mt-1 block font-normal text-emerald-700">
+                      Exemplo: vender quantidade 5 no PDV corresponde a 500 g.
+                    </span>
+                  )}
                 </p>
               </div>
-              {!product && (
+
+              <div className="mt-5 overflow-hidden rounded-2xl border border-purple-100 bg-purple-50/50">
                 <button
                   type="button"
-                  onClick={addVariation}
-                  className="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#8A0EEA]"
+                  onClick={() => setFiscalOpen((current) => !current)}
+                  aria-expanded={fiscalOpen}
+                  className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-purple-50"
                 >
-                  <Plus size={17} />
-                  Adicionar variação
-                </button>
-              )}
-            </div>
-
-            <div className="mt-4 space-y-3">
-              {variations.map((variation, index) => (
-                <div
-                  key={variation.id}
-                  className="rounded-xl border bg-slate-50 p-3"
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-sm font-semibold">
-                      {product ? "Produto" : `Variação ${index + 1}`}
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span className="rounded-xl bg-white p-2 text-[#8A0EEA]">
+                      <ReceiptText size={20} />
                     </span>
-                    {!product && variations.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setVariations((current) =>
-                            current.filter((item) => item.id !== variation.id),
+                    <span>
+                      <strong className="block text-slate-900">
+                        Dados fiscais para NFC-e
+                      </strong>
+                      <small className="block text-slate-500">
+                        {ncm || cfop || csosn
+                          ? "Existem informações fiscais preenchidas"
+                          : "Opcional agora; necessário somente para emitir NFC-e"}
+                      </small>
+                    </span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 text-sm font-semibold text-[#8A0EEA]">
+                    {fiscalOpen ? "Ocultar" : "Mostrar"}
+                    <ChevronDown
+                      size={18}
+                      className={`transition ${fiscalOpen ? "rotate-180" : ""}`}
+                    />
+                  </span>
+                </button>
+                {fiscalOpen && (
+                  <div className="border-t border-purple-100 p-4">
+                    <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+                      Preenchimento opcional agora. NCM, CFOP e tributação serão
+                      necessários antes de emitir NFC-e.
+                    </p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      <ProductInput
+                        label="NCM (8 dígitos)"
+                        value={ncm}
+                        onChange={(value) =>
+                          setNcm(normalizeFiscalCode(value, 8))
+                        }
+                      />
+                      <ProductInput
+                        label="CFOP (4 dígitos)"
+                        value={cfop}
+                        onChange={(value) =>
+                          setCfop(normalizeFiscalCode(value, 4))
+                        }
+                      />
+                      <label className="grid gap-2 text-sm font-medium">
+                        Origem
+                        <select
+                          value={origemMercadoria}
+                          onChange={(event) =>
+                            setOrigemMercadoria(event.target.value)
+                          }
+                          className="rounded-xl border bg-white p-3 font-normal"
+                        >
+                          <option value="0">0 - Nacional</option>
+                          <option value="1">1 - Importação direta</option>
+                          <option value="2">
+                            2 - Estrangeira, mercado interno
+                          </option>
+                          <option value="3">
+                            3 - Nacional, importado &gt; 40%
+                          </option>
+                          <option value="4">4 - Processo básico</option>
+                          <option value="5">
+                            5 - Nacional, importado ≤ 40%
+                          </option>
+                          <option value="6">6 - Importado, sem similar</option>
+                          <option value="7">7 - Interno, sem similar</option>
+                          <option value="8">
+                            8 - Nacional, importado &gt; 70%
+                          </option>
+                        </select>
+                      </label>
+                      <ProductInput
+                        label="CSOSN / CST"
+                        value={csosn}
+                        onChange={(value) =>
+                          setCsosn(normalizeFiscalCode(value, 3))
+                        }
+                      />
+                      <ProductInput
+                        label="Unidade"
+                        value={unidadeComercial}
+                        onChange={(value) =>
+                          setUnidadeComercial(
+                            value
+                              .replace(/[^A-Za-z]/g, "")
+                              .toUpperCase()
+                              .slice(0, 6),
                           )
                         }
-                        aria-label={`Remover variação ${index + 1}`}
-                        className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                      >
-                        <Trash2 size={17} />
-                      </button>
-                    )}
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <ProductInput
-                      label="Tamanho"
-                      value={variation.tamanho}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "tamanho", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Cor"
-                      value={variation.cor}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "cor", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Sabor"
-                      value={variation.sabor}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "sabor", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Código de barras"
-                      value={variation.barcode}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "barcode", value)
-                      }
-                    />
-                    <ProductInput
-                      label={
-                        Number(unitsPerPurchase) > 1
-                          ? `Custo de 1 ${purchaseUnit || "embalagem"}`
-                          : "Valor de compra"
-                      }
-                      type="number"
-                      value={variation.precoCusto}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "precoCusto", value)
-                      }
-                    />
-
-                    <ProductInput
-                      label="Margem %"
-                      type="number"
-                      value={variation.margem}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "margem", value)
-                      }
-                    />
-
-                    <div className="grid gap-2 text-sm font-medium lg:col-span-2">
-                      Arredondamento do preço
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          ["exact", "Exato"],
-                          ["nearest", "Inteiro próximo"],
-                          ["ninety", "Final ,90"],
-                          ["ninetyNine", "Final ,99"],
-                        ].map(([mode, label]) => (
-                          <button
-                            key={mode}
-                            type="button"
-                            onClick={() => {
-                              setVariations((current) =>
-                                current.map((item) => {
-                                  if (item.id !== variation.id) return item;
-                                  const roundingMode =
-                                    mode as ProductVariationForm["roundingMode"];
-                                  const unitCost = calculateUnitCost(
-                                    Number(item.precoCusto),
-                                    Number(unitsPerPurchase),
-                                  );
-                                  const margin = Number(item.margem);
-                                  return {
-                                    ...item,
-                                    roundingMode,
-                                    precoVenda: formatDecimal(
-                                      calculateSuggestedSalePrice(
-                                        unitCost,
-                                        margin,
-                                        roundingMode,
-                                      ),
-                                    ),
-                                  };
-                                }),
-                              );
-                            }}
-                            className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${variation.roundingMode === mode ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]" : "bg-white text-slate-600 hover:border-purple-300"}`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                      />
                     </div>
+                  </div>
+                )}
+              </div>
 
-                    <ProductInput
-                      label="Valor de venda"
-                      type="number"
-                      value={variation.precoVenda}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "precoVenda", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Estoque atual"
-                      type="number"
-                      integer
-                      value={variation.estoque}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "estoque", value)
-                      }
-                    />
-                    <ProductInput
-                      label="Estoque mínimo"
-                      type="number"
-                      integer
-                      value={variation.estoqueMinimo}
-                      onChange={(value) =>
-                        updateVariation(variation.id, "estoqueMinimo", value)
-                      }
-                    />
-                  </div>
-                  <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
-                    {Number(unitsPerPurchase) > 1 && (
-                      <span className="mb-1 block font-semibold text-emerald-700">
-                        Custo por {saleUnit || "unidade"}:{" "}
-                        {formatCurrency(
-                          calculateUnitCost(
-                            Number(variation.precoCusto || 0),
-                            Number(unitsPerPurchase),
-                          ),
-                        )}
-                      </span>
-                    )}
-                    <span className="font-semibold">Lucro por unidade:</span>{" "}
-                    {formatCurrency(
-                      Math.max(
-                        0,
-                        Number(variation.precoVenda || 0) -
-                          calculateUnitCost(
-                            Number(variation.precoCusto || 0),
-                            Number(unitsPerPurchase),
-                          ),
-                      ),
-                    )}{" "}
-                    <span className="text-slate-400">
-                      | Margem: {variation.margem || "0"}%
-                    </span>
-                  </div>
+              <div className="mt-6 flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-bold">Variações e estoque</h3>
+                  <p className="text-sm text-slate-500">
+                    Deixe tamanho, cor e sabor vazios para um produto simples.
+                  </p>
                 </div>
-              ))}
-            </div>
+                {!product && (
+                  <button
+                    type="button"
+                    onClick={addVariation}
+                    className="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#8A0EEA]"
+                  >
+                    <Plus size={17} />
+                    Adicionar variação
+                  </button>
+                )}
+              </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-xl border py-2 sm:flex-1"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
-              >
-                {saving
-                  ? "Salvando..."
-                  : product
-                    ? "Salvar"
-                    : `Salvar ${variations.length} ${variations.length === 1 ? "produto" : "variações"}`}
-              </button>
+              <div className="mt-4 space-y-3">
+                {variations.map((variation, index) => (
+                  <div
+                    key={variation.id}
+                    className="rounded-xl border bg-slate-50 p-3"
+                  >
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-sm font-semibold">
+                        {product ? "Produto" : `Variação ${index + 1}`}
+                      </span>
+                      {!product && variations.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setVariations((current) =>
+                              current.filter(
+                                (item) => item.id !== variation.id,
+                              ),
+                            )
+                          }
+                          aria-label={`Remover variação ${index + 1}`}
+                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                        >
+                          <Trash2 size={17} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      <ProductInput
+                        label="Tamanho"
+                        value={variation.tamanho}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "tamanho", value)
+                        }
+                      />
+                      <ProductInput
+                        label="Cor"
+                        value={variation.cor}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "cor", value)
+                        }
+                      />
+                      <ProductInput
+                        label="Sabor"
+                        value={variation.sabor}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "sabor", value)
+                        }
+                      />
+                      <ProductInput
+                        label="Código de barras"
+                        value={variation.barcode}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "barcode", value)
+                        }
+                      />
+                      <ProductInput
+                        label={
+                          Number(unitsPerPurchase) > 1
+                            ? `Custo de 1 ${purchaseUnit || "embalagem"}`
+                            : "Valor de compra"
+                        }
+                        type="number"
+                        value={variation.precoCusto}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "precoCusto", value)
+                        }
+                      />
+
+                      <ProductInput
+                        label="Margem %"
+                        type="number"
+                        value={variation.margem}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "margem", value)
+                        }
+                      />
+
+                      <div className="grid gap-2 text-sm font-medium lg:col-span-2">
+                        Arredondamento do preço
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            ["exact", "Exato"],
+                            ["nearest", "Inteiro próximo"],
+                            ["ninety", "Final ,90"],
+                            ["ninetyNine", "Final ,99"],
+                          ].map(([mode, label]) => (
+                            <button
+                              key={mode}
+                              type="button"
+                              onClick={() => {
+                                setVariations((current) =>
+                                  current.map((item) => {
+                                    if (item.id !== variation.id) return item;
+                                    const roundingMode =
+                                      mode as ProductVariationForm["roundingMode"];
+                                    const unitCost = calculateUnitCost(
+                                      Number(item.precoCusto),
+                                      Number(unitsPerPurchase),
+                                    );
+                                    const margin = Number(item.margem);
+                                    return {
+                                      ...item,
+                                      roundingMode,
+                                      precoVenda: formatDecimal(
+                                        calculateSuggestedSalePrice(
+                                          unitCost,
+                                          margin,
+                                          roundingMode,
+                                        ),
+                                      ),
+                                    };
+                                  }),
+                                );
+                              }}
+                              className={`rounded-lg border px-3 py-2 text-xs font-bold transition ${variation.roundingMode === mode ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA]" : "bg-white text-slate-600 hover:border-purple-300"}`}
+                            >
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <ProductInput
+                        label="Valor de venda"
+                        type="number"
+                        value={variation.precoVenda}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "precoVenda", value)
+                        }
+                      />
+                      <ProductInput
+                        label="Estoque atual"
+                        type="number"
+                        integer
+                        value={variation.estoque}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "estoque", value)
+                        }
+                      />
+                      <ProductInput
+                        label="Estoque mínimo"
+                        type="number"
+                        integer
+                        value={variation.estoqueMinimo}
+                        onChange={(value) =>
+                          updateVariation(variation.id, "estoqueMinimo", value)
+                        }
+                      />
+                    </div>
+                    <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-600">
+                      {Number(unitsPerPurchase) > 1 && (
+                        <span className="mb-1 block font-semibold text-emerald-700">
+                          Custo por {saleUnit || "unidade"}:{" "}
+                          {formatCurrency(
+                            calculateUnitCost(
+                              Number(variation.precoCusto || 0),
+                              Number(unitsPerPurchase),
+                            ),
+                          )}
+                        </span>
+                      )}
+                      <span className="font-semibold">Lucro por unidade:</span>{" "}
+                      {formatCurrency(
+                        Math.max(
+                          0,
+                          Number(variation.precoVenda || 0) -
+                            calculateUnitCost(
+                              Number(variation.precoCusto || 0),
+                              Number(unitsPerPurchase),
+                            ),
+                        ),
+                      )}{" "}
+                      <span className="text-slate-400">
+                        | Margem: {variation.margem || "0"}%
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="sticky bottom-0 z-10 -mx-4 mt-6 flex flex-col-reverse gap-3 border-t bg-white/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] shadow-[0_-10px_24px_rgba(15,23,42,0.08)] backdrop-blur sm:mx-0 sm:flex-row sm:rounded-xl sm:border sm:p-3">
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="rounded-xl border py-2 sm:flex-1"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60 sm:flex-1"
+                >
+                  {saving
+                    ? "Salvando..."
+                    : product
+                      ? "Salvar"
+                      : `Salvar ${variations.length} ${variations.length === 1 ? "produto" : "variações"}`}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
       <BarcodeScannerModal
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}

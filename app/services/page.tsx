@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { ServiceModal } from "@/components/services/ServiceModal";
 import { ServiceTable } from "@/components/services/ServiceTable";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { formatCurrency } from "@/lib/formatters";
 import {
   createService,
   deleteService,
@@ -85,6 +87,10 @@ export default function ServicesPage() {
     toast.success("Serviço excluído com sucesso!");
   }
 
+  function handlePrintServices() {
+    window.print();
+  }
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -92,7 +98,7 @@ export default function ServicesPage() {
       <main className="min-w-0 flex-1 bg-slate-50">
         <Header />
 
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
@@ -104,6 +110,15 @@ export default function ServicesPage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
+              <button
+                type="button"
+                onClick={handlePrintServices}
+                className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50"
+              >
+                <Printer size={18} />
+                Imprimir
+              </button>
+
               <Link
                 href="/services/insumos"
                 className="inline-flex items-center justify-center rounded-xl border border-[#8A0EEA]/20 bg-purple-50 px-4 py-2 font-medium text-[#8A0EEA] hover:bg-purple-100"
@@ -137,7 +152,62 @@ export default function ServicesPage() {
             />
           )}
         </div>
+
+        <ServicesPrintView services={services} />
       </main>
     </div>
+  );
+}
+
+function ServicesPrintView({ services }: { services: Service[] }) {
+  const printedAt = new Date().toLocaleString("pt-BR");
+
+  return (
+    <section className="document-print-area hidden bg-white p-8 print:block">
+      <div className="mb-6 border-b-2 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          PET MAIA ERP
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-slate-900">
+          Serviços cadastrados
+        </h1>
+        <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
+      </div>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Serviço</th>
+            <th className="border p-2">Pequeno</th>
+            <th className="border p-2">Médio</th>
+            <th className="border p-2">Grande</th>
+          </tr>
+        </thead>
+        <tbody>
+          {services.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={4}>
+                Nenhum serviço cadastrado.
+              </td>
+            </tr>
+          ) : (
+            services.map((service) => (
+              <tr key={service.id}>
+                <td className="border p-2">{service.nome}</td>
+                <td className="border p-2">
+                  {formatCurrency(service.preco_pequeno)}
+                </td>
+                <td className="border p-2">
+                  {formatCurrency(service.preco_medio)}
+                </td>
+                <td className="border p-2">
+                  {formatCurrency(service.preco_grande)}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </section>
   );
 }

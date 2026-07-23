@@ -527,7 +527,7 @@ export default function AgendaPage() {
       <main className="min-w-0 flex-1 bg-slate-50">
         <Header />
 
-        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
+        <div className="space-y-6 p-4 pb-28 print:hidden sm:p-6 sm:pb-8 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">

@@ -45,6 +45,7 @@ export interface Tutor {
   id: number;
   nome: string;
   telefone?: string;
+  cpf?: string | null;
   email?: string;
   endereco?: string;
   pets?: number;
@@ -66,6 +67,7 @@ export interface Pet {
   tutors?: {
     nome: string;
     telefone?: string;
+    cpf?: string | null;
     email?: string;
     endereco?: string;
   };
@@ -1042,6 +1044,7 @@ export interface NewServiceInput {
 export interface NewTutorInput {
   nome: string;
   telefone: string;
+  cpf?: string | null;
   email: string;
   endereco: string;
 }

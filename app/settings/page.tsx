@@ -25,6 +25,10 @@ import {
   saveFiscalCredentials,
 } from "@/services/fiscal-config";
 import {
+  fetchFiscalReadiness,
+  type FiscalReadinessReport,
+} from "@/services/fiscal-readiness";
+import {
   fetchClinicSettings,
   updateClinicSettings,
   updateProfessionalProfile,
@@ -81,6 +85,8 @@ export default function SettingsPage() {
   const [csc, setCsc] = useState("");
   const [cscId, setCscId] = useState("");
   const [savingFiscal, setSavingFiscal] = useState(false);
+  const [fiscalReport, setFiscalReport] =
+    useState<FiscalReadinessReport | null>(null);
 
   async function loadSettings() {
     setLoading(true);
@@ -109,10 +115,19 @@ export default function SettingsPage() {
     }
   }
 
+  async function loadFiscalReport() {
+    try {
+      setFiscalReport(await fetchFiscalReadiness());
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   useMountEffect(() => {
     loadSettings();
     if (profile?.is_admin) {
       loadFiscalStatus();
+      loadFiscalReport();
     }
   });
 
@@ -143,6 +158,7 @@ export default function SettingsPage() {
 
     toast.success("Configurações salvas com sucesso!");
     await loadSettings();
+    await loadFiscalReport();
   }
 
   async function handleSaveProfessional() {
@@ -410,6 +426,7 @@ export default function SettingsPage() {
             </div>
 
             <FiscalReadiness settings={settings} status={fiscalStatus} />
+            {fiscalReport && <FiscalTaxAudit report={fiscalReport} />}
           </SettingsSection>
           )}
 
@@ -551,6 +568,85 @@ export default function SettingsPage() {
           />
         </div>
       </main>
+    </div>
+  );
+}
+
+function FiscalTaxAudit({ report }: { report: FiscalReadinessReport }) {
+  return (
+    <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h3 className="font-bold text-slate-900">
+            Pré-auditoria tributária dos produtos
+          </h3>
+          <p className="text-sm text-slate-500">
+            Sugestões para conferência; nenhuma tributação é aplicada automaticamente.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 text-xs font-semibold">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1">
+            {report.totals.products} produtos
+          </span>
+          <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-emerald-700">
+            {report.totals.ready} básicos completos
+          </span>
+          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-amber-800">
+            {report.totals.suggestions} com sugestão
+          </span>
+          <span className="rounded-full bg-red-100 px-2.5 py-1 text-red-700">
+            {report.totals.blocked} sem base segura
+          </span>
+        </div>
+      </div>
+
+      {!report.regimeConfirmed && (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Selecione o regime tributário para o sistema conseguir sugerir CSOSN ou
+          CST de forma condicional.
+        </p>
+      )}
+
+      <div className="mt-4 max-h-[32rem] space-y-3 overflow-y-auto pr-1">
+        {report.assessments.map((item) => (
+          <article
+            key={item.productId}
+            className="rounded-xl border border-slate-200 p-3"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold text-slate-900">{item.productName}</p>
+              <span
+                className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${
+                  item.level === "ready"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : item.level === "suggestion"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-red-100 text-red-700"
+                }`}
+              >
+                {item.level === "ready"
+                  ? "Base completa"
+                  : item.level === "suggestion"
+                    ? "Revisar sugestão"
+                    : "Pendente"}
+              </span>
+            </div>
+            {item.suggestions.map((suggestion) => (
+              <p
+                key={`${suggestion.field}-${suggestion.value}`}
+                className="mt-2 rounded-lg bg-purple-50 p-2 text-sm text-purple-900"
+              >
+                <strong>{suggestion.field.toUpperCase()} sugerido: {suggestion.value}</strong>
+                {" — "}
+                {suggestion.reason}
+              </p>
+            ))}
+            <p className="mt-2 text-xs text-slate-500">
+              Falta confirmar: {item.pending.join("; ")}.
+            </p>
+          </article>
+        ))}
+      </div>
     </div>
   );
 }

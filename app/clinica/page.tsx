@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   ClipboardList,
   MessageCircle,
+  Printer,
   Search,
   Stethoscope,
   Syringe,
@@ -119,6 +120,25 @@ interface VaccineQueueItem {
 }
 
 type QueueFilter = "all" | "overdue" | "today" | "upcoming";
+type PatientFilter =
+  | "all"
+  | "attention"
+  | "return_overdue"
+  | "return_today"
+  | "vaccine_due"
+  | "hospitalized";
+
+interface PatientClinicStatus {
+  attentionScore: number;
+  criticalAlerts: number;
+  overdueReturns: number;
+  todayReturns: number;
+  overdueVaccines: number;
+  todayVaccines: number;
+  pendingTasks: number;
+  pendingExams: number;
+  hospitalized: boolean;
+}
 
 export default function ClinicPage() {
   const { profile } = useAccess();
@@ -129,6 +149,7 @@ export default function ClinicPage() {
   >([]);
   const [clinicalExams, setClinicalExams] = useState<ClinicalExam[]>([]);
   const [search, setSearch] = useState("");
+  const [patientFilter, setPatientFilter] = useState<PatientFilter>("all");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -223,24 +244,203 @@ export default function ClinicPage() {
     loadPatients();
   });
 
-  const filteredPatients = useMemo(() => {
-    const term = search.trim().toLowerCase();
+  const activeHospitalizations = useMemo(
+    () => hospitalizations.filter((item) => item.status === "Internado"),
+    [hospitalizations],
+  );
+  const hospitalizedPetIds = useMemo(
+    () => new Set(activeHospitalizations.map((item) => item.pet_id)),
+    [activeHospitalizations],
+  );
+  const pendingTasksByPet = useMemo(() => {
+    const counts = new Map<number, number>();
 
-    return patients.filter(
-      (patient) =>
-        !term ||
-        patient.nome.toLowerCase().includes(term) ||
-        patient.tutors?.nome.toLowerCase().includes(term) ||
-        patient.raca?.toLowerCase().includes(term),
+    clinicalTasks
+      .filter((task) => task.status === "Pendente")
+      .forEach((task) => {
+        counts.set(task.pet_id, (counts.get(task.pet_id) || 0) + 1);
+      });
+
+    return counts;
+  }, [clinicalTasks]);
+  const pendingExamsByPet = useMemo(() => {
+    const counts = new Map<number, number>();
+
+    clinicalExams
+      .filter(
+        (exam) => exam.status !== "Concluído" && exam.status !== "Cancelado",
+      )
+      .forEach((exam) => {
+        counts.set(exam.pet_id, (counts.get(exam.pet_id) || 0) + 1);
+      });
+
+    return counts;
+  }, [clinicalExams]);
+  const patientStatuses = useMemo(() => {
+    const today = getDateOnly(new Date());
+
+    return new Map(
+      patients.map((patient) => {
+        const openReturns = (patient.clinicalRecords || []).filter(
+          (record) =>
+            record.return_date && record.reminder_status !== "Confirmado",
+        );
+        const openVaccines = (patient.vaccinationRecords || []).filter(
+          (vaccination) =>
+            vaccination.next_dose_date &&
+            vaccination.reminder_status !== "Confirmado",
+        );
+        const overdueReturns = openReturns.filter(
+          (record) =>
+            record.return_date &&
+            differenceInDays(parseDateOnly(record.return_date), today) < 0,
+        ).length;
+        const todayReturns = openReturns.filter(
+          (record) =>
+            record.return_date &&
+            differenceInDays(parseDateOnly(record.return_date), today) === 0,
+        ).length;
+        const overdueVaccines = openVaccines.filter(
+          (vaccination) =>
+            vaccination.next_dose_date &&
+            differenceInDays(parseDateOnly(vaccination.next_dose_date), today) <
+              0,
+        ).length;
+        const todayVaccines = openVaccines.filter(
+          (vaccination) =>
+            vaccination.next_dose_date &&
+            differenceInDays(
+              parseDateOnly(vaccination.next_dose_date),
+              today,
+            ) === 0,
+        ).length;
+        const criticalAlerts = (patient.clinicalAlerts || []).filter(
+          (alert) => alert.severity === "Crítico",
+        ).length;
+        const pendingTasks = pendingTasksByPet.get(patient.id) || 0;
+        const pendingExams = pendingExamsByPet.get(patient.id) || 0;
+        const hospitalized = hospitalizedPetIds.has(patient.id);
+        const attentionScore =
+          criticalAlerts * 6 +
+          overdueReturns * 5 +
+          overdueVaccines * 5 +
+          todayReturns * 3 +
+          todayVaccines * 3 +
+          pendingExams * 2 +
+          pendingTasks +
+          (hospitalized ? 4 : 0);
+
+        return [
+          patient.id,
+          {
+            attentionScore,
+            criticalAlerts,
+            overdueReturns,
+            todayReturns,
+            overdueVaccines,
+            todayVaccines,
+            pendingTasks,
+            pendingExams,
+            hospitalized,
+          },
+        ];
+      }),
     );
-  }, [patients, search]);
+  }, [hospitalizedPetIds, patients, pendingExamsByPet, pendingTasksByPet]);
+  const patientFilterOptions = useMemo(
+    () => [
+      { label: "Todos", value: "all" as const, count: patients.length },
+      {
+        label: "Em atenção",
+        value: "attention" as const,
+        count: patients.filter(
+          (patient) =>
+            (patientStatuses.get(patient.id)?.attentionScore || 0) > 0,
+        ).length,
+      },
+      {
+        label: "Retorno atrasado",
+        value: "return_overdue" as const,
+        count: patients.filter(
+          (patient) =>
+            (patientStatuses.get(patient.id)?.overdueReturns || 0) > 0,
+        ).length,
+      },
+      {
+        label: "Retorno hoje",
+        value: "return_today" as const,
+        count: patients.filter(
+          (patient) => (patientStatuses.get(patient.id)?.todayReturns || 0) > 0,
+        ).length,
+      },
+      {
+        label: "Vacina pendente",
+        value: "vaccine_due" as const,
+        count: patients.filter((patient) => {
+          const status = patientStatuses.get(patient.id);
 
-  const returnsCount = patients.filter(
-    (patient) => patient.nextReturnDate,
-  ).length;
-  const vaccinationsCount = patients.filter(
-    (patient) => patient.nextVaccinationDate,
-  ).length;
+          return (
+            (status?.overdueVaccines || 0) + (status?.todayVaccines || 0) > 0
+          );
+        }).length,
+      },
+      {
+        label: "Internados",
+        value: "hospitalized" as const,
+        count: patients.filter(
+          (patient) => patientStatuses.get(patient.id)?.hospitalized,
+        ).length,
+      },
+    ],
+    [patientStatuses, patients],
+  );
+  const filteredPatients = useMemo(() => {
+    const term = normalizeSearchText(search);
+
+    return patients
+      .filter((patient) => {
+        const status = patientStatuses.get(patient.id);
+        const searchableText = normalizeSearchText(
+          [
+            patient.nome,
+            patient.tutors?.nome,
+            patient.raca,
+            patient.especie,
+            patient.porte,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        );
+        const matchesSearch = !term || searchableText.includes(term);
+        const matchesFilter =
+          patientFilter === "all" ||
+          (patientFilter === "attention" &&
+            (status?.attentionScore || 0) > 0) ||
+          (patientFilter === "return_overdue" &&
+            (status?.overdueReturns || 0) > 0) ||
+          (patientFilter === "return_today" &&
+            (status?.todayReturns || 0) > 0) ||
+          (patientFilter === "vaccine_due" &&
+            (status?.overdueVaccines || 0) + (status?.todayVaccines || 0) >
+              0) ||
+          (patientFilter === "hospitalized" && Boolean(status?.hospitalized));
+
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        const statusA = patientStatuses.get(a.id)?.attentionScore || 0;
+        const statusB = patientStatuses.get(b.id)?.attentionScore || 0;
+
+        return (
+          statusB - statusA ||
+          (b.lastClinicalRecord?.consultation_date || "").localeCompare(
+            a.lastClinicalRecord?.consultation_date || "",
+          ) ||
+          a.nome.localeCompare(b.nome)
+        );
+      });
+  }, [patientFilter, patientStatuses, patients, search]);
+
   const criticalAlertsCount = patients.reduce(
     (total, patient) =>
       total +
@@ -249,6 +449,12 @@ export default function ClinicPage() {
       ).length,
     0,
   );
+  const pendingTasksCount = clinicalTasks.filter(
+    (task) => task.status === "Pendente",
+  ).length;
+  const pendingExamsCount = clinicalExams.filter(
+    (exam) => exam.status !== "Concluído" && exam.status !== "Cancelado",
+  ).length;
   const weeklyReturns = useMemo(() => {
     const today = getDateOnly(new Date());
     const endDate = addDays(today, 7);
@@ -322,6 +528,17 @@ export default function ClinicPage() {
           a.petName.localeCompare(b.petName),
       );
   }, [patients]);
+  const pendingClinicalCount =
+    weeklyReturns.filter((item) => item.reminderStatus !== "Confirmado")
+      .length +
+    vaccineAlerts.filter((item) => item.reminderStatus !== "Confirmado")
+      .length +
+    pendingTasksCount +
+    pendingExamsCount;
+
+  function handlePrintClinic() {
+    window.print();
+  }
 
   async function handleCreateDocument(input: ClinicalDocumentInput) {
     const { error } = await createClinicalDocument(input);
@@ -585,14 +802,24 @@ export default function ClinicPage() {
       <Sidebar />
       <main className="min-w-0 flex-1">
         <Header />
-        <div className="space-y-6 p-4 sm:p-6 lg:p-8">
-          <div>
-            <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
-              Clínica
-            </h1>
-            <p className="text-slate-500">
-              Prontuários, retornos e acompanhamento dos pacientes
-            </p>
+        <div className="space-y-6 p-4 print:hidden sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-[#8A0EEA] sm:text-3xl">
+                Clínica
+              </h1>
+              <p className="text-slate-500">
+                Prontuários, retornos e acompanhamento dos pacientes
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handlePrintClinic}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 lg:w-auto"
+            >
+              <Printer size={18} />
+              Imprimir resumo
+            </button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -603,19 +830,30 @@ export default function ClinicPage() {
             />
             <ClinicSummary
               icon={CalendarClock}
-              label="Retornos programados"
-              value={returnsCount}
+              label="Pacientes em atenção"
+              value={
+                patientFilterOptions.find((item) => item.value === "attention")
+                  ?.count || 0
+              }
+              warning={
+                Boolean(
+                  patientFilterOptions.find(
+                    (item) => item.value === "attention",
+                  )?.count,
+                ) || criticalAlertsCount > 0
+              }
             />
             <ClinicSummary
               icon={Syringe}
-              label="Próximas vacinas"
-              value={vaccinationsCount}
+              label="Internados"
+              value={activeHospitalizations.length}
+              warning={activeHospitalizations.length > 0}
             />
             <ClinicSummary
               icon={AlertTriangle}
-              label="Alertas críticos"
-              value={criticalAlertsCount}
-              warning={criticalAlertsCount > 0}
+              label="Pendências clínicas"
+              value={pendingClinicalCount}
+              warning={pendingClinicalCount > 0}
             />
           </div>
 
@@ -686,6 +924,12 @@ export default function ClinicPage() {
             />
           </label>
 
+          <PatientFilterBar
+            options={patientFilterOptions}
+            value={patientFilter}
+            onChange={setPatientFilter}
+          />
+
           {loadError && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
               {loadError}
@@ -699,63 +943,11 @@ export default function ClinicPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {filteredPatients.map((patient) => (
-                <article
+                <PatientCard
                   key={patient.id}
-                  className="rounded-xl border bg-white p-4"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <h2 className="truncate text-lg font-bold">
-                        {patient.nome}
-                      </h2>
-                      <p className="text-sm text-slate-500">
-                        {patient.especie || "-"} · {patient.raca || "-"}
-                      </p>
-                    </div>
-                    <span className="rounded-lg bg-purple-50 px-2 py-1 text-xs text-[#8A0EEA]">
-                      {patient.porte || "Porte não informado"}
-                    </span>
-                  </div>
-                  <div className="mt-4 space-y-2 text-sm">
-                    <p>
-                      <strong>Tutor:</strong> {patient.tutors?.nome || "-"}
-                    </p>
-                    <p>
-                      <strong>Última consulta:</strong>{" "}
-                      {formatDate(
-                        patient.lastClinicalRecord?.consultation_date,
-                      )}
-                    </p>
-                    <p>
-                      <strong>Retorno:</strong>{" "}
-                      {formatDate(patient.nextReturnDate)}
-                    </p>
-                    <p>
-                      <strong>Próxima vacina:</strong>{" "}
-                      {formatDate(patient.nextVaccinationDate)}
-                    </p>
-                  </div>
-                  {(patient.clinicalAlerts || []).length > 0 && (
-                    <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
-                      {(patient.clinicalAlerts || [])
-                        .slice(0, 3)
-                        .map((alert) => (
-                          <span
-                            key={alert.id}
-                            className={`rounded-full px-2 py-1 text-xs font-bold ${alert.severity === "Crítico" ? "bg-red-100 text-red-700" : alert.severity === "Atenção" ? "bg-amber-100 text-amber-800" : "bg-blue-100 text-blue-700"}`}
-                          >
-                            {alert.alert_type}: {alert.title}
-                          </span>
-                        ))}
-                    </div>
-                  )}
-                  <Link
-                    href={`/pets/${patient.id}`}
-                    className="mt-4 block rounded-xl bg-[#8A0EEA] px-4 py-2 text-center font-medium text-white"
-                  >
-                    Abrir prontuário
-                  </Link>
-                </article>
+                  patient={patient}
+                  status={patientStatuses.get(patient.id)}
+                />
               ))}
 
               {filteredPatients.length === 0 && !loadError && (
@@ -766,9 +958,419 @@ export default function ClinicPage() {
             </div>
           )}
         </div>
+        <ClinicPrintView
+          patients={filteredPatients}
+          returns={weeklyReturns}
+          vaccines={vaccineAlerts}
+          tasks={clinicalTasks}
+          hospitalizations={activeHospitalizations}
+          pendingExamsCount={pendingExamsCount}
+          pendingClinicalCount={pendingClinicalCount}
+          patientStatuses={patientStatuses}
+        />
       </main>
     </div>
   );
+}
+
+function PatientFilterBar({
+  options,
+  value,
+  onChange,
+}: {
+  options: Array<{ label: string; value: PatientFilter; count: number }>;
+  value: PatientFilter;
+  onChange: (value: PatientFilter) => void;
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto rounded-xl border bg-white p-2">
+      {options.map((option) => {
+        const active = value === option.value;
+
+        return (
+          <button
+            key={option.value}
+            type="button"
+            onClick={() => onChange(option.value)}
+            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              active
+                ? "bg-[#8A0EEA] text-white"
+                : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+            }`}
+          >
+            {option.label} ({option.count})
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PatientCard({
+  patient,
+  status,
+}: {
+  patient: ClinicPatientOverview;
+  status?: PatientClinicStatus;
+}) {
+  const hasAttention = Boolean(status && status.attentionScore > 0);
+
+  return (
+    <article
+      className={`rounded-xl border bg-white p-4 ${
+        hasAttention ? "border-amber-200 shadow-sm shadow-amber-100" : ""
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-bold">{patient.nome}</h2>
+          <p className="text-sm text-slate-500">
+            {patient.especie || "-"} · {patient.raca || "-"}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-lg bg-purple-50 px-2 py-1 text-xs text-[#8A0EEA]">
+          {patient.porte || "Porte não informado"}
+        </span>
+      </div>
+
+      <PatientStatusBadges patient={patient} status={status} />
+
+      <div className="mt-4 space-y-2 text-sm">
+        <p>
+          <strong>Tutor:</strong> {patient.tutors?.nome || "-"}
+        </p>
+        <p>
+          <strong>Última consulta:</strong>{" "}
+          {formatDate(patient.lastClinicalRecord?.consultation_date)}
+        </p>
+        <p>
+          <strong>Retorno:</strong> {formatDate(patient.nextReturnDate)}
+        </p>
+        <p>
+          <strong>Próxima vacina:</strong>{" "}
+          {formatDate(patient.nextVaccinationDate)}
+        </p>
+        {(status?.pendingTasks || 0) + (status?.pendingExams || 0) > 0 && (
+          <p className="text-amber-700">
+            <strong>Pendências:</strong> {status?.pendingTasks || 0} tarefa(s),{" "}
+            {status?.pendingExams || 0} exame(s)
+          </p>
+        )}
+      </div>
+
+      {(patient.clinicalAlerts || []).length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2 border-t pt-3">
+          {(patient.clinicalAlerts || []).slice(0, 3).map((alert) => (
+            <span
+              key={alert.id}
+              className={`rounded-full px-2 py-1 text-xs font-bold ${
+                alert.severity === "Crítico"
+                  ? "bg-red-100 text-red-700"
+                  : alert.severity === "Atenção"
+                    ? "bg-amber-100 text-amber-800"
+                    : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {alert.alert_type}: {alert.title}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <PatientWhatsAppLink patient={patient} />
+        <Link
+          href={`/pets/${patient.id}`}
+          className="block rounded-xl bg-[#8A0EEA] px-4 py-2 text-center font-medium text-white"
+        >
+          Abrir prontuário
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function PatientStatusBadges({
+  patient,
+  status,
+}: {
+  patient: ClinicPatientOverview;
+  status?: PatientClinicStatus;
+}) {
+  const badges = [
+    status?.hospitalized
+      ? { label: "Internado", classes: "bg-sky-100 text-sky-700" }
+      : null,
+    status?.criticalAlerts
+      ? {
+          label: `${status.criticalAlerts} alerta(s) crítico(s)`,
+          classes: "bg-red-100 text-red-700",
+        }
+      : null,
+    status?.overdueReturns
+      ? {
+          label: `${status.overdueReturns} retorno(s) atrasado(s)`,
+          classes: "bg-rose-100 text-rose-700",
+        }
+      : null,
+    status?.todayReturns
+      ? {
+          label: `${status.todayReturns} retorno(s) hoje`,
+          classes: "bg-amber-100 text-amber-800",
+        }
+      : null,
+    status?.overdueVaccines
+      ? {
+          label: `${status.overdueVaccines} vacina(s) atrasada(s)`,
+          classes: "bg-rose-100 text-rose-700",
+        }
+      : null,
+    status?.todayVaccines
+      ? {
+          label: `${status.todayVaccines} vacina(s) hoje`,
+          classes: "bg-amber-100 text-amber-800",
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; classes: string }>;
+
+  if (badges.length === 0) {
+    return (
+      <div className="mt-3">
+        <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
+          Rotina em dia
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mt-3 flex flex-wrap gap-2"
+      aria-label={`Status de ${patient.nome}`}
+    >
+      {badges.map((badge) => (
+        <span
+          key={badge.label}
+          className={`rounded-full px-2 py-1 text-xs font-bold ${badge.classes}`}
+        >
+          {badge.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PatientWhatsAppLink({ patient }: { patient: ClinicPatientOverview }) {
+  const normalizedPhone = normalizeBrazilianWhatsAppPhone(
+    patient.tutors?.telefone,
+  );
+  const firstName = patient.tutors?.nome?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
+  const message = `${greeting} Aqui é da Pet Maia. Estamos entrando em contato sobre o acompanhamento clínico de ${patient.nome}.`;
+  const classes =
+    "flex items-center justify-center gap-2 rounded-xl border border-emerald-500 px-3 py-2 font-medium text-emerald-700 transition hover:bg-emerald-50";
+
+  if (!normalizedPhone) {
+    return (
+      <span
+        className={`${classes} cursor-not-allowed opacity-40`}
+        title="Tutor sem WhatsApp válido cadastrado"
+      >
+        <MessageCircle size={17} />
+        WhatsApp
+      </span>
+    );
+  }
+
+  return (
+    <a
+      href={`https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`}
+      target="_blank"
+      rel="noreferrer"
+      className={classes}
+      title={`Abrir WhatsApp de ${patient.tutors?.nome || "tutor"}`}
+    >
+      <MessageCircle size={17} />
+      WhatsApp
+    </a>
+  );
+}
+
+function ClinicPrintView({
+  patients,
+  returns,
+  vaccines,
+  tasks,
+  hospitalizations,
+  pendingExamsCount,
+  pendingClinicalCount,
+  patientStatuses,
+}: {
+  patients: ClinicPatientOverview[];
+  returns: ReturnQueueItem[];
+  vaccines: VaccineQueueItem[];
+  tasks: ClinicalTask[];
+  hospitalizations: ClinicalHospitalization[];
+  pendingExamsCount: number;
+  pendingClinicalCount: number;
+  patientStatuses: Map<number, PatientClinicStatus>;
+}) {
+  const printedAt = new Date().toLocaleString("pt-BR");
+  const pendingTasks = tasks.filter((task) => task.status === "Pendente");
+  const attentionPatients = patients.filter(
+    (patient) => (patientStatuses.get(patient.id)?.attentionScore || 0) > 0,
+  );
+  const overdueReturns = returns.filter(
+    (item) => item.daysDiff < 0 && item.reminderStatus !== "Confirmado",
+  );
+  const overdueVaccines = vaccines.filter(
+    (item) => item.daysDiff < 0 && item.reminderStatus !== "Confirmado",
+  );
+
+  return (
+    <section className="document-print-area hidden bg-white p-8 text-slate-900 print:block">
+      <div className="mb-6 border-b-2 border-[#8A0EEA] pb-4">
+        <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
+          PET MAIA ERP
+        </p>
+        <h1 className="mt-1 text-2xl font-bold">Resumo da clínica</h1>
+        <p className="mt-1 text-sm text-slate-500">Impresso em {printedAt}</p>
+      </div>
+
+      <div className="mb-6 grid grid-cols-4 gap-3 text-sm">
+        <ClinicPrintMetric
+          label="Pacientes filtrados"
+          value={patients.length}
+        />
+        <ClinicPrintMetric label="Pendências" value={pendingClinicalCount} />
+        <ClinicPrintMetric label="Internados" value={hospitalizations.length} />
+        <ClinicPrintMetric label="Exames pendentes" value={pendingExamsCount} />
+      </div>
+
+      <PrintSectionTitle title="Prioridades" />
+      <table className="mb-6 w-full border-collapse text-xs">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Tipo</th>
+            <th className="border p-2">Paciente</th>
+            <th className="border p-2">Tutor</th>
+            <th className="border p-2">Data</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ...overdueReturns.map((item) => ({
+              id: `return-${item.id}`,
+              type: "Retorno atrasado",
+              pet: item.petName,
+              tutor: item.tutorName || "-",
+              date: formatDate(item.returnDate),
+            })),
+            ...overdueVaccines.map((item) => ({
+              id: `vaccine-${item.id}`,
+              type: `Vacina: ${item.vaccineName}`,
+              pet: item.petName,
+              tutor: item.tutorName || "-",
+              date: formatDate(item.nextDoseDate),
+            })),
+            ...pendingTasks.slice(0, 12).map((task) => ({
+              id: `task-${task.id}`,
+              type: task.task_type,
+              pet: task.pets?.nome || "-",
+              tutor: task.pets?.tutors?.nome || "-",
+              date: formatDate(task.due_date),
+            })),
+          ].map((item) => (
+            <tr key={item.id}>
+              <td className="border p-2">{item.type}</td>
+              <td className="border p-2">{item.pet}</td>
+              <td className="border p-2">{item.tutor}</td>
+              <td className="border p-2">{item.date}</td>
+            </tr>
+          ))}
+          {overdueReturns.length +
+            overdueVaccines.length +
+            pendingTasks.length ===
+            0 && (
+            <tr>
+              <td className="border p-3 text-center" colSpan={4}>
+                Nenhuma prioridade pendente.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      <PrintSectionTitle title="Pacientes em atenção" />
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Paciente</th>
+            <th className="border p-2">Tutor</th>
+            <th className="border p-2">Última consulta</th>
+            <th className="border p-2">Resumo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {attentionPatients.map((patient) => {
+            const status = patientStatuses.get(patient.id);
+
+            return (
+              <tr key={patient.id}>
+                <td className="border p-2">{patient.nome}</td>
+                <td className="border p-2">{patient.tutors?.nome || "-"}</td>
+                <td className="border p-2">
+                  {formatDate(patient.lastClinicalRecord?.consultation_date)}
+                </td>
+                <td className="border p-2">
+                  {[
+                    status?.hospitalized ? "internado" : "",
+                    status?.criticalAlerts
+                      ? `${status.criticalAlerts} alerta(s) crítico(s)`
+                      : "",
+                    status?.overdueReturns
+                      ? `${status.overdueReturns} retorno(s) atrasado(s)`
+                      : "",
+                    status?.overdueVaccines
+                      ? `${status.overdueVaccines} vacina(s) atrasada(s)`
+                      : "",
+                    status?.pendingTasks
+                      ? `${status.pendingTasks} tarefa(s)`
+                      : "",
+                    status?.pendingExams
+                      ? `${status.pendingExams} exame(s)`
+                      : "",
+                  ]
+                    .filter(Boolean)
+                    .join(", ")}
+                </td>
+              </tr>
+            );
+          })}
+          {attentionPatients.length === 0 && (
+            <tr>
+              <td className="border p-3 text-center" colSpan={4}>
+                Nenhum paciente em atenção no filtro atual.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function ClinicPrintMetric({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="border p-3">
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs text-slate-600">{label}</p>
+    </div>
+  );
+}
+
+function PrintSectionTitle({ title }: { title: string }) {
+  return <h2 className="mb-2 text-base font-bold text-slate-900">{title}</h2>;
 }
 
 function DailyVetDashboard({
@@ -1762,6 +2364,14 @@ function differenceInDays(date: Date, baseDate: Date) {
     (getDateOnly(date).getTime() - getDateOnly(baseDate).getTime()) /
       dayInMilliseconds,
   );
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .trim()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLocaleLowerCase("pt-BR");
 }
 
 function filterQueueItems<T extends { daysDiff: number }>(

@@ -742,10 +742,10 @@ export function GroomingSuppliesManager() {
   }
 
   return (
-    <section className="space-y-5">
-      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+    <section className="max-w-full space-y-5 overflow-x-hidden pb-20 md:pb-0">
+      <div className="min-w-0 rounded-2xl border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold text-[#8A0EEA]">Banho e Tosa</p>
             <h2 className="text-xl font-bold text-slate-900">
               Controle de insumos
@@ -756,7 +756,7 @@ export function GroomingSuppliesManager() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-5">
+          <div className="grid w-full min-w-0 grid-cols-2 gap-2 text-sm sm:grid-cols-5 md:w-auto">
             <SummaryCard
               label="Insumos"
               value={String(activeSupplies.length)}
@@ -771,7 +771,7 @@ export function GroomingSuppliesManager() {
           </div>
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-5">
+        <div className="mt-4 grid min-w-0 gap-2 sm:grid-cols-5">
           <TabButton
             active={activeTab === "insumos"}
             icon={<Package size={17} />}
@@ -814,7 +814,7 @@ export function GroomingSuppliesManager() {
       ) : (
         <>
           {activeTab === "insumos" && (
-            <div className="grid gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
+            <div className="grid min-w-0 gap-5 lg:grid-cols-[380px_minmax(0,1fr)]">
               <FormCard title="Cadastrar insumo">
                 <TextInput
                   label="Nome"
@@ -880,14 +880,72 @@ export function GroomingSuppliesManager() {
                 <button
                   type="button"
                   onClick={handleCreateSupply}
-                  className="rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
+                  className="inline-flex w-full items-center justify-center rounded-xl bg-[#8A0EEA] px-4 py-2.5 font-semibold text-white hover:bg-[#7600d1]"
                 >
                   Salvar insumo
                 </button>
               </FormCard>
 
               <DataCard title="Insumos cadastrados">
-                <div className="overflow-x-auto">
+                <div className="space-y-3 md:hidden">
+                  {supplies.map((supply) => (
+                    <article
+                      key={supply.id}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="truncate font-bold text-slate-900">
+                            {supply.name}
+                          </h4>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {supply.category}
+                          </p>
+                        </div>
+                        {supply.active ? (
+                          <span className="shrink-0 rounded-full bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">
+                            Ativo
+                          </span>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-500">
+                            Arquivado
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div className="rounded-xl bg-slate-50 p-3">
+                          <p className="text-xs font-semibold text-slate-500">
+                            Estoque
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {formatNumber(supply.current_stock)} {supply.unit}
+                          </p>
+                        </div>
+                        <div className="rounded-xl bg-slate-50 p-3">
+                          <p className="text-xs font-semibold text-slate-500">
+                            Mínimo
+                          </p>
+                          <p className="font-bold text-slate-900">
+                            {formatNumber(supply.minimum_stock)} {supply.unit}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-3 rounded-xl bg-slate-50 p-3 text-sm text-slate-600">
+                        Fornecedor: {supply.supplier || "-"}
+                      </p>
+                    </article>
+                  ))}
+
+                  {supplies.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+                      Nenhum insumo cadastrado.
+                    </div>
+                  )}
+                </div>
+
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full min-w-[720px] text-sm">
                     <thead>
                       <tr className="border-b text-left text-slate-500">
@@ -1992,9 +2050,9 @@ function FormCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-2xl border bg-white p-4 shadow-sm">
       <h3 className="font-bold text-slate-900">{title}</h3>
-      <div className="mt-4 grid gap-3">{children}</div>
+      <div className="mt-4 grid min-w-0 gap-3">{children}</div>
     </div>
   );
 }
@@ -2007,9 +2065,9 @@ function DataCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-white p-4 shadow-sm">
+    <div className="min-w-0 overflow-hidden rounded-2xl border bg-white p-4 shadow-sm">
       <h3 className="font-bold text-slate-900">{title}</h3>
-      <div className="mt-4">{children}</div>
+      <div className="mt-4 min-w-0">{children}</div>
     </div>
   );
 }
@@ -2030,7 +2088,7 @@ function TextInput({
   inputMode?: "decimal";
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium">
+    <label className="grid min-w-0 gap-2 text-sm font-medium">
       {label}
       <input
         type={type}
@@ -2038,7 +2096,7 @@ function TextInput({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="min-w-0 rounded-xl border p-3 font-normal"
+        className="w-full min-w-0 rounded-xl border p-3 font-normal"
       />
     </label>
   );
@@ -2056,12 +2114,12 @@ function SelectInput({
   options: string[];
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium">
+    <label className="grid min-w-0 gap-2 text-sm font-medium">
       {label}
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-xl border p-3 font-normal"
+        className="w-full min-w-0 rounded-xl border p-3 font-normal"
       >
         {options.map((option) => (
           <option key={option}>{option}</option>
@@ -2081,13 +2139,13 @@ function TextArea({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-2 text-sm font-medium">
+    <label className="grid min-w-0 gap-2 text-sm font-medium">
       {label}
       <textarea
         rows={3}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="resize-y rounded-xl border p-3 font-normal"
+        className="w-full min-w-0 resize-y rounded-xl border p-3 font-normal"
       />
     </label>
   );

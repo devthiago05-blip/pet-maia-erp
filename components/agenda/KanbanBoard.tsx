@@ -154,7 +154,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-24 md:pb-0">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {Object.entries(statusTotals).map(([status, total]) => (
           <div
@@ -175,7 +175,7 @@ export function KanbanBoard({
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-        <div className="max-h-[72vh] overflow-y-auto">
+        <div className="pb-24 md:max-h-[72vh] md:overflow-y-auto md:pb-0">
           {timeSlots.map((time) => {
             const appointmentsInSlot = (appointmentsByTime[time] || []).sort(
               (first, second) => first.id - second.id,

@@ -1,6 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import type { NewTutorInput, Tutor } from "@/types/domain";
 
+function normalizeCpf(value: string | null | undefined) {
+  const digits = (value || "").replace(/\D/g, "");
+
+  return digits || null;
+}
+
 export async function fetchTutors() {
   const response = await supabase
     .from("tutors")
@@ -27,6 +33,7 @@ export async function createTutor(tutor: NewTutorInput) {
       {
         nome: tutor.nome.trim().toUpperCase(),
         telefone: tutor.telefone,
+        cpf: normalizeCpf(tutor.cpf),
         email: tutor.email,
         endereco: tutor.endereco.trim().toUpperCase(),
       },
@@ -41,6 +48,7 @@ export async function updateTutor(tutor: Tutor) {
     .update({
       nome: tutor.nome.trim().toUpperCase(),
       telefone: tutor.telefone,
+      cpf: normalizeCpf(tutor.cpf),
       email: tutor.email,
       endereco: tutor.endereco?.trim().toUpperCase(),
     })

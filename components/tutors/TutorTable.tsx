@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  MessageCircle,
-  PawPrint,
-  Pencil,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { MessageCircle, PawPrint, Pencil, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -19,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatCpf } from "@/lib/formatters";
 import { createTutorWhatsAppUrl } from "@/lib/whatsapp";
 import { fetchPetsByTutorId } from "@/services/pets";
 import type { Pet, Tutor } from "@/types/domain";
@@ -107,12 +102,18 @@ export function TutorTable({
                       className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-slate-600"
                     >
                       <PawPrint size={16} className="text-violet-600" />
-                      {petCount === 1 ? "1 pet vinculado" : `${petCount} pets vinculados`}
+                      {petCount === 1
+                        ? "1 pet vinculado"
+                        : `${petCount} pets vinculados`}
                     </button>
                   </div>
                 </div>
 
                 <div className="mt-4 grid gap-2">
+                  <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-600">
+                    CPF: {formatCpf(tutor.cpf) || "Não informado"}
+                  </div>
+
                   {whatsappUrl ? (
                     <a
                       href={whatsappUrl}
@@ -173,6 +174,7 @@ export function TutorTable({
             <thead className="bg-slate-50">
               <tr>
                 <th className="p-3 text-left sm:p-4">Nome</th>
+                <th className="p-3 text-left sm:p-4">CPF</th>
                 <th className="p-3 text-left sm:p-4">Telefone</th>
                 <th className="p-3 text-left sm:p-4">Endereço</th>
                 <th className="p-3 text-left sm:p-4">Pets</th>
@@ -198,6 +200,9 @@ export function TutorTable({
                       >
                         {tutor.nome}
                       </button>
+                    </td>
+                    <td className="p-3 sm:p-4">
+                      {formatCpf(tutor.cpf) || "-"}
                     </td>
                     <td className="p-3 sm:p-4">
                       {whatsappUrl ? (

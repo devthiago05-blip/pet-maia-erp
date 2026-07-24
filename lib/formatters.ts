@@ -25,6 +25,19 @@ export function normalizeProductName(value: string | null | undefined) {
   return (value || "").trim().toLocaleUpperCase("pt-BR");
 }
 
+export function onlyDigits(value: string | null | undefined) {
+  return (value || "").replace(/\D/g, "");
+}
+
+export function formatCpf(value: string | null | undefined) {
+  const digits = onlyDigits(value).slice(0, 11);
+
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+}
+
 export function formatProductName(product: Product) {
   const variation = [product.tamanho, product.cor, product.sabor].filter(
     Boolean,

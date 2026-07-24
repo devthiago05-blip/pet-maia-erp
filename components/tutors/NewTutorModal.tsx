@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatCpf, onlyDigits } from "@/lib/formatters";
 import type { NewTutorInput } from "@/types/domain";
 
 interface NewTutorModalProps {
@@ -19,6 +20,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [endereco, setEndereco] = useState("");
   const [saving, setSaving] = useState(false);
@@ -26,6 +28,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   function resetForm() {
     setNome("");
     setTelefone("");
+    setCpf("");
     setEmail("");
     setEndereco("");
   }
@@ -53,11 +56,19 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
       return;
     }
 
+    const cpfLimpo = onlyDigits(cpf);
+
+    if (cpfLimpo && cpfLimpo.length !== 11) {
+      toast.error("CPF deve ter 11 números");
+      return;
+    }
+
     setSaving(true);
 
     const success = await onSave({
       nome: nome.trim(),
       telefone,
+      cpf: cpfLimpo || null,
       email: email.trim(),
       endereco: endereco.trim().toUpperCase(),
     });
@@ -118,6 +129,17 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
             </div>
 
             <div>
+              <label className="text-sm font-medium">CPF</label>
+              <input
+                value={cpf}
+                onChange={(event) => setCpf(formatCpf(event.target.value))}
+                inputMode="numeric"
+                placeholder="000.000.000-00"
+                className="mt-1 w-full rounded-lg border p-2"
+              />
+            </div>
+
+            <div>
               <label className="text-sm font-medium">Email</label>
               <input
                 value={email}
@@ -130,7 +152,9 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
               <label className="text-sm font-medium">Endereço</label>
               <input
                 value={endereco}
-                onChange={(event) => setEndereco(event.target.value.toUpperCase())}
+                onChange={(event) =>
+                  setEndereco(event.target.value.toUpperCase())
+                }
                 className="mt-1 w-full rounded-lg border p-2"
               />
             </div>

@@ -41,8 +41,8 @@ export default function TutorsPage() {
 
   const normalizedSearch = search.trim().toLowerCase();
   const searchedTutors = tutors.filter((tutor) =>
-    [tutor.nome, tutor.telefone, tutor.email, tutor.endereco].some((value) =>
-      value?.toLowerCase().includes(normalizedSearch),
+    [tutor.nome, tutor.telefone, tutor.cpf, tutor.email, tutor.endereco].some(
+      (value) => value?.toLowerCase().includes(normalizedSearch),
     ),
   );
   const filteredTutors = searchedTutors.filter((tutor) => {

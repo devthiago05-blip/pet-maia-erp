@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
@@ -2821,9 +2821,6 @@ function SaleView({
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [stockFilter, setStockFilter] = useState("disponiveis");
   const [closingOpen, setClosingOpen] = useState(false);
-  useEffect(() => {
-    if (cart.length === 0) setClosingOpen(false);
-  }, [cart.length]);
   const categoryOptions = useMemo(() => {
     const categories = groups.map((group) => group.category || "Sem categoria");
 
@@ -3349,7 +3346,7 @@ function SaleView({
           </button>
         </div>
       </aside>
-      {closingOpen && (
+      {closingOpen && cart.length > 0 && (
         <SaleClosingModal
           customerName={
             tutors.find((tutor) => String(tutor.id) === tutorId)?.nome ||

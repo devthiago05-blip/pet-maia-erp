@@ -4,6 +4,7 @@ import {
   AlertTriangle,
   Building2,
   CheckCircle2,
+  ClipboardCopy,
   CreditCard,
   Download,
   FileKey2,
@@ -24,11 +25,11 @@ import {
   type FiscalCredentialStatus,
   saveFiscalCredentials,
 } from "@/services/fiscal-config";
+import { approveProductFiscalReview } from "@/services/fiscal-product-review";
 import {
   fetchFiscalReadiness,
   type FiscalReadinessReport,
 } from "@/services/fiscal-readiness";
-import { approveProductFiscalReview } from "@/services/fiscal-product-review";
 import {
   fetchClinicSettings,
   updateClinicSettings,
@@ -603,6 +604,68 @@ function FiscalTaxAudit({
     }
   }
 
+  function downloadAccountingCsv() {
+    const headers = [
+      "Produto",
+      "Status no sistema",
+      "NCM atual",
+      "NCM sugerido pelo XML",
+      "CEST sugerido",
+      "CFOP de saída a confirmar",
+      "CFOP encontrado na compra",
+      "Origem",
+      "CSOSN/CST de saída a confirmar",
+      "CST/CSOSN encontrado na compra",
+      "CST PIS",
+      "CST COFINS",
+      "Unidade",
+      "Pendências para a contabilidade",
+      "Observação da contabilidade",
+    ];
+    const rows = report.assessments.map((item) => {
+      const suggested = Object.fromEntries(
+        item.suggestions.map((suggestion) => [
+          suggestion.field,
+          suggestion.value,
+        ]),
+      );
+      return [
+        item.productName,
+        item.importedReview?.status || item.level,
+        item.current.ncm || "",
+        item.importedReview?.suggested_ncm || suggested.ncm || "",
+        item.importedReview?.suggested_cest || "",
+        item.current.cfop || suggested.cfop || "",
+        item.importedReview?.suggested_cfop || "",
+        item.current.origem || item.importedReview?.suggested_origin || "",
+        item.current.csosn || suggested.csosn || "",
+        item.importedReview?.suggested_csosn_cst || "",
+        item.importedReview?.suggested_pis_cst || "",
+        item.importedReview?.suggested_cofins_cst || "",
+        item.current.unidade || item.importedReview?.suggested_unit || "",
+        item.pending.join("; "),
+        "",
+      ];
+    });
+    const csv = [headers, ...rows]
+      .map((row) => row.map(csvCell).join(";"))
+      .join("\r\n");
+    const url = URL.createObjectURL(
+      new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `revisao-fiscal-contabilidade-${new Date().toLocaleDateString("en-CA")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Planilha fiscal gerada para a contabilidade.");
+  }
+
+  async function copyAccountingQuestions() {
+    await navigator.clipboard.writeText(accountingQuestions.join("\n"));
+    toast.success("Lista copiada. Você já pode enviar à contabilidade.");
+  }
+
   return (
     <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -614,7 +677,21 @@ function FiscalTaxAudit({
             Sugestões para conferência; nenhuma tributação é aplicada automaticamente.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs font-semibold">
+        <div className="flex flex-wrap justify-end gap-2 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={downloadAccountingCsv}
+            className="inline-flex items-center gap-1 rounded-full bg-[#8A0EEA] px-3 py-1 text-white"
+          >
+            <Download size={13} /> Baixar planilha
+          </button>
+          <button
+            type="button"
+            onClick={copyAccountingQuestions}
+            className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1 text-[#8A0EEA]"
+          >
+            <ClipboardCopy size={13} /> Copiar perguntas
+          </button>
           <span className="rounded-full bg-slate-100 px-2.5 py-1">
             {report.totals.products} produtos
           </span>
@@ -711,6 +788,37 @@ function FiscalTaxAudit({
       </div>
     </div>
   );
+}
+
+const accountingQuestions = [
+  "SOLICITAÇÃO PARA CONFIGURAÇÃO FISCAL DO PET MAIA ERP",
+  "",
+  "DADOS DA EMPRESA",
+  "1. Confirmar o regime tributário e o CRT: Simples Nacional, excesso do sublimite ou regime normal.",
+  "2. Confirmar CNPJ, Inscrição Estadual, razão social e endereço fiscal completo.",
+  "3. Confirmar série e numeração inicial da NFC-e modelo 65.",
+  "4. Confirmar se o estabelecimento está credenciado para NFC-e na SEFAZ-CE.",
+  "",
+  "POR PRODUTO",
+  "5. Informar ou confirmar NCM e CEST, quando aplicável.",
+  "6. Informar a origem da mercadoria.",
+  "7. Informar CFOP de venda interna ao consumidor final e as exceções.",
+  "8. Informar CSOSN ou CST do ICMS para a saída.",
+  "9. Identificar produtos sujeitos a substituição tributária, monofásicos, isentos ou com benefício fiscal.",
+  "10. Informar CST e alíquotas de PIS e COFINS.",
+  "11. Informar cBenef e demais códigos estaduais, quando aplicáveis.",
+  "12. Confirmar CEST/tributação de medicamentos veterinários, alimentos, petiscos e acessórios separadamente.",
+  "13. Orientar o preenchimento de CBS e IBS no leiaute fiscal vigente em 2026.",
+  "",
+  "OPERAÇÃO E PAGAMENTOS",
+  "14. Confirmar os códigos tPag para Dinheiro, PIX, crédito, débito e demais formas usadas no PDV.",
+  "15. Verificar se a empresa está no cronograma de vinculação do pagamento eletrônico à NFC-e no Ceará.",
+  "16. Confirmar como documentar descontos, acréscimos, devoluções, cancelamentos e vendas em contingência.",
+  "17. Confirmar quais operações são NFC-e e quais serviços devem ser emitidos por NFS-e.",
+];
+
+function csvCell(value: unknown) {
+  return `"${String(value ?? "").replace(/"/g, '""')}"`;
 }
 
 function SettingsSection({

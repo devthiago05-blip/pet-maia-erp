@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     return Response.json({ error: auth.error }, { status: auth.status });
   }
 
-  const [settingsResult, productsResult] = await Promise.all([
+  const [settingsResult, productsResult, reviewsResult] = await Promise.all([
     auth.admin.from("clinic_settings").select("*").eq("id", 1).single(),
     auth.admin
       .from("products")
@@ -19,9 +19,10 @@ export async function GET(request: Request) {
       )
       .eq("ativo", true)
       .order("nome"),
+    auth.admin.from("product_fiscal_reviews").select("*"),
   ]);
 
-  if (settingsResult.error || productsResult.error) {
+  if (settingsResult.error || productsResult.error || reviewsResult.error) {
     return Response.json(
       { error: "Não foi possível montar a auditoria tributária." },
       { status: 500 },
@@ -30,9 +31,13 @@ export async function GET(request: Request) {
 
   const settings = settingsResult.data as ClinicSettings;
   const products = (productsResult.data || []) as Product[];
-  const assessments = products.map((product) =>
-    assessProductFiscal(product, settings),
+  const reviews = new Map(
+    (reviewsResult.data || []).map((review) => [Number(review.product_id), review]),
   );
+  const assessments = products.map((product) => ({
+    ...assessProductFiscal(product, settings),
+    importedReview: reviews.get(product.id) || null,
+  }));
 
   return Response.json({
     generatedAt: new Date().toISOString(),

@@ -1,14 +1,17 @@
 "use client";
 
 import {
+  Banknote,
+  CreditCard,
   Minus,
   Plus,
   Printer,
   Search,
   ShoppingCart,
   Trash2,
+  X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
@@ -2817,6 +2820,10 @@ function SaleView({
 }) {
   const [categoryFilter, setCategoryFilter] = useState("Todas");
   const [stockFilter, setStockFilter] = useState("disponiveis");
+  const [closingOpen, setClosingOpen] = useState(false);
+  useEffect(() => {
+    if (cart.length === 0) setClosingOpen(false);
+  }, [cart.length]);
   const categoryOptions = useMemo(() => {
     const categories = groups.map((group) => group.category || "Sem categoria");
 
@@ -3036,7 +3043,7 @@ function SaleView({
               className="rounded-xl border p-3"
             />
           )}
-          {!splitPayments && (
+          {false && !splitPayments && (
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_140px]">
               <select
                 value={paymentMethod}
@@ -3077,7 +3084,7 @@ function SaleView({
             </div>
           )}
           <div
-            className={`rounded-xl border p-3 ${splitPayments ? "border-purple-200 bg-purple-50/50" : ""}`}
+            className={`hidden rounded-xl border p-3 ${splitPayments ? "border-purple-200 bg-purple-50/50" : ""}`}
           >
             <button
               type="button"
@@ -3207,7 +3214,7 @@ function SaleView({
             )}
           </div>
           {changeDue > 0 && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+            <div className="hidden rounded-xl border border-emerald-200 bg-emerald-50 p-3">
               <p className="text-sm font-bold text-emerald-900">
                 Como entregar o troco de {formatCurrency(changeDue)}?
               </p>
@@ -3245,7 +3252,7 @@ function SaleView({
             />
           </label>
         </div>
-        <div className="mt-5 rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
+        <div className="mt-5 hidden rounded-2xl border border-purple-100 bg-purple-50/50 p-3">
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-bold text-slate-700">
               Ajustes da venda
@@ -3330,21 +3337,444 @@ function SaleView({
           </button>
           <button
             type="button"
-            onClick={onSale}
+            onClick={() => setClosingOpen(true)}
             disabled={
               processing ||
               cart.length === 0 ||
-              discountIsInvalid ||
-              ((Number(discount || 0) > 0 || Number(surcharge || 0) > 0) &&
-                !adjustmentReason.trim()) ||
-              (splitPayments && splitPaymentInvalid)
+              discountIsInvalid
             }
             className="rounded-xl bg-[#8A0EEA] py-3 font-semibold text-white disabled:opacity-50"
           >
-            {processing ? "Processando..." : "Finalizar venda"}
+            {processing ? "Processando..." : "Gravar / finalizar"}
           </button>
         </div>
       </aside>
+      {closingOpen && (
+        <SaleClosingModal
+          customerName={
+            tutors.find((tutor) => String(tutor.id) === tutorId)?.nome ||
+            customerName ||
+            "Consumidor"
+          }
+          itemCount={cart.reduce((sum, item) => sum + item.quantity, 0)}
+          subtotal={subtotal}
+          total={total}
+          discount={discount}
+          surcharge={surcharge}
+          adjustmentReason={adjustmentReason}
+          discountLimitPercent={discountLimitPercent}
+          maxDiscountAmount={maxDiscountAmount}
+          discountIsInvalid={discountIsInvalid}
+          paymentMethod={paymentMethod}
+          paymentAmount={paymentAmount}
+          changeMethod={changeMethod}
+          splitPayments={splitPayments}
+          payments={payments}
+          paymentTotal={paymentTotal}
+          paymentDifference={paymentDifference}
+          splitPaymentInvalid={splitPaymentInvalid}
+          changeDue={changeDue}
+          processing={processing}
+          onClose={() => setClosingOpen(false)}
+          onDiscount={onDiscount}
+          onSurcharge={onSurcharge}
+          onAdjustmentReason={onAdjustmentReason}
+          onPaymentMethod={onPaymentMethod}
+          onPaymentAmount={onPaymentAmount}
+          onPaymentAmountBlur={onPaymentAmountBlur}
+          onChangeMethod={onChangeMethod}
+          onSplitPayments={onSplitPayments}
+          onPaymentSplit={onPaymentSplit}
+          onAddPaymentSplit={onAddPaymentSplit}
+          onRemovePaymentSplit={onRemovePaymentSplit}
+          onConfirm={onSale}
+        />
+      )}
+    </div>
+  );
+}
+
+function SaleClosingModal({
+  customerName,
+  itemCount,
+  subtotal,
+  total,
+  discount,
+  surcharge,
+  adjustmentReason,
+  discountLimitPercent,
+  maxDiscountAmount,
+  discountIsInvalid,
+  paymentMethod,
+  paymentAmount,
+  changeMethod,
+  splitPayments,
+  payments,
+  paymentTotal,
+  paymentDifference,
+  splitPaymentInvalid,
+  changeDue,
+  processing,
+  onClose,
+  onDiscount,
+  onSurcharge,
+  onAdjustmentReason,
+  onPaymentMethod,
+  onPaymentAmount,
+  onPaymentAmountBlur,
+  onChangeMethod,
+  onSplitPayments,
+  onPaymentSplit,
+  onAddPaymentSplit,
+  onRemovePaymentSplit,
+  onConfirm,
+}: {
+  customerName: string;
+  itemCount: number;
+  subtotal: number;
+  total: number;
+  discount: string;
+  surcharge: string;
+  adjustmentReason: string;
+  discountLimitPercent: number;
+  maxDiscountAmount: number;
+  discountIsInvalid: boolean;
+  paymentMethod: string;
+  paymentAmount: string;
+  changeMethod: "Dinheiro" | "PIX";
+  splitPayments: boolean;
+  payments: PaymentSplit[];
+  paymentTotal: number;
+  paymentDifference: number;
+  splitPaymentInvalid: boolean;
+  changeDue: number;
+  processing: boolean;
+  onClose: () => void;
+  onDiscount: (value: string) => void;
+  onSurcharge: (value: string) => void;
+  onAdjustmentReason: (value: string) => void;
+  onPaymentMethod: (value: string) => void;
+  onPaymentAmount: (value: string) => void;
+  onPaymentAmountBlur: () => void;
+  onChangeMethod: (value: "Dinheiro" | "PIX") => void;
+  onSplitPayments: (value: boolean) => void;
+  onPaymentSplit: (
+    paymentId: string,
+    field: "method" | "amount",
+    value: string,
+  ) => void;
+  onAddPaymentSplit: () => void;
+  onRemovePaymentSplit: (paymentId: string) => void;
+  onConfirm: () => void;
+}) {
+  const received = splitPayments
+    ? paymentTotal
+    : Number(paymentAmount || total);
+  const missing = splitPayments
+    ? Math.max(0, paymentDifference)
+    : Math.max(0, total - Number(paymentAmount || total));
+  const adjustmentNeedsReason =
+    (Number(discount || 0) > 0 || Number(surcharge || 0) > 0) &&
+    !adjustmentReason.trim();
+  const canFinalize =
+    !processing &&
+    !discountIsInvalid &&
+    !adjustmentNeedsReason &&
+    (!splitPayments ? missing < 0.01 : !splitPaymentInvalid);
+  const quickMethods = [
+    { label: "Dinheiro", icon: <Banknote size={20} /> },
+    { label: "PIX", icon: <span className="text-lg font-black">PIX</span> },
+    { label: "Cartão de crédito", icon: <CreditCard size={20} /> },
+    { label: "Cartão de débito", icon: <CreditCard size={20} /> },
+  ];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="sale-closing-title"
+    >
+      <section className="flex max-h-[96vh] w-full max-w-3xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl">
+        <header className="relative overflow-hidden bg-slate-900 px-5 py-5 text-white sm:px-7">
+          <div className="absolute inset-y-0 left-0 w-2 bg-[#8A0EEA]" />
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-300">
+                Fechamento da venda
+              </p>
+              <h2 id="sale-closing-title" className="mt-1 text-2xl font-black">
+                Receber pagamento
+              </h2>
+              <p className="mt-1 text-sm text-slate-300">
+                {customerName} · {itemCount} peça(s)
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={processing}
+              aria-label="Fechar finalização"
+              className="rounded-xl border border-white/20 bg-white/10 p-2 hover:bg-white/20 disabled:opacity-50"
+            >
+              <X size={20} />
+            </button>
+          </div>
+        </header>
+
+        <div className="overflow-y-auto p-5 sm:p-7">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <ClosingMetric label="Valor da venda" value={total} highlight />
+            <ClosingMetric label="Valor recebido" value={received} />
+            <ClosingMetric
+              label={changeDue > 0 ? "Troco" : "Falta"}
+              value={changeDue > 0 ? changeDue : missing}
+              tone={changeDue > 0 ? "success" : missing > 0 ? "danger" : "success"}
+            />
+          </div>
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="font-bold text-slate-900">Forma de pagamento</h3>
+              <button
+                type="button"
+                onClick={() => onSplitPayments(!splitPayments)}
+                className="rounded-xl border border-purple-200 bg-purple-50 px-3 py-2 text-xs font-bold text-[#8A0EEA]"
+              >
+                {splitPayments ? "Usar uma forma" : "Dividir pagamento"}
+              </button>
+            </div>
+
+            {!splitPayments ? (
+              <>
+                <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {quickMethods.map((method) => (
+                    <button
+                      key={method.label}
+                      type="button"
+                      onClick={() => {
+                        onPaymentMethod(method.label);
+                        onPaymentAmount(total.toFixed(2));
+                      }}
+                      className={`flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl border p-3 text-center text-xs font-bold transition ${
+                        paymentMethod === method.label
+                          ? "border-[#8A0EEA] bg-purple-50 text-[#8A0EEA] ring-2 ring-purple-100"
+                          : "border-slate-200 text-slate-700 hover:border-purple-300"
+                      }`}
+                    >
+                      {method.icon}
+                      {method.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="mt-4 grid gap-2 text-sm font-bold text-slate-700">
+                  Valor recebido
+                  <input
+                    autoFocus
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={paymentAmount}
+                    onChange={(event) => onPaymentAmount(event.target.value)}
+                    onBlur={onPaymentAmountBlur}
+                    placeholder={total.toFixed(2)}
+                    className="rounded-2xl border border-slate-300 bg-amber-50 px-4 py-3 text-right text-xl font-black outline-none focus:border-[#8A0EEA] focus:ring-2 focus:ring-purple-100"
+                  />
+                </label>
+              </>
+            ) : (
+              <div className="mt-3 space-y-3">
+                {payments.map((payment) => {
+                  const otherTotal = payments.reduce(
+                    (sum, item) =>
+                      item.id === payment.id
+                        ? sum
+                        : sum + Number(item.amount || 0),
+                    0,
+                  );
+                  const remaining = Math.max(0, total - otherTotal);
+                  return (
+                    <div
+                      key={payment.id}
+                      className="grid gap-2 rounded-2xl border bg-slate-50 p-3 sm:grid-cols-[1fr_150px_auto_auto]"
+                    >
+                      <select
+                        value={payment.method}
+                        onChange={(event) =>
+                          onPaymentSplit(payment.id, "method", event.target.value)
+                        }
+                        className="rounded-xl border bg-white p-3 text-sm"
+                      >
+                        {financialPaymentMethods.map((method) => (
+                          <option key={method}>{method}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={payment.amount}
+                        onChange={(event) =>
+                          onPaymentSplit(payment.id, "amount", event.target.value)
+                        }
+                        placeholder="Valor"
+                        className="rounded-xl border bg-white p-3 text-right font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onPaymentSplit(
+                            payment.id,
+                            "amount",
+                            remaining.toFixed(2),
+                          )
+                        }
+                        className="rounded-xl border bg-white px-3 text-xs font-bold text-[#8A0EEA]"
+                      >
+                        Restante
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onRemovePaymentSplit(payment.id)}
+                        disabled={payments.length === 1}
+                        aria-label="Remover forma"
+                        className="rounded-xl border bg-white p-3 text-red-600 disabled:opacity-40"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={onAddPaymentSplit}
+                  className="inline-flex items-center gap-1 text-sm font-bold text-[#8A0EEA]"
+                >
+                  <Plus size={16} /> Adicionar forma
+                </button>
+              </div>
+            )}
+          </div>
+
+          <details className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer font-bold text-slate-800">
+              Desconto ou acréscimo
+            </summary>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <label className="grid gap-1 text-xs font-bold text-slate-500">
+                Desconto (limite {discountLimitPercent}%)
+                <input
+                  type="number"
+                  min="0"
+                  max={maxDiscountAmount}
+                  step="0.01"
+                  value={discount}
+                  onChange={(event) => onDiscount(event.target.value)}
+                  className="rounded-xl border bg-white p-3 text-sm text-slate-900"
+                />
+              </label>
+              <label className="grid gap-1 text-xs font-bold text-slate-500">
+                Acréscimo
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={surcharge}
+                  onChange={(event) => onSurcharge(event.target.value)}
+                  className="rounded-xl border bg-white p-3 text-sm text-slate-900"
+                />
+              </label>
+            </div>
+            {(Number(discount || 0) > 0 || Number(surcharge || 0) > 0) && (
+              <input
+                value={adjustmentReason}
+                onChange={(event) => onAdjustmentReason(event.target.value)}
+                placeholder="Motivo obrigatório"
+                className="mt-3 w-full rounded-xl border bg-white p-3 text-sm"
+              />
+            )}
+            <p className="mt-3 text-right text-xs text-slate-500">
+              Subtotal {formatCurrency(subtotal)}
+            </p>
+          </details>
+
+          {changeDue > 0 && (
+            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-bold text-emerald-900">
+                Entregar troco de {formatCurrency(changeDue)} por:
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(["Dinheiro", "PIX"] as const).map((method) => (
+                  <button
+                    key={method}
+                    type="button"
+                    onClick={() => onChangeMethod(method)}
+                    className={`rounded-xl border px-3 py-2 text-sm font-bold ${
+                      changeMethod === method
+                        ? "border-emerald-600 bg-emerald-600 text-white"
+                        : "border-emerald-200 bg-white text-emerald-800"
+                    }`}
+                  >
+                    {method}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <footer className="grid gap-3 border-t bg-slate-50 p-4 sm:grid-cols-2 sm:px-7">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={processing}
+            className="rounded-xl border bg-white py-3 font-bold text-slate-700 disabled:opacity-50"
+          >
+            Voltar
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={!canFinalize}
+            className="rounded-xl bg-[#8A0EEA] py-3 font-black text-white shadow-lg shadow-purple-200 disabled:opacity-50"
+          >
+            {processing ? "Processando..." : `Finalizar · ${formatCurrency(total)}`}
+          </button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
+function ClosingMetric({
+  label,
+  value,
+  highlight = false,
+  tone,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+  tone?: "success" | "danger";
+}) {
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        highlight
+          ? "border-purple-200 bg-purple-50"
+          : tone === "success"
+            ? "border-emerald-200 bg-emerald-50"
+            : tone === "danger"
+              ? "border-red-200 bg-red-50"
+              : "border-slate-200 bg-slate-50"
+      }`}
+    >
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        {label}
+      </p>
+      <strong className="mt-1 block text-xl text-slate-900">
+        {formatCurrency(value)}
+      </strong>
     </div>
   );
 }

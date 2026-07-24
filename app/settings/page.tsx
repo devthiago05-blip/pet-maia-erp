@@ -28,6 +28,7 @@ import {
   fetchFiscalReadiness,
   type FiscalReadinessReport,
 } from "@/services/fiscal-readiness";
+import { approveProductFiscalReview } from "@/services/fiscal-product-review";
 import {
   fetchClinicSettings,
   updateClinicSettings,
@@ -426,7 +427,12 @@ export default function SettingsPage() {
             </div>
 
             <FiscalReadiness settings={settings} status={fiscalStatus} />
-            {fiscalReport && <FiscalTaxAudit report={fiscalReport} />}
+            {fiscalReport && (
+              <FiscalTaxAudit
+                report={fiscalReport}
+                onApproved={loadFiscalReport}
+              />
+            )}
           </SettingsSection>
           )}
 
@@ -572,7 +578,31 @@ export default function SettingsPage() {
   );
 }
 
-function FiscalTaxAudit({ report }: { report: FiscalReadinessReport }) {
+function FiscalTaxAudit({
+  report,
+  onApproved,
+}: {
+  report: FiscalReadinessReport;
+  onApproved: () => Promise<void>;
+}) {
+  const [approvingProduct, setApprovingProduct] = useState<number | null>(null);
+
+  async function approveImportedData(productId: number) {
+    setApprovingProduct(productId);
+    try {
+      await approveProductFiscalReview(
+        productId,
+        "Dados estruturais conferidos no XML de compra.",
+      );
+      toast.success("NCM, origem e unidade disponíveis foram aprovados.");
+      await onApproved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro na aprovação.");
+    } finally {
+      setApprovingProduct(null);
+    }
+  }
+
   return (
     <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -641,6 +671,38 @@ function FiscalTaxAudit({ report }: { report: FiscalReadinessReport }) {
                 {suggestion.reason}
               </p>
             ))}
+            {item.importedReview && (
+              <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
+                <p className="font-bold">
+                  Dados do XML de compra
+                  {item.importedReview.source_document_number
+                    ? ` · Nota ${item.importedReview.source_document_number}`
+                    : ""}
+                </p>
+                <p className="mt-1 text-xs">
+                  NCM {item.importedReview.suggested_ncm || "—"} · CEST{" "}
+                  {item.importedReview.suggested_cest || "—"} · CFOP de entrada{" "}
+                  {item.importedReview.suggested_cfop || "—"} · CST/CSOSN do
+                  fornecedor {item.importedReview.suggested_csosn_cst || "—"}
+                </p>
+                {item.importedReview.status !== "approved" ? (
+                  <button
+                    type="button"
+                    onClick={() => approveImportedData(item.productId)}
+                    disabled={approvingProduct === item.productId}
+                    className="mt-2 rounded-lg bg-sky-900 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  >
+                    {approvingProduct === item.productId
+                      ? "Aprovando..."
+                      : "Aprovar NCM, origem e unidade"}
+                  </button>
+                ) : (
+                  <span className="mt-2 inline-flex rounded-full bg-emerald-100 px-2 py-1 text-xs font-bold text-emerald-700">
+                    Dados estruturais aprovados
+                  </span>
+                )}
+              </div>
+            )}
             <p className="mt-2 text-xs text-slate-500">
               Falta confirmar: {item.pending.join("; ")}.
             </p>

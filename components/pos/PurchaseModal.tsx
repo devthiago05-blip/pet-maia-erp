@@ -15,6 +15,7 @@ import { ProductModal } from "@/components/pos/ProductModal";
 import { QuickProductModal } from "@/components/pos/QuickProductModal";
 import { PurchaseDocumentImporter } from "@/components/purchases/PurchaseDocumentImporter";
 import { formatCurrency, formatProductName } from "@/lib/formatters";
+import { savePurchaseFiscalSuggestions } from "@/services/fiscal-product-review";
 import {
   archivePurchaseDocument,
   fetchPurchaseItemMappings,
@@ -39,6 +40,7 @@ interface PurchaseLine {
   quantity: string;
   unitCost: string;
   purchaseMode: "pack" | "unit";
+  fiscalItem?: RecognizedPurchaseDocument["items"][number];
 }
 
 interface PurchasePaymentLine {
@@ -196,6 +198,7 @@ export function PurchaseModal({
           item.unitCost || item.total / Math.max(item.quantity, 1) || "",
         ),
         purchaseMode: "pack" as const,
+        fiscalItem: item,
       };
     });
     if (recognizedLines.length) setLines(recognizedLines);
@@ -311,6 +314,36 @@ export function PurchaseModal({
         notes,
         items: parsedItems,
       });
+      const fiscalSuggestions = lines.flatMap((line) =>
+        line.fiscalItem && Number(line.productId)
+          ? [
+              {
+                productId: Number(line.productId),
+                item: line.fiscalItem,
+              },
+            ]
+          : [],
+      );
+      if (fiscalSuggestions.length) {
+        try {
+          const result = await savePurchaseFiscalSuggestions({
+            purchaseId,
+            documentNumber,
+            suggestions: fiscalSuggestions,
+          });
+          if (result.saved) {
+            toast.success(
+              `${result.saved} sugestão(ões) fiscal(is) enviada(s) para revisão.`,
+            );
+          }
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? `Compra salva, mas a tributação não foi importada: ${error.message}`
+              : "Compra salva, mas a tributação não foi importada.",
+          );
+        }
+      }
       if (importedDocument) {
         const supplier = suppliers.find(
           (item) => item.id === Number(supplierId),

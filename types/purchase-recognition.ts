@@ -4,6 +4,15 @@ export interface RecognizedPurchaseItem {
   unitCost: number;
   total: number;
   barcode?: string;
+  supplierCode?: string;
+  ncm?: string;
+  cest?: string;
+  cfop?: string;
+  origin?: string;
+  csosnCst?: string;
+  pisCst?: string;
+  cofinsCst?: string;
+  commercialUnit?: string;
 }
 
 export interface RecognizedPurchaseDocument {

@@ -132,6 +132,16 @@ function parseNfeXml(xml: string): RecognizedPurchaseDocument {
         unitCost: numberTag(block, "vUnCom") || total / quantity,
         total,
         barcode: tag(block, "cEAN")?.replace(/^SEM GTIN$/i, "") || undefined,
+        supplierCode: tag(block, "cProd"),
+        ncm: digits(tag(block, "NCM"), 8),
+        cest: digits(tag(block, "CEST"), 7),
+        cfop: digits(tag(block, "CFOP"), 4),
+        origin: digits(tag(block, "orig"), 1),
+        csosnCst:
+          digits(tag(block, "CSOSN"), 3) || digits(tag(block, "CST"), 2),
+        pisCst: digits(taxBlock(block, "PIS"), 2),
+        cofinsCst: digits(taxBlock(block, "COFINS"), 2),
+        commercialUnit: fiscalUnit(tag(block, "uCom")),
       };
     },
   );
@@ -318,6 +328,18 @@ function tag(xml: string, name: string) {
 }
 function numberTag(xml: string, name: string) {
   return parseNumber(tag(xml, name) || "0");
+}
+function taxBlock(xml: string, group: "PIS" | "COFINS") {
+  const block = tag(xml, group);
+  return block ? tag(block, "CST") : undefined;
+}
+function digits(value: string | undefined, length: number) {
+  const normalized = value?.replace(/\D/g, "") || "";
+  return normalized.length === length ? normalized : undefined;
+}
+function fiscalUnit(value: string | undefined) {
+  const normalized = value?.trim().toUpperCase().replace(/[^A-Z]/g, "") || "";
+  return /^[A-Z]{1,6}$/.test(normalized) ? normalized : undefined;
 }
 function parseNumber(value: string) {
   const clean = value.trim().replace(/\s/g, "");

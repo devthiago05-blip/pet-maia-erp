@@ -10,7 +10,23 @@ export interface FiscalReadinessReport {
     suggestions: number;
     blocked: number;
   };
-  assessments: FiscalProductAssessment[];
+  assessments: Array<
+    FiscalProductAssessment & {
+      importedReview: {
+        status: "pending" | "review" | "approved";
+        suggested_ncm: string | null;
+        suggested_cest: string | null;
+        suggested_cfop: string | null;
+        suggested_origin: string | null;
+        suggested_csosn_cst: string | null;
+        suggested_pis_cst: string | null;
+        suggested_cofins_cst: string | null;
+        suggested_unit: string | null;
+        source_description: string | null;
+        source_document_number: string | null;
+      } | null;
+    }
+  >;
   warnings: string[];
 }
 

@@ -72,6 +72,37 @@ function getInitialStatusFilter(status: string | null) {
     ? status || "Todos"
     : "Todos";
 }
+
+function appointmentTimeToMinutes(time?: string) {
+  const [hours, minutes] = (time || "").slice(0, 5).split(":").map(Number);
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function sortAppointmentsForPrint(appointments: Appointment[]) {
+  return [...appointments].sort((first, second) => {
+    const dateComparison = first.data.localeCompare(second.data);
+
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    const timeComparison =
+      appointmentTimeToMinutes(first.hora) -
+      appointmentTimeToMinutes(second.hora);
+
+    if (timeComparison !== 0) {
+      return timeComparison;
+    }
+
+    return first.id - second.id;
+  });
+}
+
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -517,8 +548,15 @@ export default function AgendaPage() {
     window.print();
   }
 
-  const appointmentsToPrint =
-    viewMode === "kanban" ? filteredKanbanAppointments : filteredAppointments;
+  const appointmentsToPrint = useMemo(
+    () =>
+      sortAppointmentsForPrint(
+        viewMode === "kanban"
+          ? filteredKanbanAppointments
+          : filteredAppointments,
+      ),
+    [filteredAppointments, filteredKanbanAppointments, viewMode],
+  );
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">

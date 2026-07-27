@@ -129,7 +129,7 @@ export async function createAppointmentFinancialEntry(
       valor,
       tipo: "Receita",
       forma_pagamento: formaPagamento,
-      status_pagamento: "Pendente",
+      status_pagamento: formaPagamento === "Brinde" ? "Pago" : "Pendente",
       origem: "appointment",
       referencia_id: appointmentId,
       pet_id: petId ?? null,

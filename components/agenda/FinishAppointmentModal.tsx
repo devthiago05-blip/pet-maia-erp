@@ -77,6 +77,7 @@ export function FinishAppointmentModal({
   const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [observacoes, setObservacoes] = useState("");
   const [saving, setSaving] = useState(false);
+  const isGiftPayment = formaPagamento === "Brinde";
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -115,7 +116,7 @@ export function FinishAppointmentModal({
     [selectedServiceIds, services],
   );
 
-  const total = useMemo(
+  const servicesTotal = useMemo(
     () =>
       selectedServices.reduce((sum, service) => {
         const customPrice = Number(servicePrices[service.id] || 0);
@@ -123,6 +124,7 @@ export function FinishAppointmentModal({
       }, 0),
     [selectedServices, servicePrices],
   );
+  const total = isGiftPayment ? 0 : servicesTotal;
 
   const hasValidSize = ["pequeno", "medio", "grande"].includes(
     normalizeText(porte || ""),
@@ -165,28 +167,30 @@ export function FinishAppointmentModal({
       return;
     }
 
-    const hasInvalidPrice = selectedServices.some((service) => {
-      const price = Number(servicePrices[service.id]);
-      return (
-        !servicePrices[service.id]?.trim() ||
-        !Number.isFinite(price) ||
-        price < 0
-      );
-    });
+    const hasInvalidPrice =
+      !isGiftPayment &&
+      selectedServices.some((service) => {
+        const price = Number(servicePrices[service.id]);
+        return (
+          !servicePrices[service.id]?.trim() ||
+          !Number.isFinite(price) ||
+          price < 0
+        );
+      });
 
     if (hasInvalidPrice) {
       toast.error("Informe valores válidos para os serviços selecionados");
       return;
     }
 
-    if (total <= 0) {
+    if (!isGiftPayment && total <= 0) {
       toast.error("O valor total precisa ser maior que zero");
       return;
     }
 
     const completedServices = selectedServices.map((service) => ({
       serviceName: service.nome,
-      price: Number(servicePrices[service.id] || 0),
+      price: isGiftPayment ? 0 : Number(servicePrices[service.id] || 0),
     }));
 
     const servicoDescricao = completedServices
@@ -333,14 +337,18 @@ export function FinishAppointmentModal({
                           type="number"
                           min="0"
                           step="0.01"
-                          value={servicePrices[service.id] || ""}
+                          value={
+                            isGiftPayment
+                              ? "0"
+                              : servicePrices[service.id] || ""
+                          }
                           onChange={(event) =>
                             handleServicePriceChange(
                               service.id,
                               event.target.value,
                             )
                           }
-                          disabled={!checked}
+                          disabled={!checked || isGiftPayment}
                           className="w-full rounded-xl border p-3 font-normal disabled:bg-slate-100 disabled:text-slate-400"
                         />
                       </label>
@@ -361,8 +369,16 @@ export function FinishAppointmentModal({
               <option>PIX</option>
               <option>Dinheiro</option>
               <option>Cartão</option>
+              <option>Brinde</option>
             </select>
           </label>
+
+          {isGiftPayment && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              Brinde selecionado: o atendimento será finalizado com valor R$
+              0,00 e não ficará pendente para receber.
+            </div>
+          )}
 
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Observações

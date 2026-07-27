@@ -10,6 +10,7 @@ interface FinishAppointmentModalProps {
   porte?: string;
   servico: string;
   services: Service[];
+  previousServicePrices?: Record<string, number>;
   onClose: () => void;
   onSave: (dados: {
     valor: number;
@@ -46,11 +47,26 @@ function getServicePriceByPetSize(service: Service, porte?: string) {
   return 0;
 }
 
+function getSuggestedServicePrice(
+  service: Service,
+  porte: string | undefined,
+  previousServicePrices: Record<string, number>,
+) {
+  const previousPrice = previousServicePrices[normalizeText(service.nome)];
+
+  if (Number.isFinite(previousPrice) && previousPrice > 0) {
+    return previousPrice;
+  }
+
+  return getServicePriceByPetSize(service, porte);
+}
+
 export function FinishAppointmentModal({
   pet,
   porte,
   servico,
   services,
+  previousServicePrices = {},
   onClose,
   onSave,
 }: FinishAppointmentModalProps) {
@@ -79,7 +95,9 @@ export function FinishAppointmentModal({
 
       const initialPrices = services.reduce<Record<number, string>>(
         (prices, service) => {
-          prices[service.id] = String(getServicePriceByPetSize(service, porte));
+          prices[service.id] = String(
+            getSuggestedServicePrice(service, porte, previousServicePrices),
+          );
           return prices;
         },
         {},
@@ -90,7 +108,7 @@ export function FinishAppointmentModal({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [services, servico, porte]);
+  }, [services, servico, porte, previousServicePrices]);
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(service.id)),
@@ -120,7 +138,9 @@ export function FinishAppointmentModal({
         ...currentPrices,
         [service.id]:
           currentPrices[service.id] ??
-          String(getServicePriceByPetSize(service, porte)),
+          String(
+            getSuggestedServicePrice(service, porte, previousServicePrices),
+          ),
       }));
 
       return [...currentIds, service.id];
@@ -222,6 +242,13 @@ export function FinishAppointmentModal({
               <strong>Serviço agendado:</strong> {servico}
             </p>
           </div>
+
+          {Object.keys(previousServicePrices).length > 0 && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              Valor sugerido pelo último atendimento deste pet. Você pode
+              alterar antes de finalizar.
+            </div>
+          )}
 
           {!hasValidSize && (
             <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-700">

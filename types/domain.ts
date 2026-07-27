@@ -683,6 +683,16 @@ export interface AppointmentService {
   price: number;
   created_at?: string;
 }
+
+export interface PreviousAppointmentService extends AppointmentService {
+  appointments?: {
+    id: number;
+    pet_id?: number;
+    status: AppointmentStatus;
+    data: string;
+    hora: string;
+  };
+}
 export interface Product {
   id: number;
   nome: string;

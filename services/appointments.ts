@@ -4,6 +4,7 @@ import type {
   AppointmentStatus,
   CompletedAppointmentService,
   NewAppointmentInput,
+  PreviousAppointmentService,
 } from "@/types/domain";
 
 export async function fetchAppointments() {
@@ -139,4 +140,28 @@ export async function fetchAppointmentServicesByAppointmentId(
     .eq("appointment_id", appointmentId)
     .order("id", { ascending: true })
     .returns<AppointmentService[]>();
+}
+
+export async function fetchPreviousAppointmentServicesByPet(
+  petId: number,
+  currentAppointmentId: number,
+) {
+  return supabase
+    .from("appointment_services")
+    .select(
+      `
+        *,
+        appointments!inner (
+          id,
+          pet_id,
+          status,
+          data,
+          hora
+        )
+      `,
+    )
+    .eq("appointments.pet_id", petId)
+    .eq("appointments.status", "Finalizado")
+    .neq("appointment_id", currentAppointmentId)
+    .returns<PreviousAppointmentService[]>();
 }

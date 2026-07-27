@@ -23,6 +23,7 @@ import {
   deleteAppointmentServicesByAppointmentId,
   fetchAppointments,
   fetchAppointmentServicesByAppointmentId,
+  fetchPreviousAppointmentServicesByPet,
   replaceAppointmentServices,
   updateAppointment,
   updateAppointmentStatus,
@@ -44,6 +45,7 @@ import type {
   FinancialEntry,
   NewAppointmentInput,
   Pet,
+  PreviousAppointmentService,
   Service,
   Tutor,
 } from "@/types/domain";
@@ -103,6 +105,46 @@ function sortAppointmentsForPrint(appointments: Appointment[]) {
   });
 }
 
+function buildPreviousServicePriceMap(rows: PreviousAppointmentService[]) {
+  const sortedRows = [...rows].sort((first, second) => {
+    const firstAppointment = first.appointments;
+    const secondAppointment = second.appointments;
+    const dateComparison = (secondAppointment?.data || "").localeCompare(
+      firstAppointment?.data || "",
+    );
+
+    if (dateComparison !== 0) {
+      return dateComparison;
+    }
+
+    const timeComparison = (secondAppointment?.hora || "").localeCompare(
+      firstAppointment?.hora || "",
+    );
+
+    if (timeComparison !== 0) {
+      return timeComparison;
+    }
+
+    return second.id - first.id;
+  });
+  const prices: Record<string, number> = {};
+
+  for (const row of sortedRows) {
+    const key = normalizeText(row.service_name);
+    const price = Number(row.price || 0);
+
+    if (!key || prices[key] !== undefined || !Number.isFinite(price)) {
+      continue;
+    }
+
+    if (price > 0) {
+      prices[key] = price;
+    }
+  }
+
+  return prices;
+}
+
 function extractReceiptObservations(description?: string, petName?: string) {
   if (!description?.includes("| Obs:")) {
     return undefined;
@@ -138,6 +180,9 @@ export default function AgendaPage() {
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [appointmentToFinish, setAppointmentToFinish] =
     useState<Appointment | null>(null);
+  const [previousServicePrices, setPreviousServicePrices] = useState<
+    Record<string, number>
+  >({});
   const [completedReceipt, setCompletedReceipt] = useState<{
     appointment: Appointment;
     valor: number;
@@ -412,6 +457,28 @@ export default function AgendaPage() {
     await loadAppointments();
   }
 
+  async function handleOpenFinishAppointment(appointment: Appointment) {
+    setPreviousServicePrices({});
+
+    if (appointment.pet_id) {
+      const { data, error } = await fetchPreviousAppointmentServicesByPet(
+        appointment.pet_id,
+        appointment.id,
+      );
+
+      if (error) {
+        console.error(error);
+        toast.warning(
+          "Não foi possível buscar o valor anterior. Vou usar a tabela padrão.",
+        );
+      } else {
+        setPreviousServicePrices(buildPreviousServicePriceMap(data || []));
+      }
+    }
+
+    setAppointmentToFinish(appointment);
+  }
+
   async function handleFinishAppointment({
     valor,
     formaPagamento,
@@ -681,7 +748,9 @@ export default function AgendaPage() {
 
               <KanbanBoard
                 appointments={filteredKanbanAppointments}
-                onFinish={setAppointmentToFinish}
+                onFinish={(appointment) =>
+                  void handleOpenFinishAppointment(appointment)
+                }
                 onViewReceipt={handleViewReceipt}
                 onConfirm={handleConfirmAppointment}
                 onCancel={handleCancelAppointment}
@@ -693,7 +762,9 @@ export default function AgendaPage() {
           ) : (
             <AppointmentTable
               appointments={filteredAppointments}
-              onFinish={setAppointmentToFinish}
+              onFinish={(appointment) =>
+                void handleOpenFinishAppointment(appointment)
+              }
               onViewReceipt={handleViewReceipt}
               onConfirm={handleConfirmAppointment}
               onDelete={handleDeleteAppointment}
@@ -708,6 +779,7 @@ export default function AgendaPage() {
             porte={appointmentToFinish.pets?.porte}
             servico={appointmentToFinish.servico}
             services={services}
+            previousServicePrices={previousServicePrices}
             onClose={() => setAppointmentToFinish(null)}
             onSave={handleFinishAppointment}
           />

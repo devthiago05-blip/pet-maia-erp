@@ -122,6 +122,7 @@ begin
   insert into public.pos_sales (
     tutor_id,
     cliente_nome,
+    subtotal,
     total,
     forma_pagamento,
     cash_register_id
@@ -129,6 +130,7 @@ begin
   values (
     customer_tutor_id,
     nullif(trim(customer_name), ''),
+    sale_total,
     sale_total,
     payment_method,
     open_register_id

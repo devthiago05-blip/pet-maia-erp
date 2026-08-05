@@ -289,8 +289,42 @@ textarea:focus-visible {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    margin: 10mm;
+  }
+
+  html,
+  body {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body {
+    padding: 0 !important;
+  }
+
+  body:has(.receipt-print-area, .cash-print-area, .document-print-area)
+    *:has(.receipt-print-area, .cash-print-area, .document-print-area) {
+    display: contents !important;
+    visibility: visible !important;
+  }
+
+  body:has(.receipt-print-area, .cash-print-area, .document-print-area)
+    *:not(
+      :has(.receipt-print-area, .cash-print-area, .document-print-area)
+    ):not(.receipt-print-area):not(.receipt-print-area *):not(
+      .cash-print-area
+    ):not(.cash-print-area *):not(.document-print-area):not(
+      .document-print-area *
+    ) {
+    display: none !important;
+  }
+
+  body:has(.receipt-print-area, .cash-print-area, .document-print-area) * {
+    visibility: hidden !important;
   }
 
   .receipt-print-area,
@@ -299,15 +333,49 @@ textarea:focus-visible {
   .cash-print-area *,
   .document-print-area,
   .document-print-area * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   .receipt-print-area,
   .cash-print-area,
   .document-print-area {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    color: #000;
+    display: block !important;
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .receipt-print-area table,
+  .cash-print-area table,
+  .document-print-area table {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .receipt-print-area thead,
+  .cash-print-area thead,
+  .document-print-area thead {
+    display: table-header-group;
+  }
+
+  .receipt-print-area tfoot,
+  .cash-print-area tfoot,
+  .document-print-area tfoot {
+    display: table-footer-group;
+  }
+
+  .receipt-print-area tr,
+  .cash-print-area tr,
+  .document-print-area tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

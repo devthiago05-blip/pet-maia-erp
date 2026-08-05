@@ -85,8 +85,22 @@ export function StocktakeView({
   const [notes, setNotes] = useState(draft?.notes || "");
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [discardConfirmationOpen, setDiscardConfirmationOpen] = useState(false);
+  const [stocktakeListOpen, setStocktakeListOpen] = useState(false);
+  const [stocktakeListPrintedAt, setStocktakeListPrintedAt] =
+    useState<Date | null>(null);
   const [selectedStocktake, setSelectedStocktake] =
     useState<ProductStocktake | null>(null);
+
+  const printableProducts = useMemo(
+    () =>
+      [...products].sort((first, second) =>
+        formatProductName(first).localeCompare(
+          formatProductName(second),
+          "pt-BR",
+        ),
+      ),
+    [products],
+  );
 
   const availableProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -134,10 +148,7 @@ export function StocktakeView({
   ).length;
 
   function addProduct(product: Product) {
-    setItems((current) => [
-      ...current,
-      { product, countedQuantity: "" },
-    ]);
+    setItems((current) => [...current, { product, countedQuantity: "" }]);
     setSearch("");
   }
 
@@ -237,20 +248,42 @@ export function StocktakeView({
     }
   }
 
+  function printStocktakeList() {
+    if (printableProducts.length === 0) {
+      toast.error("Nenhum produto cadastrado para imprimir");
+      return;
+    }
+
+    setStocktakeListPrintedAt(new Date());
+    setStocktakeListOpen(true);
+    window.setTimeout(() => window.print(), 100);
+  }
+
   return (
     <section className="space-y-5">
       <div className="rounded-2xl border bg-white p-4 shadow-sm sm:p-6">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-violet-100 p-3 text-violet-700">
-            <ClipboardCheck size={24} />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-violet-100 p-3 text-violet-700">
+              <ClipboardCheck size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold">Balanço de estoque</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Informe a quantidade física. Ao finalizar, ela substituirá o
+                estoque atual dos produtos incluídos.
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-lg font-bold">Balanço de estoque</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Informe a quantidade física. Ao finalizar, ela substituirá o
-              estoque atual dos produtos incluídos.
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={printStocktakeList}
+            disabled={printableProducts.length === 0}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 px-4 py-3 text-sm font-bold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            <Printer size={18} />
+            Lista para balanço
+          </button>
         </div>
 
         {draft && (
@@ -260,7 +293,8 @@ export function StocktakeView({
               {new Intl.DateTimeFormat("pt-BR", {
                 dateStyle: "short",
                 timeStyle: "short",
-              }).format(new Date(draft.updated_at))}.
+              }).format(new Date(draft.updated_at))}
+              .
             </span>
             <button
               type="button"
@@ -321,8 +355,16 @@ export function StocktakeView({
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StocktakeSummary label="Produtos" value={items.length} />
-        <StocktakeSummary label="Sobras" value={summary.surplus} tone="success" />
-        <StocktakeSummary label="Faltas" value={summary.shortage} tone="danger" />
+        <StocktakeSummary
+          label="Sobras"
+          value={summary.surplus}
+          tone="success"
+        />
+        <StocktakeSummary
+          label="Faltas"
+          value={summary.shortage}
+          tone="danger"
+        />
         <StocktakeSummary
           label="Diferença líquida"
           value={summary.difference}
@@ -338,117 +380,52 @@ export function StocktakeView({
           </div>
         ) : (
           <>
-          <div className="divide-y md:hidden">
-            {items.map((item) => {
-              const hasCount = item.countedQuantity !== "";
-              const difference = hasCount
-                ? Number(item.countedQuantity) - item.product.estoque
-                : null;
+            <div className="divide-y md:hidden">
+              {items.map((item) => {
+                const hasCount = item.countedQuantity !== "";
+                const difference = hasCount
+                  ? Number(item.countedQuantity) - item.product.estoque
+                  : null;
 
-              return (
-                <article key={item.product.id} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <h3 className="break-words font-bold text-slate-900">
-                        {formatProductName(item.product)}
-                      </h3>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {item.product.barcode || item.product.sku || "Sem código"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setItems((current) =>
-                          current.filter(
-                            (currentItem) =>
-                              currentItem.product.id !== item.product.id,
-                          ),
-                        )
-                      }
-                      className="rounded-lg bg-red-50 p-2 text-red-600"
-                      aria-label={`Remover ${item.product.nome} do balanço`}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-[1fr_1.2fr] items-end gap-3 rounded-xl bg-slate-50 p-3">
-                    <div>
-                      <p className="text-xs text-slate-500">Estoque atual</p>
-                      <p className="text-2xl font-bold">{item.product.estoque}</p>
-                    </div>
-                    <label className="grid gap-1 text-xs font-semibold text-slate-600">
-                      Contagem física
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        inputMode="numeric"
-                        value={item.countedQuantity}
-                        onChange={(event) =>
-                          updateQuantity(item.product.id, event.target.value)
+                return (
+                  <article key={item.product.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="break-words font-bold text-slate-900">
+                          {formatProductName(item.product)}
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {item.product.barcode ||
+                            item.product.sku ||
+                            "Sem código"}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setItems((current) =>
+                            current.filter(
+                              (currentItem) =>
+                                currentItem.product.id !== item.product.id,
+                            ),
+                          )
                         }
-                        aria-label={`Contagem física de ${item.product.nome}`}
-                        className="w-full rounded-lg border bg-white px-3 py-2 text-center text-lg font-bold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-                      />
-                    </label>
-                  </div>
+                        className="rounded-lg bg-red-50 p-2 text-red-600"
+                        aria-label={`Remover ${item.product.nome} do balanço`}
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
 
-                  <div className="mt-3 flex items-center justify-between text-sm">
-                    <span className="text-slate-500">Diferença encontrada</span>
-                    <span
-                      className={`inline-flex min-w-12 justify-center rounded-full px-2.5 py-1 font-bold ${
-                        difference === null || difference === 0
-                          ? "bg-slate-100 text-slate-600"
-                          : difference > 0
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {difference === null
-                        ? "-"
-                        : difference > 0
-                          ? `+${difference}`
-                          : difference}
-                    </span>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-
-          <div className="hidden w-full overflow-x-auto md:block">
-            <table className="w-full min-w-[760px]">
-              <thead className="bg-slate-50 text-sm text-slate-600">
-                <tr>
-                  <th className="p-4 text-left">Produto</th>
-                  <th className="p-4 text-left">Código</th>
-                  <th className="p-4 text-center">Estoque atual</th>
-                  <th className="p-4 text-center">Contagem física</th>
-                  <th className="p-4 text-center">Diferença</th>
-                  <th className="p-4 text-center">Remover</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item) => {
-                  const hasCount = item.countedQuantity !== "";
-                  const difference = hasCount
-                    ? Number(item.countedQuantity) - item.product.estoque
-                    : null;
-
-                  return (
-                    <tr key={item.product.id} className="border-t">
-                      <td className="p-4 font-semibold">
-                        {formatProductName(item.product)}
-                      </td>
-                      <td className="p-4 text-sm text-slate-500">
-                        {item.product.barcode || item.product.sku || "-"}
-                      </td>
-                      <td className="p-4 text-center font-semibold">
-                        {item.product.estoque}
-                      </td>
-                      <td className="p-4 text-center">
+                    <div className="mt-4 grid grid-cols-[1fr_1.2fr] items-end gap-3 rounded-xl bg-slate-50 p-3">
+                      <div>
+                        <p className="text-xs text-slate-500">Estoque atual</p>
+                        <p className="text-2xl font-bold">
+                          {item.product.estoque}
+                        </p>
+                      </div>
+                      <label className="grid gap-1 text-xs font-semibold text-slate-600">
+                        Contagem física
                         <input
                           type="number"
                           min="0"
@@ -459,49 +436,123 @@ export function StocktakeView({
                             updateQuantity(item.product.id, event.target.value)
                           }
                           aria-label={`Contagem física de ${item.product.nome}`}
-                          className="w-28 rounded-lg border px-3 py-2 text-center font-bold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                          className="w-full rounded-lg border bg-white px-3 py-2 text-center text-lg font-bold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
                         />
-                      </td>
-                      <td className="p-4 text-center">
-                        <span
-                          className={`inline-flex min-w-12 justify-center rounded-full px-2.5 py-1 text-sm font-bold ${
-                            difference === null || difference === 0
-                              ? "bg-slate-100 text-slate-600"
-                              : difference > 0
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-red-100 text-red-700"
-                          }`}
-                        >
-                          {difference === null
-                            ? "-"
+                      </label>
+                    </div>
+
+                    <div className="mt-3 flex items-center justify-between text-sm">
+                      <span className="text-slate-500">
+                        Diferença encontrada
+                      </span>
+                      <span
+                        className={`inline-flex min-w-12 justify-center rounded-full px-2.5 py-1 font-bold ${
+                          difference === null || difference === 0
+                            ? "bg-slate-100 text-slate-600"
                             : difference > 0
-                              ? `+${difference}`
-                              : difference}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setItems((current) =>
-                              current.filter(
-                                (currentItem) =>
-                                  currentItem.product.id !== item.product.id,
-                              ),
-                            )
-                          }
-                          className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-                          aria-label={`Remover ${item.product.nome} do balanço`}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {difference === null
+                          ? "-"
+                          : difference > 0
+                            ? `+${difference}`
+                            : difference}
+                      </span>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+
+            <div className="hidden w-full overflow-x-auto md:block">
+              <table className="w-full min-w-[760px]">
+                <thead className="bg-slate-50 text-sm text-slate-600">
+                  <tr>
+                    <th className="p-4 text-left">Produto</th>
+                    <th className="p-4 text-left">Código</th>
+                    <th className="p-4 text-center">Estoque atual</th>
+                    <th className="p-4 text-center">Contagem física</th>
+                    <th className="p-4 text-center">Diferença</th>
+                    <th className="p-4 text-center">Remover</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const hasCount = item.countedQuantity !== "";
+                    const difference = hasCount
+                      ? Number(item.countedQuantity) - item.product.estoque
+                      : null;
+
+                    return (
+                      <tr key={item.product.id} className="border-t">
+                        <td className="p-4 font-semibold">
+                          {formatProductName(item.product)}
+                        </td>
+                        <td className="p-4 text-sm text-slate-500">
+                          {item.product.barcode || item.product.sku || "-"}
+                        </td>
+                        <td className="p-4 text-center font-semibold">
+                          {item.product.estoque}
+                        </td>
+                        <td className="p-4 text-center">
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            inputMode="numeric"
+                            value={item.countedQuantity}
+                            onChange={(event) =>
+                              updateQuantity(
+                                item.product.id,
+                                event.target.value,
+                              )
+                            }
+                            aria-label={`Contagem física de ${item.product.nome}`}
+                            className="w-28 rounded-lg border px-3 py-2 text-center font-bold outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                          />
+                        </td>
+                        <td className="p-4 text-center">
+                          <span
+                            className={`inline-flex min-w-12 justify-center rounded-full px-2.5 py-1 text-sm font-bold ${
+                              difference === null || difference === 0
+                                ? "bg-slate-100 text-slate-600"
+                                : difference > 0
+                                  ? "bg-emerald-100 text-emerald-700"
+                                  : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {difference === null
+                              ? "-"
+                              : difference > 0
+                                ? `+${difference}`
+                                : difference}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setItems((current) =>
+                                current.filter(
+                                  (currentItem) =>
+                                    currentItem.product.id !== item.product.id,
+                                ),
+                              )
+                            }
+                            className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                            aria-label={`Remover ${item.product.nome} do balanço`}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </>
         )}
       </div>
@@ -544,6 +595,15 @@ export function StocktakeView({
         selected={selectedStocktake}
         onSelect={setSelectedStocktake}
       />
+
+      {stocktakeListOpen && (
+        <StocktakePrintList
+          products={printableProducts}
+          printedAt={stocktakeListPrintedAt || new Date()}
+          onClose={() => setStocktakeListOpen(false)}
+          onPrint={() => window.print()}
+        />
+      )}
 
       <ConfirmationDialog
         isOpen={confirmationOpen}
@@ -678,9 +738,18 @@ function StocktakeHistory({
             </header>
 
             <div className="my-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StocktakeSummary label="Produtos" value={selected.product_count} />
-              <StocktakeSummary label="Alterados" value={selected.changed_count} />
-              <StocktakeSummary label="Sem alteração" value={selected.unchanged_count} />
+              <StocktakeSummary
+                label="Produtos"
+                value={selected.product_count}
+              />
+              <StocktakeSummary
+                label="Alterados"
+                value={selected.changed_count}
+              />
+              <StocktakeSummary
+                label="Sem alteração"
+                value={selected.unchanged_count}
+              />
               <StocktakeSummary
                 label="Diferença líquida"
                 value={selected.total_difference}
@@ -709,12 +778,20 @@ function StocktakeHistory({
                 <tbody>
                   {(selected.product_stocktake_items || []).map((item) => (
                     <tr key={item.id}>
-                      <td className="border p-2 font-medium">{item.product_name}</td>
+                      <td className="border p-2 font-medium">
+                        {item.product_name}
+                      </td>
                       <td className="border p-2">{item.product_code || "-"}</td>
-                      <td className="border p-2 text-center">{item.previous_quantity}</td>
-                      <td className="border p-2 text-center">{item.counted_quantity}</td>
+                      <td className="border p-2 text-center">
+                        {item.previous_quantity}
+                      </td>
+                      <td className="border p-2 text-center">
+                        {item.counted_quantity}
+                      </td>
                       <td className="border p-2 text-center font-bold">
-                        {item.difference > 0 ? `+${item.difference}` : item.difference}
+                        {item.difference > 0
+                          ? `+${item.difference}`
+                          : item.difference}
                       </td>
                     </tr>
                   ))}
@@ -742,6 +819,131 @@ function StocktakeHistory({
         </div>
       )}
     </>
+  );
+}
+
+function StocktakePrintList({
+  products,
+  printedAt,
+  onClose,
+  onPrint,
+}: {
+  products: Product[];
+  printedAt: Date;
+  onClose: () => void;
+  onPrint: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4 print:static print:block print:bg-white print:p-0">
+      <section className="document-print-area max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-t-2xl bg-white p-4 shadow-2xl sm:rounded-2xl sm:p-6 print:max-h-none print:max-w-none print:overflow-visible print:rounded-none print:p-8 print:shadow-none">
+        <header className="flex items-start justify-between gap-4 border-b pb-4">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-violet-700">
+              Clínica Veterinária Pet Maia
+            </p>
+            <h1 className="mt-1 text-2xl font-black">
+              Lista para balanço de estoque
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Emitida em{" "}
+              {new Intl.DateTimeFormat("pt-BR", {
+                dateStyle: "long",
+                timeStyle: "short",
+              }).format(printedAt)}
+              {" · "}
+              {products.length} produto(s) cadastrado(s)
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 print:hidden"
+            aria-label="Fechar lista para balanço"
+          >
+            <X size={20} />
+          </button>
+        </header>
+
+        <div className="my-5 rounded-xl border border-violet-100 bg-violet-50 p-4 text-sm text-violet-900 print:border print:bg-white">
+          Preencha a coluna <strong>Quantidade contada</strong> durante a
+          conferência física. Depois use esses valores para finalizar o balanço
+          no sistema.
+        </div>
+
+        <div className="overflow-x-auto print:overflow-visible">
+          <table className="w-full min-w-[760px] border-collapse text-sm print:min-w-0 print:text-xs">
+            <thead className="bg-slate-100 text-left">
+              <tr>
+                <th className="w-12 border p-2 text-center">Nº</th>
+                <th className="border p-2">Produto</th>
+                <th className="border p-2">Código</th>
+                <th className="w-28 border p-2 text-center">Estoque atual</th>
+                <th className="w-40 border p-2 text-center">
+                  Quantidade contada
+                </th>
+                <th className="w-44 border p-2">Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((product, index) => (
+                <tr key={product.id} className="break-inside-avoid">
+                  <td className="border p-2 text-center text-slate-500">
+                    {index + 1}
+                  </td>
+                  <td className="border p-2">
+                    <p className="font-semibold">
+                      {formatProductName(product)}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {product.categoria || "Sem categoria"}
+                      {!product.ativo ? " · Inativo" : ""}
+                    </p>
+                  </td>
+                  <td className="border p-2">
+                    {product.barcode || product.sku || "-"}
+                  </td>
+                  <td className="border p-2 text-center font-bold">
+                    {product.estoque}
+                  </td>
+                  <td className="h-10 border p-2" />
+                  <td className="h-10 border p-2" />
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-6 grid gap-8 border-t pt-6 text-sm sm:grid-cols-2 print:grid-cols-2">
+          <div>
+            <p className="border-t pt-2 text-center text-slate-600">
+              Responsável pela contagem
+            </p>
+          </div>
+          <div>
+            <p className="border-t pt-2 text-center text-slate-600">
+              Responsável pela conferência
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end gap-3 print:hidden">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border px-4 py-2 font-semibold"
+          >
+            Fechar
+          </button>
+          <button
+            type="button"
+            onClick={onPrint}
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2 font-bold text-white"
+          >
+            <Printer size={18} /> Imprimir lista
+          </button>
+        </div>
+      </section>
+    </div>
   );
 }
 

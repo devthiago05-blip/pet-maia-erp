@@ -102,6 +102,11 @@ export function StocktakeView({
     [products],
   );
 
+  const stocktakeProducts = useMemo(
+    () => printableProducts.filter((product) => product.ativo),
+    [printableProducts],
+  );
+
   const availableProducts = useMemo(() => {
     const term = search.trim().toLowerCase();
 
@@ -150,6 +155,35 @@ export function StocktakeView({
   function addProduct(product: Product) {
     setItems((current) => [...current, { product, countedQuantity: "" }]);
     setSearch("");
+  }
+
+  function loadGeneralStocktake() {
+    if (stocktakeProducts.length === 0) {
+      toast.error("Nenhum produto ativo para carregar no balanço");
+      return;
+    }
+
+    const currentIds = new Set(items.map((item) => item.product.id));
+    const productsToAdd = stocktakeProducts.filter(
+      (product) => !currentIds.has(product.id),
+    );
+
+    if (productsToAdd.length === 0) {
+      toast.info("Todos os produtos ativos já estão no balanço");
+      return;
+    }
+
+    setItems((current) => [
+      ...current,
+      ...productsToAdd.map((product) => ({
+        product,
+        countedQuantity: "",
+      })),
+    ]);
+    setSearch("");
+    toast.success(
+      `Balanço geral carregado com ${productsToAdd.length} produto(s)`,
+    );
   }
 
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
@@ -275,15 +309,26 @@ export function StocktakeView({
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={printStocktakeList}
-            disabled={printableProducts.length === 0}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 px-4 py-3 text-sm font-bold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-          >
-            <Printer size={18} />
-            Lista para balanço
-          </button>
+          <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={loadGeneralStocktake}
+              disabled={stocktakeProducts.length === 0}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ClipboardCheck size={18} />
+              Balanço geral
+            </button>
+            <button
+              type="button"
+              onClick={printStocktakeList}
+              disabled={printableProducts.length === 0}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-violet-200 px-4 py-3 text-sm font-bold text-violet-700 transition hover:bg-violet-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Printer size={18} />
+              Lista para balanço
+            </button>
+          </div>
         </div>
 
         {draft && (
@@ -375,8 +420,25 @@ export function StocktakeView({
 
       <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
         {items.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
-            Busque um produto para começar o balanço.
+          <div className="grid gap-4 p-8 text-center text-sm text-slate-500">
+            <div>
+              <p className="font-semibold text-slate-700">
+                Nenhum produto no balanço.
+              </p>
+              <p className="mt-1">
+                Busque um produto específico ou carregue todos os produtos
+                ativos de uma vez.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loadGeneralStocktake}
+              disabled={stocktakeProducts.length === 0}
+              className="mx-auto inline-flex items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 font-bold text-white transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ClipboardCheck size={18} />
+              Carregar balanço geral
+            </button>
           </div>
         ) : (
           <>

@@ -909,20 +909,42 @@ export default function PosPage() {
   async function handleProductSave(
     productsToSave: Array<NewProductInput | Product>,
   ) {
+    const productsToUpdate = productsToSave.filter(
+      (productToSave): productToSave is Product => "id" in productToSave,
+    );
+    const productsToCreate = productsToSave.filter(
+      (productToSave): productToSave is NewProductInput =>
+        !("id" in productToSave),
+    );
+
+    for (const productToUpdate of productsToUpdate) {
+      const response = await updateProduct(productToUpdate);
+
+      if (response.error) {
+        toast.error(response.error.message);
+        throw response.error;
+      }
+    }
+
     const response =
-      productsToSave.length === 1 && "id" in productsToSave[0]
-        ? await updateProduct(productsToSave[0])
-        : await createProducts(productsToSave as NewProductInput[]);
+      productsToCreate.length > 0
+        ? await createProducts(productsToCreate)
+        : { error: null };
 
     if (response.error) {
       toast.error(response.error.message);
       throw response.error;
     }
 
+    const createdCount = productsToCreate.length;
+    const updatedCount = productsToUpdate.length;
+
     toast.success(
-      productsToSave.length === 1
-        ? "Produto salvo com sucesso!"
-        : `${productsToSave.length} variações salvas com sucesso!`,
+      updatedCount > 0 && createdCount > 0
+        ? `Produto salvo e ${createdCount} ${createdCount === 1 ? "variação adicionada" : "variações adicionadas"}!`
+        : productsToSave.length === 1
+          ? "Produto salvo com sucesso!"
+          : `${productsToSave.length} variações salvas com sucesso!`,
     );
     await loadData();
   }

@@ -305,7 +305,16 @@ export function ProductModal({
     setVariations((current) => [
       ...current,
       {
-        ...createVariation(),
+        ...(product && current[0]
+          ? {
+              ...current[0],
+              tamanho: "",
+              cor: "",
+              sabor: "",
+              barcode: "",
+              estoque: "0",
+            }
+          : createVariation()),
         id: Math.max(...current.map((variation) => variation.id), 0) + 1,
       },
     ]);
@@ -431,11 +440,15 @@ export function ProductModal({
     );
 
     const products = parsedVariations.map(
-      (variation): NewProductInput | Product => ({
-        ...(product ? { id: product.id } : {}),
+      (variation, index): NewProductInput | Product => ({
+        ...(product && index === 0 ? { id: product.id } : {}),
         nome: normalizeProductName(nome),
-        sku: variation.barcodeValue || product?.sku,
-        barcode: variation.barcodeValue || product?.barcode || product?.sku,
+        sku:
+          variation.barcodeValue ||
+          (product && index === 0 ? product.sku : undefined),
+        barcode:
+          variation.barcodeValue ||
+          (product && index === 0 ? product.barcode || product.sku : undefined),
         profit_margin: variation.margemNumber,
         category_id: Number(categoryId),
         categoria: selectedCategory?.nome,
@@ -840,19 +853,19 @@ export function ProductModal({
                 <div>
                   <h3 className="font-bold">Variações e estoque</h3>
                   <p className="text-sm text-slate-500">
-                    Deixe tamanho, cor e sabor vazios para um produto simples.
+                    {product
+                      ? "Edite o produto atual ou adicione novas variações para vender separadamente."
+                      : "Deixe tamanho, cor e sabor vazios para um produto simples."}
                   </p>
                 </div>
-                {!product && (
-                  <button
-                    type="button"
-                    onClick={addVariation}
-                    className="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#8A0EEA]"
-                  >
-                    <Plus size={17} />
-                    Adicionar variação
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={addVariation}
+                  className="flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium text-[#8A0EEA]"
+                >
+                  <Plus size={17} />
+                  Adicionar variação
+                </button>
               </div>
 
               <div className="mt-4 space-y-3">
@@ -863,9 +876,13 @@ export function ProductModal({
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <span className="text-sm font-semibold">
-                        {product ? "Produto" : `Variação ${index + 1}`}
+                        {product
+                          ? index === 0
+                            ? "Produto atual"
+                            : `Nova variação ${index}`
+                          : `Variação ${index + 1}`}
                       </span>
-                      {!product && variations.length > 1 && (
+                      {variations.length > 1 && (!product || index > 0) && (
                         <button
                           type="button"
                           onClick={() =>
@@ -1053,7 +1070,9 @@ export function ProductModal({
                   {saving
                     ? "Salvando..."
                     : product
-                      ? "Salvar"
+                      ? variations.length > 1
+                        ? `Salvar produto + ${variations.length - 1} ${variations.length - 1 === 1 ? "variação" : "variações"}`
+                        : "Salvar"
                       : `Salvar ${variations.length} ${variations.length === 1 ? "produto" : "variações"}`}
                 </button>
               </div>

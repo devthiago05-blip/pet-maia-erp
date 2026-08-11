@@ -8,31 +8,48 @@ import { toast } from "sonner";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { GroomingPlanModal } from "@/components/services/GroomingPlanModal";
+import { GroomingPlanSubscriptionModal } from "@/components/services/GroomingPlanSubscriptionModal";
+import { GroomingPlanSubscriptionTable } from "@/components/services/GroomingPlanSubscriptionTable";
 import { GroomingPlanTable } from "@/components/services/GroomingPlanTable";
 import { ServiceModal } from "@/components/services/ServiceModal";
 import { ServiceTable } from "@/components/services/ServiceTable";
 import { useMountEffect } from "@/hooks/useMountEffect";
-import { formatCurrency } from "@/lib/formatters";
+import { formatCurrency, formatDate } from "@/lib/formatters";
+import { fetchPets } from "@/services/pets";
 import {
   createGroomingPlan,
+  createGroomingPlanSubscription,
+  createGroomingPlanUsage,
   createService,
   deleteGroomingPlan,
+  deleteGroomingPlanSubscription,
+  deleteGroomingPlanUsage,
   deleteService,
   fetchGroomingPlans,
+  fetchGroomingPlanSubscriptions,
   fetchServices,
   updateGroomingPlan,
+  updateGroomingPlanSubscription,
   updateService,
 } from "@/services/services";
 import type {
   GroomingPlan,
+  GroomingPlanSubscription,
   NewGroomingPlanInput,
+  NewGroomingPlanSubscriptionInput,
+  NewGroomingPlanUsageInput,
   NewServiceInput,
+  Pet,
   Service,
 } from "@/types/domain";
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [plans, setPlans] = useState<GroomingPlan[]>([]);
+  const [subscriptions, setSubscriptions] = useState<
+    GroomingPlanSubscription[]
+  >([]);
+  const [pets, setPets] = useState<Pet[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -67,9 +84,37 @@ export default function ServicesPage() {
     setPlans(data || []);
   }
 
+  async function loadSubscriptions() {
+    const { data, error } = await fetchGroomingPlanSubscriptions();
+
+    if (error) {
+      console.error(error);
+      setLoadError("Não foi possível carregar as assinaturas dos planos.");
+      setSubscriptions([]);
+      return;
+    }
+
+    setSubscriptions(data || []);
+  }
+
+  async function loadPets() {
+    const { data, error } = await fetchPets();
+
+    if (error) {
+      console.error(error);
+      setLoadError("Não foi possível carregar os pets para os planos.");
+      setPets([]);
+      return;
+    }
+
+    setPets(data || []);
+  }
+
   useMountEffect(() => {
     loadServices();
     loadPlans();
+    loadSubscriptions();
+    loadPets();
   });
 
   async function handleCreateService(newService: NewServiceInput) {
@@ -150,6 +195,73 @@ export default function ServicesPage() {
 
     setPlans((currentPlans) => currentPlans.filter((plan) => plan.id !== id));
     toast.success("Plano excluído com sucesso!");
+  }
+
+  async function handleSaveSubscription(
+    input: NewGroomingPlanSubscriptionInput,
+    subscriptionId?: number,
+  ) {
+    const { error } = subscriptionId
+      ? await updateGroomingPlanSubscription(subscriptionId, input)
+      : await createGroomingPlanSubscription(input);
+
+    if (error) {
+      console.error(error);
+      toast.error(
+        error.message.includes("active_pet")
+          ? "Este pet já possui um plano ativo."
+          : "Erro ao salvar assinatura do plano",
+      );
+      return;
+    }
+
+    await loadSubscriptions();
+    toast.success(
+      subscriptionId
+        ? "Assinatura atualizada com sucesso!"
+        : "Assinatura criada com sucesso!",
+    );
+  }
+
+  async function handleDeleteSubscription(id: number) {
+    const { error } = await deleteGroomingPlanSubscription(id);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir assinatura");
+      return;
+    }
+
+    setSubscriptions((currentSubscriptions) =>
+      currentSubscriptions.filter((subscription) => subscription.id !== id),
+    );
+    toast.success("Assinatura excluída com sucesso!");
+  }
+
+  async function handleRegisterUsage(input: NewGroomingPlanUsageInput) {
+    const { error } = await createGroomingPlanUsage(input);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao registrar uso do plano");
+      return;
+    }
+
+    await loadSubscriptions();
+    toast.success("Uso registrado com sucesso!");
+  }
+
+  async function handleDeleteUsage(id: number) {
+    const { error } = await deleteGroomingPlanUsage(id);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir uso");
+      return;
+    }
+
+    await loadSubscriptions();
+    toast.success("Uso excluído com sucesso!");
   }
 
   function handlePrintServices() {
@@ -244,11 +356,47 @@ export default function ServicesPage() {
                   onDelete={handleDeletePlan}
                 />
               </section>
+
+              <section className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Assinaturas dos planos
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      Vincule o pet ao plano e acompanhe banhos, benefícios e
+                      vencimento.
+                    </p>
+                  </div>
+
+                  <GroomingPlanSubscriptionModal
+                    plans={plans}
+                    pets={pets}
+                    triggerLabel="Vincular pet ao plano"
+                    title="Nova assinatura de plano"
+                    onSave={handleSaveSubscription}
+                  />
+                </div>
+
+                <GroomingPlanSubscriptionTable
+                  subscriptions={subscriptions}
+                  plans={plans}
+                  pets={pets}
+                  onUpdate={handleSaveSubscription}
+                  onDelete={handleDeleteSubscription}
+                  onRegisterUsage={handleRegisterUsage}
+                  onDeleteUsage={handleDeleteUsage}
+                />
+              </section>
             </>
           )}
         </div>
 
-        <ServicesPrintView services={services} plans={plans} />
+        <ServicesPrintView
+          services={services}
+          plans={plans}
+          subscriptions={subscriptions}
+        />
       </main>
     </div>
   );
@@ -257,9 +405,11 @@ export default function ServicesPage() {
 function ServicesPrintView({
   services,
   plans,
+  subscriptions,
 }: {
   services: Service[];
   plans: GroomingPlan[];
+  subscriptions: GroomingPlanSubscription[];
 }) {
   const printedAt = new Date().toLocaleString("pt-BR");
 
@@ -345,6 +495,61 @@ function ServicesPrintView({
                 <td className="border p-2">
                   {plan.active ? "Ativo" : "Inativo"}
                 </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      <h2 className="mb-3 mt-8 text-xl font-bold text-slate-900">
+        Assinaturas dos planos
+      </h2>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Pet</th>
+            <th className="border p-2">Tutor</th>
+            <th className="border p-2">Plano</th>
+            <th className="border p-2">Valor</th>
+            <th className="border p-2">Banhos/mês</th>
+            <th className="border p-2">Benefícios</th>
+            <th className="border p-2">Vencimento</th>
+            <th className="border p-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {subscriptions.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={8}>
+                Nenhuma assinatura cadastrada.
+              </td>
+            </tr>
+          ) : (
+            subscriptions.map((subscription) => (
+              <tr key={subscription.id}>
+                <td className="border p-2">
+                  {subscription.pets?.nome || "-"}
+                </td>
+                <td className="border p-2">
+                  {subscription.pets?.tutors?.nome || "-"}
+                </td>
+                <td className="border p-2">
+                  {subscription.grooming_plans?.name || "-"}
+                </td>
+                <td className="border p-2">
+                  {formatCurrency(subscription.monthly_price)}
+                </td>
+                <td className="border p-2">
+                  {subscription.baths_per_month}
+                </td>
+                <td className="border p-2">
+                  {subscription.free_benefits?.join(", ") || "-"}
+                </td>
+                <td className="border p-2">
+                  {formatDate(subscription.next_billing_date)}
+                </td>
+                <td className="border p-2">{subscription.status}</td>
               </tr>
             ))
           )}

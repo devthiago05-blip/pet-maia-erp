@@ -65,6 +65,7 @@ export interface Pet {
   bath_reminder_dismissed_until?: string | null;
   created_at?: string;
   tutors?: {
+    id?: number;
     nome: string;
     telefone?: string;
     cpf?: string | null;
@@ -683,6 +684,55 @@ export interface GroomingPlan {
   updated_at?: string;
 }
 
+export type GroomingPlanSubscriptionStatus =
+  | "Ativo"
+  | "Pausado"
+  | "Cancelado"
+  | "Encerrado";
+
+export type GroomingPlanUsageType = "Banho" | "Benefício";
+
+export interface GroomingPlanUsage {
+  id: number;
+  subscription_id: number;
+  appointment_id?: number | null;
+  usage_date: string;
+  usage_type: GroomingPlanUsageType;
+  benefit_name?: string | null;
+  quantity: number;
+  notes?: string | null;
+  created_at?: string;
+}
+
+export interface GroomingPlanSubscription {
+  id: number;
+  plan_id: number;
+  tutor_id?: number | null;
+  pet_id: number;
+  start_date: string;
+  end_date?: string | null;
+  next_billing_date?: string | null;
+  status: GroomingPlanSubscriptionStatus;
+  monthly_price: number;
+  baths_per_month: number;
+  free_benefits: string[];
+  notes?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  grooming_plans?: Pick<GroomingPlan, "id" | "name"> | null;
+  pets?: {
+    id: number;
+    nome: string;
+    tutor_id?: number | null;
+    tutors?: {
+      id?: number;
+      nome: string;
+      telefone?: string | null;
+    } | null;
+  } | null;
+  grooming_plan_usage?: GroomingPlanUsage[];
+}
+
 export interface CompletedAppointmentService {
   serviceName: string;
   price: number;
@@ -1070,6 +1120,30 @@ export interface NewGroomingPlanInput {
   freeBenefits: string[];
   notes?: string | null;
   active: boolean;
+}
+
+export interface NewGroomingPlanSubscriptionInput {
+  planId: number;
+  tutorId?: number | null;
+  petId: number;
+  startDate: string;
+  endDate?: string | null;
+  nextBillingDate?: string | null;
+  status: GroomingPlanSubscriptionStatus;
+  monthlyPrice: number;
+  bathsPerMonth: number;
+  freeBenefits: string[];
+  notes?: string | null;
+}
+
+export interface NewGroomingPlanUsageInput {
+  subscriptionId: number;
+  appointmentId?: number | null;
+  usageDate: string;
+  usageType: GroomingPlanUsageType;
+  benefitName?: string | null;
+  quantity: number;
+  notes?: string | null;
 }
 
 export interface NewTutorInput {

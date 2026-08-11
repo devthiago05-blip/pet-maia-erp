@@ -3,7 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import type { CompletedAppointmentService, Service } from "@/types/domain";
+import type {
+  CompletedAppointmentService,
+  GroomingPlanSubscription,
+  Service,
+} from "@/types/domain";
 
 interface FinishAppointmentModalProps {
   pet: string;
@@ -11,6 +15,7 @@ interface FinishAppointmentModalProps {
   servico: string;
   services: Service[];
   previousServicePrices?: Record<string, number>;
+  planSubscription?: GroomingPlanSubscription | null;
   onClose: () => void;
   onSave: (dados: {
     valor: number;
@@ -18,6 +23,11 @@ interface FinishAppointmentModalProps {
     servicoDescricao: string;
     observacoes?: string;
     services: CompletedAppointmentService[];
+    planUsage?: {
+      subscriptionId: number;
+      benefitNames: string[];
+      useBath: boolean;
+    };
   }) => Promise<void> | void;
 }
 
@@ -61,12 +71,100 @@ function getSuggestedServicePrice(
   return getServicePriceByPetSize(service, porte);
 }
 
+function getCurrentMonthRange() {
+  const today = new Date();
+  const start = new Date(today.getFullYear(), today.getMonth(), 1);
+  const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+
+  const toDateString = (date: Date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0",
+    )}-${String(date.getDate()).padStart(2, "0")}`;
+
+  return {
+    end: toDateString(end),
+    label: start.toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    }),
+    start: toDateString(start),
+  };
+}
+
+function getPlanMonthlyUsages(subscription?: GroomingPlanSubscription | null) {
+  if (!subscription) {
+    return [];
+  }
+
+  const range = getCurrentMonthRange();
+
+  return (subscription.grooming_plan_usage || []).filter((usage) => {
+    return usage.usage_date >= range.start && usage.usage_date <= range.end;
+  });
+}
+
+function getPlanSummary(subscription?: GroomingPlanSubscription | null) {
+  const monthlyUsages = getPlanMonthlyUsages(subscription);
+  const bathsUsed = monthlyUsages
+    .filter((usage) => usage.usage_type === "Banho")
+    .reduce((total, usage) => total + Number(usage.quantity || 0), 0);
+  const benefitsUsed = monthlyUsages
+    .filter((usage) => usage.usage_type === "Benefício")
+    .reduce((total, usage) => total + Number(usage.quantity || 0), 0);
+  const bathsTotal = Number(subscription?.baths_per_month || 0);
+  const benefitsTotal = subscription?.free_benefits?.length || 0;
+
+  return {
+    bathsRemaining: Math.max(bathsTotal - bathsUsed, 0),
+    bathsTotal,
+    bathsUsed,
+    benefitsRemaining: Math.max(benefitsTotal - benefitsUsed, 0),
+    benefitsTotal,
+    benefitsUsed,
+  };
+}
+
+function normalizeBenefitForMatch(value: string) {
+  return normalizeText(value).replace(/^\d+\s*/, "").trim();
+}
+
+function isBathService(service: Service) {
+  return normalizeText(service.nome).includes("banho");
+}
+
+function serviceMatchesBenefit(service: Service, benefit: string) {
+  const serviceName = normalizeText(service.nome);
+  const benefitName = normalizeBenefitForMatch(benefit);
+
+  return (
+    Boolean(serviceName && benefitName) &&
+    (serviceName.includes(benefitName) || benefitName.includes(serviceName))
+  );
+}
+
+function isServiceCoveredByPlan(
+  service: Service,
+  usePlan: boolean,
+  selectedPlanBenefits: string[],
+) {
+  if (!usePlan) {
+    return false;
+  }
+
+  return (
+    isBathService(service) ||
+    selectedPlanBenefits.some((benefit) => serviceMatchesBenefit(service, benefit))
+  );
+}
+
 export function FinishAppointmentModal({
   pet,
   porte,
   servico,
   services,
   previousServicePrices = {},
+  planSubscription,
   onClose,
   onSave,
 }: FinishAppointmentModalProps) {
@@ -76,8 +174,18 @@ export function FinishAppointmentModal({
   );
   const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [observacoes, setObservacoes] = useState("");
+  const [usePlan, setUsePlan] = useState(false);
+  const [selectedPlanBenefits, setSelectedPlanBenefits] = useState<string[]>(
+    [],
+  );
   const [saving, setSaving] = useState(false);
   const isGiftPayment = formaPagamento === "Brinde";
+  const planSummary = useMemo(
+    () => getPlanSummary(planSubscription),
+    [planSubscription],
+  );
+  const hasBathBalance = planSummary.bathsRemaining > 0;
+  const currentMonth = getCurrentMonthRange();
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -93,6 +201,9 @@ export function FinishAppointmentModal({
           scheduledServiceNames.has(normalizeText(service.nome)),
         )
         .map((service) => service.id);
+      const initialSelectedServices = services.filter((service) =>
+        initialSelectedIds.includes(service.id),
+      );
 
       const initialPrices = services.reduce<Record<number, string>>(
         (prices, service) => {
@@ -106,10 +217,18 @@ export function FinishAppointmentModal({
 
       setSelectedServiceIds(initialSelectedIds);
       setServicePrices(initialPrices);
+      setUsePlan(Boolean(planSubscription && hasBathBalance));
+      setSelectedPlanBenefits(
+        planSubscription?.free_benefits?.filter((benefit) =>
+          initialSelectedServices.some((service) =>
+            serviceMatchesBenefit(service, benefit),
+          ),
+        ) || [],
+      );
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [services, servico, porte, previousServicePrices]);
+  }, [services, servico, porte, previousServicePrices, planSubscription, hasBathBalance]);
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(service.id)),
@@ -119,12 +238,18 @@ export function FinishAppointmentModal({
   const servicesTotal = useMemo(
     () =>
       selectedServices.reduce((sum, service) => {
+        if (isServiceCoveredByPlan(service, usePlan, selectedPlanBenefits)) {
+          return sum;
+        }
+
         const customPrice = Number(servicePrices[service.id] || 0);
         return sum + customPrice;
       }, 0),
-    [selectedServices, servicePrices],
+    [selectedServices, servicePrices, usePlan, selectedPlanBenefits],
   );
   const total = isGiftPayment ? 0 : servicesTotal;
+  const isPlanPayment = usePlan && total === 0 && !isGiftPayment;
+  const usesPlanBath = usePlan && selectedServices.some(isBathService);
 
   const hasValidSize = ["pequeno", "medio", "grande"].includes(
     normalizeText(porte || ""),
@@ -156,6 +281,16 @@ export function FinishAppointmentModal({
     }));
   }
 
+  function handleTogglePlanBenefit(benefit: string) {
+    setSelectedPlanBenefits((currentBenefits) => {
+      if (currentBenefits.includes(benefit)) {
+        return currentBenefits.filter((currentBenefit) => currentBenefit !== benefit);
+      }
+
+      return [...currentBenefits, benefit];
+    });
+  }
+
   async function handleSave() {
     if (!hasValidSize) {
       toast.error("Informe o porte do pet para calcular os valores");
@@ -170,6 +305,10 @@ export function FinishAppointmentModal({
     const hasInvalidPrice =
       !isGiftPayment &&
       selectedServices.some((service) => {
+        if (isServiceCoveredByPlan(service, usePlan, selectedPlanBenefits)) {
+          return false;
+        }
+
         const price = Number(servicePrices[service.id]);
         return (
           !servicePrices[service.id]?.trim() ||
@@ -183,28 +322,55 @@ export function FinishAppointmentModal({
       return;
     }
 
-    if (!isGiftPayment && total <= 0) {
+    if (!isGiftPayment && !isPlanPayment && total <= 0) {
       toast.error("O valor total precisa ser maior que zero");
       return;
     }
 
     const completedServices = selectedServices.map((service) => ({
       serviceName: service.nome,
-      price: isGiftPayment ? 0 : Number(servicePrices[service.id] || 0),
+      price:
+        isGiftPayment ||
+        isServiceCoveredByPlan(service, usePlan, selectedPlanBenefits)
+          ? 0
+          : Number(servicePrices[service.id] || 0),
     }));
 
     const servicoDescricao = completedServices
       .map((service) => service.serviceName)
       .join(" + ");
+    const finalPaymentMethod = isPlanPayment ? "Plano mensal" : formaPagamento;
+    const planObservation =
+      usePlan && planSubscription
+        ? [
+            `Plano mensal usado: ${planSubscription.grooming_plans?.name || "Plano"}`,
+            selectedPlanBenefits.length > 0
+              ? `Benefícios: ${selectedPlanBenefits.join(", ")}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(" | ")
+        : "";
+    const finalObservations = [observacoes.trim(), planObservation]
+      .filter(Boolean)
+      .join("\n");
 
     setSaving(true);
 
     await onSave({
       valor: total,
-      formaPagamento,
+      formaPagamento: finalPaymentMethod,
       servicoDescricao,
-      observacoes: observacoes.trim() || undefined,
+      observacoes: finalObservations || undefined,
       services: completedServices,
+      planUsage:
+        usePlan && planSubscription && (usesPlanBath || selectedPlanBenefits.length > 0)
+          ? {
+              subscriptionId: planSubscription.id,
+              benefitNames: selectedPlanBenefits,
+              useBath: usesPlanBath,
+            }
+          : undefined,
     });
 
     setSaving(false);
@@ -254,6 +420,71 @@ export function FinishAppointmentModal({
             </div>
           )}
 
+          {planSubscription && (
+            <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-bold text-emerald-900">
+                    Plano ativo:{" "}
+                    {planSubscription.grooming_plans?.name || "Plano mensal"}
+                  </h3>
+                  <p className="mt-1 text-sm text-emerald-800">
+                    {currentMonth.label}: {planSummary.bathsUsed}/
+                    {planSummary.bathsTotal} banho(s) usados · restam{" "}
+                    {planSummary.bathsRemaining}. Benefícios:{" "}
+                    {planSummary.benefitsUsed}/{planSummary.benefitsTotal}{" "}
+                    usados · restam {planSummary.benefitsRemaining}.
+                  </p>
+                </div>
+
+                <label className="flex shrink-0 items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-emerald-800">
+                  <input
+                    type="checkbox"
+                    checked={usePlan}
+                    disabled={!hasBathBalance}
+                    onChange={(event) => setUsePlan(event.target.checked)}
+                    className="h-4 w-4 accent-emerald-600"
+                  />
+                  Usar plano mensal
+                </label>
+              </div>
+
+              {!hasBathBalance && (
+                <div className="mt-3 rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
+                  Este plano não tem saldo de banho disponível neste mês.
+                </div>
+              )}
+
+              {usePlan && planSubscription.free_benefits?.length > 0 && (
+                <div className="mt-4">
+                  <p className="mb-2 text-sm font-semibold text-emerald-900">
+                    Benefícios gratuitos usados neste atendimento
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {planSubscription.free_benefits.map((benefit) => (
+                      <label
+                        key={benefit}
+                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold ${
+                          selectedPlanBenefits.includes(benefit)
+                            ? "border-emerald-500 bg-white text-emerald-800"
+                            : "border-emerald-200 bg-emerald-100/70 text-emerald-700"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedPlanBenefits.includes(benefit)}
+                          onChange={() => handleTogglePlanBenefit(benefit)}
+                          className="h-4 w-4 accent-emerald-600"
+                        />
+                        {benefit}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
           {!hasValidSize && (
             <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-700">
               O pet precisa ter porte Pequeno, Médio ou Grande cadastrado para o
@@ -279,6 +510,11 @@ export function FinishAppointmentModal({
               ) : (
                 services.map((service) => {
                   const checked = selectedServiceIds.includes(service.id);
+                  const coveredByPlan = isServiceCoveredByPlan(
+                    service,
+                    usePlan,
+                    selectedPlanBenefits,
+                  );
 
                   return (
                     <div
@@ -301,6 +537,12 @@ export function FinishAppointmentModal({
                           <p className="font-semibold text-slate-800">
                             {service.nome}
                           </p>
+
+                          {coveredByPlan && (
+                            <p className="mt-1 inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                              Coberto pelo plano
+                            </p>
+                          )}
 
                           <p className="text-xs text-slate-500">
                             Pequeno:{" "}
@@ -338,7 +580,7 @@ export function FinishAppointmentModal({
                           min="0"
                           step="0.01"
                           value={
-                            isGiftPayment
+                            isGiftPayment || coveredByPlan
                               ? "0"
                               : servicePrices[service.id] || ""
                           }
@@ -348,7 +590,7 @@ export function FinishAppointmentModal({
                               event.target.value,
                             )
                           }
-                          disabled={!checked || isGiftPayment}
+                          disabled={!checked || isGiftPayment || coveredByPlan}
                           className="w-full rounded-xl border p-3 font-normal disabled:bg-slate-100 disabled:text-slate-400"
                         />
                       </label>
@@ -377,6 +619,21 @@ export function FinishAppointmentModal({
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
               Brinde selecionado: o atendimento será finalizado com valor R$
               0,00 e não ficará pendente para receber.
+            </div>
+          )}
+
+          {isPlanPayment && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              Plano mensal selecionado: o atendimento será finalizado com
+              valor R$ 0,00, o uso será abatido do plano e o financeiro ficará
+              como pago.
+            </div>
+          )}
+
+          {usePlan && !isPlanPayment && !isGiftPayment && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              O plano vai abater banho ou benefícios selecionados. O valor
+              restante será lançado na forma de pagamento escolhida acima.
             </div>
           )}
 

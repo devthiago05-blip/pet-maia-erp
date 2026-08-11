@@ -35,7 +35,12 @@ import {
   fetchFinancialEntriesByAppointmentId,
 } from "@/services/financial";
 import { fetchPets } from "@/services/pets";
-import { fetchServices } from "@/services/services";
+import {
+  createGroomingPlanUsage,
+  deleteGroomingPlanUsageByAppointmentId,
+  fetchActiveGroomingPlanSubscriptionByPet,
+  fetchServices,
+} from "@/services/services";
 import { fetchClinicSettings } from "@/services/settings";
 import { fetchTutors } from "@/services/tutors";
 import type {
@@ -43,7 +48,9 @@ import type {
   ClinicSettings,
   CompletedAppointmentService,
   FinancialEntry,
+  GroomingPlanSubscription,
   NewAppointmentInput,
+  NewGroomingPlanUsageInput,
   Pet,
   PreviousAppointmentService,
   Service,
@@ -199,6 +206,8 @@ export default function AgendaPage() {
   const [previousServicePrices, setPreviousServicePrices] = useState<
     Record<string, number>
   >({});
+  const [activePlanSubscription, setActivePlanSubscription] =
+    useState<GroomingPlanSubscription | null>(null);
   const [completedReceipt, setCompletedReceipt] = useState<{
     appointment: Appointment;
     valor: number;
@@ -484,20 +493,34 @@ export default function AgendaPage() {
 
   async function handleOpenFinishAppointment(appointment: Appointment) {
     setPreviousServicePrices({});
+    setActivePlanSubscription(null);
 
     if (appointment.pet_id) {
-      const { data, error } = await fetchPreviousAppointmentServicesByPet(
-        appointment.pet_id,
-        appointment.id,
-      );
+      const [previousServicesResponse, planSubscriptionResponse] =
+        await Promise.all([
+          fetchPreviousAppointmentServicesByPet(
+            appointment.pet_id,
+            appointment.id,
+          ),
+          fetchActiveGroomingPlanSubscriptionByPet(appointment.pet_id),
+        ]);
 
-      if (error) {
-        console.error(error);
+      if (previousServicesResponse.error) {
+        console.error(previousServicesResponse.error);
         toast.warning(
           "Não foi possível buscar o valor anterior. Vou usar a tabela padrão.",
         );
       } else {
-        setPreviousServicePrices(buildPreviousServicePriceMap(data || []));
+        setPreviousServicePrices(
+          buildPreviousServicePriceMap(previousServicesResponse.data || []),
+        );
+      }
+
+      if (planSubscriptionResponse.error) {
+        console.error(planSubscriptionResponse.error);
+        toast.warning("Não foi possível buscar o plano ativo deste pet.");
+      } else {
+        setActivePlanSubscription(planSubscriptionResponse.data || null);
       }
     }
 
@@ -510,12 +533,18 @@ export default function AgendaPage() {
     servicoDescricao,
     observacoes,
     services: completedServices,
+    planUsage,
   }: {
     valor: number;
     formaPagamento: string;
     servicoDescricao: string;
     observacoes?: string;
     services: CompletedAppointmentService[];
+    planUsage?: {
+      subscriptionId: number;
+      benefitNames: string[];
+      useBath: boolean;
+    };
   }) {
     if (!appointmentToFinish) {
       return;
@@ -527,6 +556,32 @@ export default function AgendaPage() {
     const descricaoCompleta = observacoes
       ? `${servicoDescricao} | Obs: ${observacoes}`
       : servicoDescricao;
+    const planUsageInputs: NewGroomingPlanUsageInput[] = [];
+
+    if (planUsage) {
+      if (planUsage.useBath) {
+        planUsageInputs.push({
+          appointmentId: completedAppointment.id,
+          notes: "Uso automático ao finalizar agendamento.",
+          quantity: 1,
+          subscriptionId: planUsage.subscriptionId,
+          usageDate: completedAppointment.data,
+          usageType: "Banho",
+        });
+      }
+
+      planUsage.benefitNames.forEach((benefitName) => {
+        planUsageInputs.push({
+          appointmentId: completedAppointment.id,
+          benefitName,
+          notes: "Benefício usado ao finalizar agendamento.",
+          quantity: 1,
+          subscriptionId: planUsage.subscriptionId,
+          usageDate: completedAppointment.data,
+          usageType: "Benefício",
+        });
+      });
+    }
 
     const { error } = await createAppointmentFinancialEntry(
       completedAppointment.id,
@@ -560,6 +615,43 @@ export default function AgendaPage() {
       return;
     }
 
+    if (planUsageInputs.length > 0) {
+      const { error: usageCleanupError } =
+        await deleteGroomingPlanUsageByAppointmentId(completedAppointment.id);
+
+      if (usageCleanupError) {
+        console.error(usageCleanupError);
+
+        await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+        await deleteAppointmentServicesByAppointmentId(completedAppointment.id);
+
+        toast.error(
+          "Erro ao preparar o abatimento do plano. O financeiro e os serviços foram desfeitos.",
+        );
+        return;
+      }
+
+      for (const usageInput of planUsageInputs) {
+        const { error: planUsageError } =
+          await createGroomingPlanUsage(usageInput);
+
+        if (planUsageError) {
+          console.error(planUsageError);
+
+          await deleteGroomingPlanUsageByAppointmentId(completedAppointment.id);
+          await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
+          await deleteAppointmentServicesByAppointmentId(
+            completedAppointment.id,
+          );
+
+          toast.error(
+            "Erro ao abater o plano mensal. O financeiro e os serviços foram desfeitos.",
+          );
+          return;
+        }
+      }
+    }
+
     const { error: statusError } = await updateAppointmentStatus(
       completedAppointment.id,
       "Finalizado",
@@ -568,6 +660,7 @@ export default function AgendaPage() {
     if (statusError) {
       console.error(statusError);
 
+      await deleteGroomingPlanUsageByAppointmentId(completedAppointment.id);
       await deleteFinancialEntriesByAppointmentId(completedAppointment.id);
       await deleteAppointmentServicesByAppointmentId(completedAppointment.id);
 
@@ -588,6 +681,7 @@ export default function AgendaPage() {
     });
 
     setAppointmentToFinish(null);
+    setActivePlanSubscription(null);
     await loadAppointments();
   }
   async function handleViewReceipt(appointment: Appointment) {
@@ -840,7 +934,11 @@ export default function AgendaPage() {
             servico={appointmentToFinish.servico}
             services={services}
             previousServicePrices={previousServicePrices}
-            onClose={() => setAppointmentToFinish(null)}
+            planSubscription={activePlanSubscription}
+            onClose={() => {
+              setAppointmentToFinish(null);
+              setActivePlanSubscription(null);
+            }}
             onSave={handleFinishAppointment}
           />
         )}

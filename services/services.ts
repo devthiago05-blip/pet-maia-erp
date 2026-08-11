@@ -10,6 +10,35 @@ import type {
   Service,
 } from "@/types/domain";
 
+const groomingPlanSubscriptionSelect = `
+  *,
+  grooming_plans!grooming_plan_subscriptions_plan_id_fkey (
+    id,
+    name
+  ),
+  pets!grooming_plan_subscriptions_pet_id_fkey (
+    id,
+    nome,
+    tutor_id,
+    tutors!pets_tutor_id_fkey (
+      id,
+      nome,
+      telefone
+    )
+  ),
+  grooming_plan_usage!grooming_plan_usage_subscription_id_fkey (
+    id,
+    subscription_id,
+    appointment_id,
+    usage_date,
+    usage_type,
+    benefit_name,
+    quantity,
+    notes,
+    created_at
+  )
+`;
+
 export async function fetchServices() {
   return supabase.from("services").select("*").order("nome");
 }
@@ -77,39 +106,19 @@ export async function deleteGroomingPlan(id: number) {
 export async function fetchGroomingPlanSubscriptions() {
   return supabase
     .from("grooming_plan_subscriptions")
-    .select(
-      `
-        *,
-        grooming_plans!grooming_plan_subscriptions_plan_id_fkey (
-          id,
-          name
-        ),
-        pets!grooming_plan_subscriptions_pet_id_fkey (
-          id,
-          nome,
-          tutor_id,
-          tutors!pets_tutor_id_fkey (
-            id,
-            nome,
-            telefone
-          )
-        ),
-        grooming_plan_usage!grooming_plan_usage_subscription_id_fkey (
-          id,
-          subscription_id,
-          appointment_id,
-          usage_date,
-          usage_type,
-          benefit_name,
-          quantity,
-          notes,
-          created_at
-        )
-      `,
-    )
+    .select(groomingPlanSubscriptionSelect)
     .order("status", { ascending: true })
     .order("next_billing_date", { ascending: true, nullsFirst: false })
     .returns<GroomingPlanSubscription[]>();
+}
+
+export async function fetchActiveGroomingPlanSubscriptionByPet(petId: number) {
+  return supabase
+    .from("grooming_plan_subscriptions")
+    .select(groomingPlanSubscriptionSelect)
+    .eq("pet_id", petId)
+    .eq("status", "Ativo")
+    .maybeSingle<GroomingPlanSubscription>();
 }
 
 function buildSubscriptionPayload(input: NewGroomingPlanSubscriptionInput) {
@@ -168,6 +177,15 @@ export async function createGroomingPlanUsage(
 
 export async function deleteGroomingPlanUsage(id: number) {
   return supabase.from("grooming_plan_usage").delete().eq("id", id);
+}
+
+export async function deleteGroomingPlanUsageByAppointmentId(
+  appointmentId: number,
+) {
+  return supabase
+    .from("grooming_plan_usage")
+    .delete()
+    .eq("appointment_id", appointmentId);
 }
 
 export function sortGroomingPlanUsage(usages: GroomingPlanUsage[]) {

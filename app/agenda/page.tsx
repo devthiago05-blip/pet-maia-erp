@@ -105,6 +105,22 @@ function sortAppointmentsForPrint(appointments: Appointment[]) {
   });
 }
 
+function formatDateLabel(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return value.split("-").reverse().join("/");
+}
+
+function getDateRangeLabel(startDate: string, endDate: string) {
+  if (startDate && endDate && startDate !== endDate) {
+    return `${formatDateLabel(startDate)} a ${formatDateLabel(endDate)}`;
+  }
+
+  return formatDateLabel(startDate || endDate || getTodayDateString());
+}
+
 function buildPreviousServicePriceMap(rows: PreviousAppointmentService[]) {
   const sortedRows = [...rows].sort((first, second) => {
     const firstAppointment = first.appointments;
@@ -265,6 +281,15 @@ export default function AgendaPage() {
       return matchesDate && matchesSearch && matchesStatus;
     });
   }, [appointments, filterStatus, kanbanDate, search]);
+
+  const isPeriodFilterActive = Boolean(
+    startDate && endDate && startDate !== endDate,
+  );
+
+  const sortedFilteredAppointments = useMemo(
+    () => sortAppointmentsForPrint(filteredAppointments),
+    [filteredAppointments],
+  );
 
   const preselectedPet = pets.find(
     (pet) => String(pet.id) === preselectedPetId,
@@ -618,11 +643,16 @@ export default function AgendaPage() {
   const appointmentsToPrint = useMemo(
     () =>
       sortAppointmentsForPrint(
-        viewMode === "kanban"
+        viewMode === "kanban" && !isPeriodFilterActive
           ? filteredKanbanAppointments
           : filteredAppointments,
       ),
-    [filteredAppointments, filteredKanbanAppointments, viewMode],
+    [
+      filteredAppointments,
+      filteredKanbanAppointments,
+      isPeriodFilterActive,
+      viewMode,
+    ],
   );
 
   return (
@@ -741,27 +771,57 @@ export default function AgendaPage() {
           {viewMode === "kanban" ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-                Grade exibindo apenas os agendamentos de{" "}
-                {kanbanDate.split("-").reverse().join("/")}. Arraste um card
-                para outra linha para alterar o horario.
+                {isPeriodFilterActive ? (
+                  <>
+                    Período exibindo os agendamentos de{" "}
+                    {getDateRangeLabel(startDate, endDate)}
+                    {filterStatus !== "Todos"
+                      ? ` com status ${filterStatus}`
+                      : ""}
+                    . A grade por horário fica disponível quando você seleciona
+                    apenas um dia.
+                  </>
+                ) : (
+                  <>
+                    Grade exibindo apenas os agendamentos de{" "}
+                    {formatDateLabel(kanbanDate)}. Arraste um card para outra
+                    linha para alterar o horário.
+                  </>
+                )}
               </div>
 
-              <KanbanBoard
-                appointments={filteredKanbanAppointments}
-                onFinish={(appointment) =>
-                  void handleOpenFinishAppointment(appointment)
-                }
-                onViewReceipt={handleViewReceipt}
-                onConfirm={handleConfirmAppointment}
-                onCancel={handleCancelAppointment}
-                onDelete={handleDeleteAppointment}
-                onEdit={handleEditAppointment}
-                onReschedule={handleRescheduleAppointment}
-              />
+              {isPeriodFilterActive ? (
+                <AppointmentTable
+                  appointments={sortedFilteredAppointments}
+                  showDate
+                  emptyMessage="Nenhum agendamento encontrado para este período."
+                  onFinish={(appointment) =>
+                    void handleOpenFinishAppointment(appointment)
+                  }
+                  onViewReceipt={handleViewReceipt}
+                  onConfirm={handleConfirmAppointment}
+                  onDelete={handleDeleteAppointment}
+                  onEdit={handleEditAppointment}
+                />
+              ) : (
+                <KanbanBoard
+                  appointments={filteredKanbanAppointments}
+                  onFinish={(appointment) =>
+                    void handleOpenFinishAppointment(appointment)
+                  }
+                  onViewReceipt={handleViewReceipt}
+                  onConfirm={handleConfirmAppointment}
+                  onCancel={handleCancelAppointment}
+                  onDelete={handleDeleteAppointment}
+                  onEdit={handleEditAppointment}
+                  onReschedule={handleRescheduleAppointment}
+                />
+              )}
             </div>
           ) : (
             <AppointmentTable
-              appointments={filteredAppointments}
+              appointments={sortedFilteredAppointments}
+              showDate={Boolean(startDate || endDate)}
               onFinish={(appointment) =>
                 void handleOpenFinishAppointment(appointment)
               }
@@ -800,8 +860,8 @@ export default function AgendaPage() {
         <AppointmentPrintView
           appointments={appointmentsToPrint}
           title={
-            viewMode === "kanban"
-              ? `Agendamentos de ${kanbanDate.split("-").reverse().join("/")}`
+            viewMode === "kanban" && !isPeriodFilterActive
+              ? `Agendamentos de ${formatDateLabel(kanbanDate)}`
               : "Agendamentos filtrados"
           }
         />

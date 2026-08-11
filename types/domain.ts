@@ -671,6 +671,18 @@ export interface Service {
   preco_grande: number;
 }
 
+export interface GroomingPlan {
+  id: number;
+  name: string;
+  monthly_price: number;
+  baths_per_month: number;
+  free_benefits: string[];
+  notes?: string | null;
+  active: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface CompletedAppointmentService {
   serviceName: string;
   price: number;
@@ -1049,6 +1061,15 @@ export interface NewServiceInput {
   preco_pequeno: number;
   preco_medio: number;
   preco_grande: number;
+}
+
+export interface NewGroomingPlanInput {
+  name: string;
+  monthlyPrice: number;
+  bathsPerMonth: number;
+  freeBenefits: string[];
+  notes?: string | null;
+  active: boolean;
 }
 
 export interface NewTutorInput {

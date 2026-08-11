@@ -11,6 +11,8 @@ import type { Appointment } from "@/types/domain";
 
 interface AppointmentTableProps {
   appointments: Appointment[];
+  emptyMessage?: string;
+  showDate?: boolean;
   onDelete: (id: number) => void;
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
@@ -20,6 +22,8 @@ interface AppointmentTableProps {
 
 export function AppointmentTable({
   appointments,
+  emptyMessage = "Nenhum agendamento encontrado.",
+  showDate = false,
   onDelete,
   onFinish,
   onViewReceipt,
@@ -102,7 +106,7 @@ export function AppointmentTable({
       <div className="space-y-3 md:hidden">
         {appointments.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-            Nenhum agendamento encontrado.
+            {emptyMessage}
           </div>
         ) : (
           appointments.map((appointment) => {
@@ -116,8 +120,13 @@ export function AppointmentTable({
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="text-2xl font-bold text-[#8A0EEA]">
-                      {appointment.hora}
+                      {appointment.hora || "Sem horário"}
                     </p>
+                    {showDate && (
+                      <p className="mt-1 text-sm font-semibold text-slate-500">
+                        {appointment.data.split("-").reverse().join("/")}
+                      </p>
+                    )}
                     <h3 className="mt-1 truncate font-bold text-slate-900">
                       {getAppointmentPetDisplayName(appointment)}
                     </h3>
@@ -161,6 +170,7 @@ export function AppointmentTable({
           <table className="erp-data-table min-w-[980px]">
             <thead className="bg-slate-50">
               <tr>
+                {showDate && <th className="p-3 text-left sm:p-4">Data</th>}
                 <th className="p-3 text-left sm:p-4">Hora</th>
                 <th className="p-3 text-left sm:p-4">Pet</th>
                 <th className="p-3 text-left sm:p-4">Serviço</th>
@@ -174,16 +184,24 @@ export function AppointmentTable({
               {appointments.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={showDate ? 7 : 6}
                     className="p-6 text-center text-sm text-slate-500"
                   >
-                    Nenhum agendamento encontrado.
+                    {emptyMessage}
                   </td>
                 </tr>
               ) : (
                 appointments.map((appointment) => (
                   <tr key={appointment.id} className="border-t">
-                    <td className="p-3 sm:p-4">{appointment.hora}</td>
+                    {showDate && (
+                      <td className="p-3 sm:p-4">
+                        {appointment.data.split("-").reverse().join("/")}
+                      </td>
+                    )}
+
+                    <td className="p-3 sm:p-4">
+                      {appointment.hora || "Sem horário"}
+                    </td>
 
                     <td className="p-3 sm:p-4">
                       {getAppointmentPetDisplayName(appointment)}

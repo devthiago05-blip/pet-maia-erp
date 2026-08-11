@@ -7,20 +7,32 @@ import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { GroomingPlanModal } from "@/components/services/GroomingPlanModal";
+import { GroomingPlanTable } from "@/components/services/GroomingPlanTable";
 import { ServiceModal } from "@/components/services/ServiceModal";
 import { ServiceTable } from "@/components/services/ServiceTable";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import { formatCurrency } from "@/lib/formatters";
 import {
+  createGroomingPlan,
   createService,
+  deleteGroomingPlan,
   deleteService,
+  fetchGroomingPlans,
   fetchServices,
+  updateGroomingPlan,
   updateService,
 } from "@/services/services";
-import type { NewServiceInput, Service } from "@/types/domain";
+import type {
+  GroomingPlan,
+  NewGroomingPlanInput,
+  NewServiceInput,
+  Service,
+} from "@/types/domain";
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
+  const [plans, setPlans] = useState<GroomingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
 
@@ -42,8 +54,22 @@ export default function ServicesPage() {
     setLoading(false);
   }
 
+  async function loadPlans() {
+    const { data, error } = await fetchGroomingPlans();
+
+    if (error) {
+      console.error(error);
+      setLoadError("Não foi possível carregar os planos.");
+      setPlans([]);
+      return;
+    }
+
+    setPlans(data || []);
+  }
+
   useMountEffect(() => {
     loadServices();
+    loadPlans();
   });
 
   async function handleCreateService(newService: NewServiceInput) {
@@ -85,6 +111,45 @@ export default function ServicesPage() {
       currentServices.filter((service) => service.id !== id),
     );
     toast.success("Serviço excluído com sucesso!");
+  }
+
+  async function handleCreatePlan(newPlan: NewGroomingPlanInput) {
+    const { error } = await createGroomingPlan(newPlan);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao salvar plano");
+      return;
+    }
+
+    await loadPlans();
+    toast.success("Plano salvo com sucesso!");
+  }
+
+  async function handleUpdatePlan(plan: GroomingPlan) {
+    const { error } = await updateGroomingPlan(plan);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar plano");
+      return;
+    }
+
+    await loadPlans();
+    toast.success("Plano atualizado com sucesso!");
+  }
+
+  async function handleDeletePlan(id: number) {
+    const { error } = await deleteGroomingPlan(id);
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao excluir plano");
+      return;
+    }
+
+    setPlans((currentPlans) => currentPlans.filter((plan) => plan.id !== id));
+    toast.success("Plano excluído com sucesso!");
   }
 
   function handlePrintServices() {
@@ -145,21 +210,57 @@ export default function ServicesPage() {
               Carregando serviços...
             </div>
           ) : (
-            <ServiceTable
-              services={services}
-              onUpdate={handleUpdateService}
-              onDelete={handleDeleteService}
-            />
+            <>
+              <ServiceTable
+                services={services}
+                onUpdate={handleUpdateService}
+                onDelete={handleDeleteService}
+              />
+
+              <section className="space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900">
+                      Planos mensais
+                    </h2>
+                    <p className="text-sm text-slate-500">
+                      Configure valor, quantidade de banhos e benefícios grátis
+                      do mês.
+                    </p>
+                  </div>
+
+                  <GroomingPlanModal
+                    triggerLabel="Novo plano"
+                    title="Novo plano mensal"
+                    onSave={(plan) =>
+                      handleCreatePlan(plan as NewGroomingPlanInput)
+                    }
+                  />
+                </div>
+
+                <GroomingPlanTable
+                  plans={plans}
+                  onUpdate={handleUpdatePlan}
+                  onDelete={handleDeletePlan}
+                />
+              </section>
+            </>
           )}
         </div>
 
-        <ServicesPrintView services={services} />
+        <ServicesPrintView services={services} plans={plans} />
       </main>
     </div>
   );
 }
 
-function ServicesPrintView({ services }: { services: Service[] }) {
+function ServicesPrintView({
+  services,
+  plans,
+}: {
+  services: Service[];
+  plans: GroomingPlan[];
+}) {
   const printedAt = new Date().toLocaleString("pt-BR");
 
   return (
@@ -202,6 +303,47 @@ function ServicesPrintView({ services }: { services: Service[] }) {
                 </td>
                 <td className="border p-2">
                   {formatCurrency(service.preco_grande)}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+
+      <h2 className="mb-3 mt-8 text-xl font-bold text-slate-900">
+        Planos mensais
+      </h2>
+
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-slate-100 text-left">
+            <th className="border p-2">Plano</th>
+            <th className="border p-2">Valor mensal</th>
+            <th className="border p-2">Banhos/mês</th>
+            <th className="border p-2">Benefícios grátis</th>
+            <th className="border p-2">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {plans.length === 0 ? (
+            <tr>
+              <td className="border p-4 text-center" colSpan={5}>
+                Nenhum plano cadastrado.
+              </td>
+            </tr>
+          ) : (
+            plans.map((plan) => (
+              <tr key={plan.id}>
+                <td className="border p-2">{plan.name}</td>
+                <td className="border p-2">
+                  {formatCurrency(plan.monthly_price)}
+                </td>
+                <td className="border p-2">{plan.baths_per_month}</td>
+                <td className="border p-2">
+                  {plan.free_benefits?.join(", ") || "-"}
+                </td>
+                <td className="border p-2">
+                  {plan.active ? "Ativo" : "Inativo"}
                 </td>
               </tr>
             ))

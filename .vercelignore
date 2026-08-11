@@ -1,0 +1,33 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+.yarn
+
+# local build output
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+
+# local environment and platform metadata
+.env
+.env.*
+.vercel
+
+# logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.codex-dev-server*.log
+
+# local Codex attachments and temporary artifacts
+.codex-remote-attachments
+.codex-remote-attachments/**
+
+# misc
+.DS_Store
+*.pem

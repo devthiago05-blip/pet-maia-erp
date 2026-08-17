@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   formatAppointmentObservation,
+  getAppointmentPetAndTutorDisplayName,
   getAppointmentPetDisplayName,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
@@ -128,7 +129,7 @@ export function AppointmentTable({
                       </p>
                     )}
                     <h3 className="mt-1 truncate font-bold text-slate-900">
-                      {getAppointmentPetDisplayName(appointment)}
+                      {getAppointmentPetAndTutorDisplayName(appointment)}
                     </h3>
                   </div>
                   <span
@@ -204,7 +205,7 @@ export function AppointmentTable({
                     </td>
 
                     <td className="p-3 sm:p-4">
-                      {getAppointmentPetDisplayName(appointment)}
+                      {getAppointmentPetAndTutorDisplayName(appointment)}
                     </td>
 
                     <td className="p-3 sm:p-4">{appointment.servico}</td>

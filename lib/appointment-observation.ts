@@ -23,6 +23,20 @@ export function getAppointmentPetDisplayName(
   );
 }
 
+export function getAppointmentPetAndTutorDisplayName(
+  appointment: Appointment,
+  fallback = "-",
+) {
+  const petName = getAppointmentPetDisplayName(appointment, fallback);
+  const tutorName = appointment.pets?.tutors?.nome?.trim();
+
+  if (!tutorName || petName === fallback) {
+    return petName;
+  }
+
+  return `${petName} - ${tutorName}`;
+}
+
 export function buildAppointmentObservation(appointment: Appointment) {
   const tutor = appointment.pets?.tutors;
   const observation = appointment.observacao || "";

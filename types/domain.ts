@@ -1168,6 +1168,7 @@ export interface NewPetInput {
 
 export interface NewAppointmentInput {
   petId: string;
+  petIds?: string[];
   servico: string;
   data: string;
   hora: string;

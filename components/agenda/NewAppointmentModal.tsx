@@ -95,6 +95,9 @@ export function NewAppointmentModal({
 }: NewAppointmentModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [petId, setPetId] = useState(defaultPetId);
+  const [selectedPetIds, setSelectedPetIds] = useState<string[]>(
+    defaultPetId ? [defaultPetId] : [],
+  );
   const [tutorId, setTutorId] = useState(defaultTutorId);
   const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
@@ -108,6 +111,14 @@ export function NewAppointmentModal({
   const petsFiltrados = tutorId
     ? pets.filter((petItem) => String(petItem.tutor_id) === tutorId)
     : pets;
+  const selectedPetIdsForDisplay = Array.from(
+    new Set([petId, ...selectedPetIds].filter(Boolean)),
+  ).filter((selectedId) =>
+    petsFiltrados.some((petItem) => String(petItem.id) === selectedId),
+  );
+  const canSelectMultiplePets =
+    !appointment && Boolean(tutorId) && petsFiltrados.length > 1;
+  const selectedPetCount = selectedPetIdsForDisplay.length;
   const selectedTutor = tutors.find((tutor) => String(tutor.id) === tutorId);
   const requestedPetName = !petId
     ? extractRequestedPetNameFromObservation(
@@ -132,9 +143,12 @@ export function NewAppointmentModal({
         );
 
         setTutorId(initialTutorId);
-        setPetId(
-          appointment?.pet_id ? String(appointment.pet_id) : defaultPetId,
-        );
+        const initialPetId = appointment?.pet_id
+          ? String(appointment.pet_id)
+          : defaultPetId;
+
+        setPetId(initialPetId);
+        setSelectedPetIds(initialPetId ? [initialPetId] : []);
         setServicos(
           appointment?.servico
             ? appointment.servico.split(" + ").filter(Boolean)
@@ -165,6 +179,7 @@ export function NewAppointmentModal({
 
   function resetForm() {
     setPetId(defaultPetId);
+    setSelectedPetIds(defaultPetId ? [defaultPetId] : []);
     setTutorId(defaultTutorId);
     setServicos([]);
     setData("");
@@ -178,6 +193,7 @@ export function NewAppointmentModal({
 
     setTutorId(nextTutorId);
     setPetId("");
+    setSelectedPetIds([]);
     setObservacao((currentObservation) =>
       syncObservationTutorContact(currentObservation, nextTutor),
     );
@@ -185,6 +201,7 @@ export function NewAppointmentModal({
 
   function handlePetChange(nextPetId: string) {
     setPetId(nextPetId);
+    setSelectedPetIds(nextPetId ? [nextPetId] : []);
 
     const selectedPet = pets.find((pet) => String(pet.id) === nextPetId);
 
@@ -201,13 +218,46 @@ export function NewAppointmentModal({
     }
   }
 
+  function handleToggleAdditionalPet(nextPetId: string) {
+    if (nextPetId === petId) {
+      return;
+    }
+
+    setSelectedPetIds((currentIds) => {
+      if (currentIds.includes(nextPetId)) {
+        return currentIds.filter((currentId) => currentId !== nextPetId);
+      }
+
+      return [...currentIds, nextPetId];
+    });
+  }
+
+  function handleSelectAllTutorPets() {
+    const allPetIds = petsFiltrados.map((petItem) => String(petItem.id));
+
+    setSelectedPetIds(allPetIds);
+
+    if (!petId && allPetIds[0]) {
+      setPetId(allPetIds[0]);
+    }
+  }
+
+  function handleKeepOnlySelectedPet() {
+    setSelectedPetIds(petId ? [petId] : []);
+  }
+
   function handleClose() {
     resetForm();
     setModalOpen(false);
   }
 
   async function handleSave() {
-    if (!petId || servicos.length === 0 || !data || !hora) {
+    const petIdsToSave = appointment
+      ? [petId].filter(Boolean)
+      : selectedPetIdsForDisplay;
+    const primaryPetId = petIdsToSave[0] || petId;
+
+    if (!primaryPetId || servicos.length === 0 || !data || !hora) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -215,7 +265,8 @@ export function NewAppointmentModal({
     setSaving(true);
 
     const result = await onSave({
-      petId,
+      petId: primaryPetId,
+      petIds: appointment ? undefined : petIdsToSave,
       servico: servicos.join(" + "),
       data,
       hora,
@@ -283,6 +334,88 @@ export function NewAppointmentModal({
                   </option>
                 ))}
               </select>
+
+              {canSelectMultiplePets && (
+                <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        Pets deste tutor que vão no mesmo horário
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        Marque os outros pets para criar tudo em lote com os
+                        mesmos serviços, data e horário.
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSelectAllTutorPets}
+                        className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#8A0EEA] shadow-sm"
+                      >
+                        Selecionar todos
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleKeepOnlySelectedPet}
+                        className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm"
+                      >
+                        Só o selecionado
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {petsFiltrados.map((petItem) => {
+                      const petItemId = String(petItem.id);
+                      const isMainPet = petItemId === petId;
+                      const checked =
+                        selectedPetIdsForDisplay.includes(petItemId);
+
+                      return (
+                        <label
+                          key={petItem.id}
+                          className={`flex items-center justify-between gap-3 rounded-xl border bg-white px-3 py-2 ${
+                            checked
+                              ? "border-[#8A0EEA]/40 text-[#8A0EEA]"
+                              : "border-slate-200 text-slate-700"
+                          }`}
+                        >
+                          <span className="flex min-w-0 items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={isMainPet}
+                              onChange={() =>
+                                handleToggleAdditionalPet(petItemId)
+                              }
+                              className="h-4 w-4 accent-[#8A0EEA]"
+                            />
+
+                            <span className="truncate text-sm font-semibold">
+                              {petItem.nome}
+                            </span>
+                          </span>
+
+                          {isMainPet && (
+                            <span className="shrink-0 rounded-full bg-purple-100 px-2 py-0.5 text-[11px] font-semibold text-[#8A0EEA]">
+                              principal
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm text-slate-600">
+                    {selectedPetCount} pet(s) selecionado(s). Ao salvar, o
+                    sistema cria {selectedPetCount} agendamento(s) no mesmo
+                    horário.
+                  </p>
+                </div>
+              )}
 
               <div className="rounded-xl border p-3">
                 <p className="mb-2 font-medium">Serviços</p>
@@ -386,7 +519,9 @@ export function NewAppointmentModal({
                     ? "Salvando..."
                     : appointment
                       ? "Salvar alterações"
-                      : "Salvar"}
+                      : selectedPetCount > 1
+                        ? `Salvar ${selectedPetCount} agendamentos`
+                        : "Salvar"}
                 </button>
               </div>
             </div>

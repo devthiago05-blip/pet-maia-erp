@@ -19,6 +19,7 @@ import {
 } from "@/lib/appointment-observation";
 import {
   createAppointment,
+  createAppointments,
   deleteAppointment,
   deleteAppointmentServicesByAppointmentId,
   fetchAppointments,
@@ -374,10 +375,25 @@ export default function AgendaPage() {
   });
 
   async function handleCreateAppointment(novoAgendamento: NewAppointmentInput) {
-    const petId = Number(novoAgendamento.petId);
-    const petSelecionado = pets.find((pet) => pet.id === petId);
+    const selectedPetIds = Array.from(
+      new Set(
+        (novoAgendamento.petIds?.length
+          ? novoAgendamento.petIds
+          : [novoAgendamento.petId]
+        )
+          .map((id) => Number(id))
+          .filter((id) => Number.isFinite(id) && id > 0),
+      ),
+    );
+    const petId = selectedPetIds[0];
+    const petsSelecionados = pets.filter((pet) =>
+      selectedPetIds.includes(pet.id),
+    );
 
-    if (!petSelecionado) {
+    if (
+      selectedPetIds.length === 0 ||
+      petsSelecionados.length !== selectedPetIds.length
+    ) {
       toast.error("Pet não encontrado");
       return;
     }
@@ -401,7 +417,10 @@ export default function AgendaPage() {
       return true;
     }
 
-    const { error } = await createAppointment(novoAgendamento, petId);
+    const { error } =
+      selectedPetIds.length > 1
+        ? await createAppointments(novoAgendamento, selectedPetIds)
+        : await createAppointment(novoAgendamento, petId);
 
     if (error) {
       console.error(error);
@@ -409,7 +428,11 @@ export default function AgendaPage() {
       return;
     }
 
-    toast.success("Agendamento criado com sucesso!");
+    toast.success(
+      selectedPetIds.length > 1
+        ? `${selectedPetIds.length} agendamentos criados com sucesso!`
+        : "Agendamento criado com sucesso!",
+    );
     await loadAppointments();
     return true;
   }

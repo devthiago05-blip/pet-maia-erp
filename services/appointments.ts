@@ -40,16 +40,23 @@ export async function createAppointment(
   appointment: NewAppointmentInput,
   petId: number,
 ) {
-  return supabase.from("appointments").insert([
-    {
-      pet_id: petId,
-      servico: appointment.servico,
+  return createAppointments(appointment, [petId]);
+}
+
+export async function createAppointments(
+  appointment: NewAppointmentInput,
+  petIds: number[],
+) {
+  return supabase.from("appointments").insert(
+    petIds.map((petId) => ({
       data: appointment.data,
       hora: appointment.hora,
-      status: appointment.status,
       observacao: appointment.observacao?.trim() || null,
-    },
-  ]);
+      pet_id: petId,
+      servico: appointment.servico,
+      status: appointment.status,
+    })),
+  );
 }
 
 export async function updateAppointment(

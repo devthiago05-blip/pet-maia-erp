@@ -114,6 +114,23 @@ export async function createFinancialEntry(entry: NewFinancialEntryInput) {
   ]);
 }
 
+function buildAppointmentFinancialCreatedAt(
+  appointmentDate?: string,
+  appointmentTime?: string,
+) {
+  if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) {
+    return undefined;
+  }
+
+  const normalizedTime = /^([01]\d|2[0-3]):[0-5]\d/.test(
+    appointmentTime || "",
+  )
+    ? appointmentTime?.slice(0, 5)
+    : "12:00";
+
+  return `${appointmentDate}T${normalizedTime}:00-03:00`;
+}
+
 export async function createAppointmentFinancialEntry(
   appointmentId: number,
   petName: string,
@@ -122,22 +139,29 @@ export async function createAppointmentFinancialEntry(
   formaPagamento: string,
   petId?: number,
   tutorId?: number,
+  appointmentDate?: string,
+  appointmentTime?: string,
 ) {
-  return supabase.from("financial_entries").insert([
-    {
-      descricao: `${serviceDescription} - ${petName}`,
-      valor,
-      tipo: "Receita",
-      forma_pagamento: formaPagamento,
-      status_pagamento: ["Brinde", "Plano mensal"].includes(formaPagamento)
-        ? "Pago"
-        : "Pendente",
-      origem: "appointment",
-      referencia_id: appointmentId,
-      pet_id: petId ?? null,
-      tutor_id: tutorId ?? null,
-    },
-  ]);
+  const createdAt = buildAppointmentFinancialCreatedAt(
+    appointmentDate,
+    appointmentTime,
+  );
+  const payload = {
+    descricao: `${serviceDescription} - ${petName}`,
+    valor,
+    tipo: "Receita",
+    forma_pagamento: formaPagamento,
+    status_pagamento: ["Brinde", "Plano mensal"].includes(formaPagamento)
+      ? "Pago"
+      : "Pendente",
+    origem: "appointment",
+    referencia_id: appointmentId,
+    pet_id: petId ?? null,
+    tutor_id: tutorId ?? null,
+    ...(createdAt ? { created_at: createdAt } : {}),
+  };
+
+  return supabase.from("financial_entries").insert([payload]);
 }
 
 async function syncLinkedPaymentStatus(

@@ -614,6 +614,8 @@ export default function AgendaPage() {
       formaPagamento,
       completedAppointment.pet_id,
       completedAppointment.pets?.tutor_id,
+      completedAppointment.data,
+      completedAppointment.hora,
     );
 
     if (error) {

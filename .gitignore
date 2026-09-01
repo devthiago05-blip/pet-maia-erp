@@ -32,6 +32,17 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# NFC-e certificates and private keys (never commit)
+/certificates/development/*
+/certificates/production/*
+*.pfx
+*.p12
+*.key
+*.crt
+*.cer
+!certificates/README.md
 
 # vercel
 .vercel
@@ -43,3 +54,4 @@ next-env.d.ts
 # codex local artifacts
 .codex-dev-server*.log
 .codex-remote-attachments/
+/supabase/.temp/

@@ -32,7 +32,10 @@ export async function GET(request: Request) {
   const settings = settingsResult.data as ClinicSettings;
   const products = (productsResult.data || []) as Product[];
   const reviews = new Map(
-    (reviewsResult.data || []).map((review) => [Number(review.product_id), review]),
+    (reviewsResult.data || []).map((review) => [
+      Number(review.product_id),
+      review,
+    ]),
   );
   const assessments = products.map((product) => ({
     ...assessProductFiscal(product, settings),

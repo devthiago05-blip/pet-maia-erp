@@ -51,6 +51,7 @@ export const routeAccess: Record<string, AccessModule> = {
   "/clinica": "clinica",
   "/crm": "crm",
   "/bi": "bi",
+  "/fiscal": "configuracoes",
   "/settings": "configuracoes",
   "/usuarios": "usuarios",
 };

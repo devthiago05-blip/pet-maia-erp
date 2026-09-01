@@ -25,9 +25,14 @@ export interface ClinicSettings {
   id: number;
   nome: string;
   razao_social?: string;
+  nome_fantasia?: string;
   cnpj?: string;
   telefone?: string;
   endereco?: string;
+  endereco_numero?: string;
+  bairro?: string;
+  municipio?: string;
+  cep?: string;
   pix_key?: string;
   pix_recipient_name?: string;
   pix_city?: string;
@@ -38,6 +43,7 @@ export interface ClinicSettings {
   fiscal_environment?: "homologacao" | "producao";
   nfce_series?: number;
   nfce_next_number?: number;
+  modelo_fiscal?: number;
   updated_at?: string;
 }
 

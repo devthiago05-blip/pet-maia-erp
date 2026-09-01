@@ -9,7 +9,9 @@ function code(value: unknown, length: number) {
 }
 
 function unit(value: unknown) {
-  const normalized = String(value || "").trim().toUpperCase();
+  const normalized = String(value || "")
+    .trim()
+    .toUpperCase();
   return /^[A-Z]{1,6}$/.test(normalized) ? normalized : null;
 }
 
@@ -29,7 +31,10 @@ export async function POST(request: Request) {
     !Array.isArray(body.suggestions) ||
     !body.suggestions.length
   ) {
-    return Response.json({ error: "Sugestões fiscais inválidas." }, { status: 400 });
+    return Response.json(
+      { error: "Sugestões fiscais inválidas." },
+      { status: 400 },
+    );
   }
 
   const rows = body.suggestions.flatMap((suggestion) => {
@@ -42,8 +47,7 @@ export async function POST(request: Request) {
       suggested_cest: code(item.cest, 7),
       suggested_cfop: code(item.cfop, 4),
       suggested_origin: code(item.origin, 1),
-      suggested_csosn_cst:
-        code(item.csosnCst, 3) || code(item.csosnCst, 2),
+      suggested_csosn_cst: code(item.csosnCst, 3) || code(item.csosnCst, 2),
       suggested_pis_cst: code(item.pisCst, 2),
       suggested_cofins_cst: code(item.cofinsCst, 2),
       suggested_unit: unit(item.commercialUnit),
@@ -67,7 +71,10 @@ export async function POST(request: Request) {
     .from("product_fiscal_reviews")
     .upsert(rows, { onConflict: "product_id" });
   if (error) {
-    return Response.json({ error: "Não foi possível salvar as sugestões fiscais." }, { status: 500 });
+    return Response.json(
+      { error: "Não foi possível salvar as sugestões fiscais." },
+      { status: 500 },
+    );
   }
   return Response.json({ saved: rows.length });
 }
@@ -92,7 +99,10 @@ export async function PATCH(request: Request) {
     .eq("product_id", body.productId)
     .single();
   if (reviewError || !review) {
-    return Response.json({ error: "Sugestão fiscal não encontrada." }, { status: 404 });
+    return Response.json(
+      { error: "Sugestão fiscal não encontrada." },
+      { status: 404 },
+    );
   }
 
   const productUpdate = {
@@ -110,7 +120,10 @@ export async function PATCH(request: Request) {
     )
     .eq("id", body.productId);
   if (productError) {
-    return Response.json({ error: "Não foi possível atualizar o produto." }, { status: 500 });
+    return Response.json(
+      { error: "Não foi possível atualizar o produto." },
+      { status: 500 },
+    );
   }
 
   const { error: statusError } = await auth.admin
@@ -124,7 +137,10 @@ export async function PATCH(request: Request) {
     })
     .eq("product_id", body.productId);
   if (statusError) {
-    return Response.json({ error: "Produto atualizado, mas a aprovação não foi registrada." }, { status: 500 });
+    return Response.json(
+      { error: "Produto atualizado, mas a aprovação não foi registrada." },
+      { status: 500 },
+    );
   }
   return Response.json({ approved: true });
 }

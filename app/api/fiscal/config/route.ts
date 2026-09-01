@@ -1,10 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import forge from "node-forge";
 
-import {
-  decryptFiscalSecret,
-  encryptFiscalSecret,
-} from "@/lib/fiscal-secrets";
+import { decryptFiscalSecret, encryptFiscalSecret } from "@/lib/fiscal-secrets";
 import { requireAdmin } from "@/lib/server-auth";
 
 export const runtime = "nodejs";
@@ -97,7 +94,10 @@ export async function POST(request: Request) {
   const cscId = String(formData.get("cscId") || "").trim();
 
   if (!(certificate instanceof File)) {
-    return Response.json({ error: "Selecione o certificado A1." }, { status: 400 });
+    return Response.json(
+      { error: "Selecione o certificado A1." },
+      { status: 400 },
+    );
   }
 
   if (!/\.(pfx|p12)$/i.test(certificate.name) || certificate.size > 2_097_152) {
@@ -109,7 +109,9 @@ export async function POST(request: Request) {
 
   if (!certificatePassword || !csc || !/^\d{1,6}$/.test(cscId)) {
     return Response.json(
-      { error: "Informe a senha, o CSC e um CSC ID numérico de até 6 dígitos." },
+      {
+        error: "Informe a senha, o CSC e um CSC ID numérico de até 6 dígitos.",
+      },
       { status: 400 },
     );
   }
@@ -145,7 +147,10 @@ export async function POST(request: Request) {
     });
 
   if (certificateUpload.error) {
-    return Response.json({ error: certificateUpload.error.message }, { status: 400 });
+    return Response.json(
+      { error: certificateUpload.error.message },
+      { status: 400 },
+    );
   }
 
   const credentialsUpload = await auth.admin.storage
@@ -157,7 +162,10 @@ export async function POST(request: Request) {
 
   if (credentialsUpload.error) {
     await auth.admin.storage.from(bucket).remove([certificatePath]);
-    return Response.json({ error: credentialsUpload.error.message }, { status: 400 });
+    return Response.json(
+      { error: credentialsUpload.error.message },
+      { status: 400 },
+    );
   }
 
   return Response.json({

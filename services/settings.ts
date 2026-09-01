@@ -11,9 +11,14 @@ export async function updateClinicSettings(settings: ClinicSettings) {
     .update({
       nome: settings.nome,
       razao_social: settings.razao_social || null,
+      nome_fantasia: settings.nome_fantasia || null,
       cnpj: settings.cnpj || null,
       telefone: settings.telefone || null,
       endereco: settings.endereco || null,
+      endereco_numero: settings.endereco_numero || null,
+      bairro: settings.bairro || null,
+      municipio: settings.municipio || null,
+      cep: settings.cep || null,
       pix_key: settings.pix_key || null,
       pix_recipient_name: settings.pix_recipient_name || null,
       pix_city: settings.pix_city || null,
@@ -24,6 +29,7 @@ export async function updateClinicSettings(settings: ClinicSettings) {
       fiscal_environment: settings.fiscal_environment || "homologacao",
       nfce_series: Number(settings.nfce_series || 1),
       nfce_next_number: Number(settings.nfce_next_number || 1),
+      modelo_fiscal: 65,
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);

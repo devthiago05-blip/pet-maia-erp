@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const FISCAL_XML_BUCKET = "fiscal-xml";
-export type FiscalEnvironment = "homologacao" | "producao";
+export type FiscalEnvironment = "mock" | "homologacao" | "producao";
 
 export function buildFiscalXmlPath(
   environment: FiscalEnvironment,
@@ -16,7 +16,7 @@ export function buildFiscalXmlPath(
 
   const year = String(issuedAt.getUTCFullYear());
   const month = String(issuedAt.getUTCMonth() + 1).padStart(2, "0");
-  return `${environment}/${year}/${month}/${accessKey}.xml`;
+  return `nfce/${environment}/${year}/${month}/${accessKey}.xml`;
 }
 
 export async function storeAuthorizedFiscalXml(
@@ -37,7 +37,7 @@ export async function storeAuthorizedFiscalXml(
 }
 
 export function downloadFiscalXml(admin: SupabaseClient, path: string) {
-  if (!/^(homologacao|producao)\/\d{4}\/\d{2}\/\d{44}\.xml$/.test(path)) {
+  if (!/^nfce\/(mock|homologacao|producao)\/\d{4}\/\d{2}\/\d{44}\.xml$/.test(path)) {
     throw new Error("Caminho de XML fiscal inválido.");
   }
   return admin.storage.from(FISCAL_XML_BUCKET).download(path);

@@ -12,6 +12,7 @@ import {
   PawPrint,
   Receipt,
   Scissors,
+  ScrollText,
   Settings,
   ShoppingCart,
   Stethoscope,
@@ -69,6 +70,12 @@ const menuItems: Array<{
   },
   { href: "/crm", label: "CRM", module: "crm", icon: Handshake },
   { href: "/bi", label: "BI", module: "bi", icon: ChartNoAxesCombined },
+  {
+    href: "/fiscal",
+    label: "Fiscal",
+    module: "configuracoes",
+    icon: ScrollText,
+  },
   {
     href: "/settings",
     label: "Configurações",

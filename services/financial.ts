@@ -122,11 +122,11 @@ function buildAppointmentFinancialCreatedAt(
     return undefined;
   }
 
-  const normalizedTime = /^([01]\d|2[0-3]):[0-5]\d/.test(
-    appointmentTime || "",
-  )
-    ? appointmentTime?.slice(0, 5)
-    : "12:00";
+  const timeMatch = (appointmentTime || "").match(
+    /^([01]\d|2[0-3]):([0-5]\d)/,
+  );
+  const hour = timeMatch ? Number(timeMatch[1]) : 12;
+  const normalizedTime = timeMatch && hour < 21 ? timeMatch[0] : "12:00";
 
   return `${appointmentDate}T${normalizedTime}:00-03:00`;
 }

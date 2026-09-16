@@ -1,6 +1,6 @@
 "use client";
 
-import { Printer, Search } from "lucide-react";
+import { PawPrint, Printer, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { AppointmentReceiptModal } from "@/components/agenda/AppointmentReceiptM
 import { AppointmentTable } from "@/components/agenda/AppointmentTable";
 import { FinishAppointmentModal } from "@/components/agenda/FinishAppointmentModal";
 import { KanbanBoard } from "@/components/agenda/KanbanBoard";
+import { LastBathsModal } from "@/components/agenda/LastBathsModal";
 import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -225,6 +226,7 @@ export default function AgendaPage() {
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(
     Boolean(preselectedPetId),
   );
+  const [lastBathsModalOpen, setLastBathsModalOpen] = useState(false);
   const [appointmentToEdit, setAppointmentToEdit] =
     useState<Appointment | null>(null);
 
@@ -793,6 +795,15 @@ export default function AgendaPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <button
                 type="button"
+                onClick={() => setLastBathsModalOpen(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
+              >
+                <PawPrint size={18} />
+                Últimos banhos
+              </button>
+
+              <button
+                type="button"
                 onClick={handlePrintAppointments}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
               >
@@ -977,6 +988,14 @@ export default function AgendaPage() {
             services={completedReceipt.services}
             observacoes={completedReceipt.observacoes}
             onClose={() => setCompletedReceipt(null)}
+          />
+        )}
+
+        {lastBathsModalOpen && (
+          <LastBathsModal
+            appointments={appointments}
+            pets={pets}
+            onClose={() => setLastBathsModalOpen(false)}
           />
         )}
 

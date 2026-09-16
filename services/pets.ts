@@ -10,7 +10,9 @@ export async function fetchPets() {
       `
       *,
       tutors (
-        nome
+        id,
+        nome,
+        telefone
       )
     `,
     )

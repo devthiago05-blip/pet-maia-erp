@@ -127,6 +127,44 @@ function getWhatsAppUrl(phone: string) {
   return `https://wa.me/${number}`;
 }
 
+function getWhatsAppMessageUrl(phone: string, message: string) {
+  const baseUrl = getWhatsAppUrl(phone);
+
+  if (!baseUrl) {
+    return "";
+  }
+
+  return `${baseUrl}?text=${encodeURIComponent(message)}`;
+}
+
+function getTutorFirstName(name: string) {
+  const firstName = name.trim().split(/\s+/)[0];
+
+  return firstName || "tudo bem";
+}
+
+function shouldShowBathReminder(row: LastBathRow) {
+  return row.daysWithoutVisit === null || row.daysWithoutVisit >= 30;
+}
+
+function buildBathReminderMessage(row: LastBathRow) {
+  const tutorName = getTutorFirstName(row.tutor);
+  const petName = row.pet.nome;
+  const lastBathText =
+    row.daysWithoutVisit === null
+      ? "ainda não tem banho registrado no nosso sistema"
+      : `está há ${formatDaysLabel(row.daysWithoutVisit)} sem banho. O último foi em ${formatDateLabel(row.lastAppointment?.data)}`;
+
+  return [
+    `Olá, ${tutorName}! Tudo bem?`,
+    "",
+    `Aqui é do Pet Maia. O(a) ${petName} ${lastBathText}.`,
+    "Temos horários disponíveis para banho/tosa. Quer que eu veja um melhor horário para vocês?",
+    "",
+    "Se preferir, pode me responder por aqui.",
+  ].join("\n");
+}
+
 function createLastBathRows(pets: Pet[], appointments: Appointment[]) {
   const today = getTodayDateString();
   const bathAppointments = appointments
@@ -282,18 +320,29 @@ export function LastBathsModal({
                   <th className="px-4 py-3">Dias sem ir</th>
                   <th className="px-4 py-3">Tutor</th>
                   <th className="px-4 py-3">Número</th>
+                  <th className="px-4 py-3">Mensagem</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {filteredRows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-8 text-center text-slate-500" colSpan={5}>
+                    <td
+                      className="px-4 py-8 text-center text-slate-500"
+                      colSpan={6}
+                    >
                       Nenhum pet encontrado.
                     </td>
                   </tr>
                 ) : (
                   filteredRows.map((row) => {
                     const whatsAppUrl = getWhatsAppUrl(row.phone);
+                    const reminderUrl =
+                      shouldShowBathReminder(row) && row.phone
+                        ? getWhatsAppMessageUrl(
+                            row.phone,
+                            buildBathReminderMessage(row),
+                          )
+                        : "";
 
                     return (
                       <tr key={row.pet.id} className="align-top">
@@ -337,6 +386,23 @@ export function LastBathsModal({
                             formatPhone(row.phone)
                           )}
                         </td>
+                        <td className="px-4 py-3">
+                          {reminderUrl ? (
+                            <a
+                              href={reminderUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700"
+                            >
+                              <MessageCircle size={15} />
+                              Chamar
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400">
+                              Em dia
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })
@@ -353,6 +419,13 @@ export function LastBathsModal({
             ) : (
               filteredRows.map((row) => {
                 const whatsAppUrl = getWhatsAppUrl(row.phone);
+                const reminderUrl =
+                  shouldShowBathReminder(row) && row.phone
+                    ? getWhatsAppMessageUrl(
+                        row.phone,
+                        buildBathReminderMessage(row),
+                      )
+                    : "";
 
                 return (
                   <article
@@ -408,6 +481,18 @@ export function LastBathsModal({
                         )}
                       </p>
                     </div>
+
+                    {reminderUrl && (
+                      <a
+                        href={reminderUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white"
+                      >
+                        <MessageCircle size={17} />
+                        Enviar lembrete no WhatsApp
+                      </a>
+                    )}
                   </article>
                 );
               })

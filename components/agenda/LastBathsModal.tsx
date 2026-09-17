@@ -1,11 +1,29 @@
 "use client";
 
-import { MessageCircle, PawPrint, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  CheckCircle2,
+  MessageCircle,
+  PawPrint,
+  RotateCcw,
+  Search,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
+import {
+  fetchPetBathReminderNotifications,
+  markPetBathReminderNotification,
+  unmarkPetBathReminderNotification,
+} from "@/services/pet-bath-reminder-notifications";
 import type { Appointment, Pet } from "@/types/domain";
+import type {
+  BathReminderLevel,
+  PetBathReminderNotification,
+} from "@/types/domain";
 
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
+const REMINDER_LEVELS: BathReminderLevel[] = [30, 45, 60];
 
 interface LastBathsModalProps {
   appointments: Appointment[];
@@ -18,6 +36,7 @@ interface LastBathRow {
   lastAppointment: Appointment | null;
   pet: Pet;
   phone: string;
+  tutorId?: number | null;
   tutor: string;
 }
 
@@ -143,26 +162,112 @@ function getTutorFirstName(name: string) {
   return firstName || "tudo bem";
 }
 
-function shouldShowBathReminder(row: LastBathRow) {
-  return row.daysWithoutVisit === null || row.daysWithoutVisit >= 30;
+function getReminderLevel(row: LastBathRow): BathReminderLevel | null {
+  if (row.daysWithoutVisit === null) {
+    return 30;
+  }
+
+  if (row.daysWithoutVisit >= 60) {
+    return 60;
+  }
+
+  if (row.daysWithoutVisit >= 45) {
+    return 45;
+  }
+
+  if (row.daysWithoutVisit >= 30) {
+    return 30;
+  }
+
+  return null;
 }
 
-function buildBathReminderMessage(row: LastBathRow) {
+function getBathReferenceKey(row: LastBathRow) {
+  if (row.lastAppointment) {
+    return `appointment:${row.lastAppointment.id}:${row.lastAppointment.data}`;
+  }
+
+  const createdAt = row.pet.created_at?.slice(0, 10) || "sem-cadastro";
+
+  return `never:${row.pet.id}:${createdAt}`;
+}
+
+function getNotificationKey(
+  petId: number,
+  level: BathReminderLevel,
+  referenceKey: string,
+) {
+  return `${petId}:${level}:${referenceKey}`;
+}
+
+function formatNotifiedAt(value: string) {
+  return new Date(value).toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
+
+function buildBathReminderMessage(row: LastBathRow, level: BathReminderLevel) {
   const tutorName = getTutorFirstName(row.tutor);
   const petName = row.pet.nome;
-  const lastBathText =
-    row.daysWithoutVisit === null
-      ? "ainda não tem banho registrado no nosso sistema"
-      : `está há ${formatDaysLabel(row.daysWithoutVisit)} sem banho. O último foi em ${formatDateLabel(row.lastAppointment?.data)}`;
+  const lastBathDate = formatDateLabel(row.lastAppointment?.data);
+
+  if (row.daysWithoutVisit === null) {
+    return [
+      `Olá, ${tutorName}! Tudo bem?`,
+      "",
+      `Aqui é do Pet Maia. Ainda não temos banho registrado para ${petName} no sistema.`,
+      "Quer que eu veja um horário disponível para banho/tosa?",
+      "",
+      "Se preferir, pode me responder por aqui.",
+    ].join("\n");
+  }
+
+  if (level === 60) {
+    return [
+      `Olá, ${tutorName}! Tudo bem?`,
+      "",
+      `Aqui é do Pet Maia. Vi que ${petName} já está há ${formatDaysLabel(row.daysWithoutVisit)} sem banho/tosa. O último atendimento foi em ${lastBathDate}.`,
+      "Para manter conforto, pele e pelagem em dia, recomendo agendarmos o quanto antes.",
+      "Quer que eu te envie os horários disponíveis?",
+    ].join("\n");
+  }
+
+  if (level === 45) {
+    return [
+      `Olá, ${tutorName}! Tudo bem?`,
+      "",
+      `Aqui é do Pet Maia. O(a) ${petName} está há ${formatDaysLabel(row.daysWithoutVisit)} sem banho/tosa. O último foi em ${lastBathDate}.`,
+      "Já passou um pouco do intervalo ideal. Quer que eu veja um horário para essa semana?",
+      "",
+      "Pode me responder por aqui.",
+    ].join("\n");
+  }
 
   return [
     `Olá, ${tutorName}! Tudo bem?`,
     "",
-    `Aqui é do Pet Maia. O(a) ${petName} ${lastBathText}.`,
-    "Temos horários disponíveis para banho/tosa. Quer que eu veja um melhor horário para vocês?",
+    `Aqui é do Pet Maia. O(a) ${petName} completou ${formatDaysLabel(row.daysWithoutVisit)} desde o último banho/tosa, em ${lastBathDate}.`,
+    "Temos horários disponíveis para manter a rotina em dia. Quer que eu veja um melhor horário para vocês?",
     "",
     "Se preferir, pode me responder por aqui.",
   ].join("\n");
+}
+
+function getLevelBadgeClass(level: BathReminderLevel, sent: boolean) {
+  if (sent) {
+    return "bg-emerald-100 text-emerald-700";
+  }
+
+  if (level === 60) {
+    return "bg-red-100 text-red-700";
+  }
+
+  if (level === 45) {
+    return "bg-amber-100 text-amber-800";
+  }
+
+  return "bg-purple-100 text-[#8A0EEA]";
 }
 
 function createLastBathRows(pets: Pet[], appointments: Appointment[]) {
@@ -192,6 +297,7 @@ function createLastBathRows(pets: Pet[], appointments: Appointment[]) {
         lastAppointment,
         pet,
         phone,
+        tutorId: pet.tutors?.id || pet.tutor_id || null,
         tutor: pet.tutors?.nome || "Sem tutor",
       };
     })
@@ -221,6 +327,36 @@ export function LastBathsModal({
   onClose,
 }: LastBathsModalProps) {
   const [search, setSearch] = useState("");
+  const [notifications, setNotifications] = useState<
+    PetBathReminderNotification[]
+  >([]);
+  const [notificationError, setNotificationError] = useState("");
+  const [savingNotificationKey, setSavingNotificationKey] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    fetchPetBathReminderNotifications().then(({ data, error }) => {
+      if (!active) {
+        return;
+      }
+
+      if (error) {
+        console.error(error);
+        setNotificationError(
+          "Não foi possível carregar o histórico de avisos. A lista continua disponível, mas pode mostrar avisos já enviados.",
+        );
+        return;
+      }
+
+      setNotificationError("");
+      setNotifications(data || []);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const rows = useMemo(
     () => createLastBathRows(pets, appointments),
@@ -249,6 +385,103 @@ export function LastBathsModal({
   const petsOverThirtyDays = rows.filter(
     (row) => (row.daysWithoutVisit || 0) >= 30,
   ).length;
+  const notificationByKey = useMemo(() => {
+    const entries = new Map<string, PetBathReminderNotification>();
+
+    notifications.forEach((notification) => {
+      entries.set(
+        getNotificationKey(
+          notification.pet_id,
+          notification.reminder_level,
+          notification.bath_reference_key,
+        ),
+        notification,
+      );
+    });
+
+    return entries;
+  }, [notifications]);
+  const pendingByLevel = useMemo(() => {
+    return rows.reduce<Record<BathReminderLevel, number>>(
+      (totals, row) => {
+        const level = getReminderLevel(row);
+
+        if (!level) {
+          return totals;
+        }
+
+        const notification = notificationByKey.get(
+          getNotificationKey(row.pet.id, level, getBathReferenceKey(row)),
+        );
+
+        if (!notification) {
+          totals[level] += 1;
+        }
+
+        return totals;
+      },
+      { 30: 0, 45: 0, 60: 0 },
+    );
+  }, [notificationByKey, rows]);
+
+  async function markReminder(
+    row: LastBathRow,
+    level: BathReminderLevel,
+    channel: "whatsapp" | "manual",
+  ) {
+    const referenceKey = getBathReferenceKey(row);
+    const message = buildBathReminderMessage(row, level);
+    const key = getNotificationKey(row.pet.id, level, referenceKey);
+
+    setSavingNotificationKey(key);
+    const { data, error } = await markPetBathReminderNotification({
+      bathReferenceKey: referenceKey,
+      channel,
+      daysWithoutBath: row.daysWithoutVisit ?? 0,
+      lastBathDate: row.lastAppointment?.data || null,
+      message,
+      petId: row.pet.id,
+      reminderLevel: level,
+      tutorId: row.tutorId || null,
+    });
+    setSavingNotificationKey("");
+
+    if (error || !data) {
+      console.error(error);
+      toast.error("Não foi possível marcar o aviso como enviado.");
+      return;
+    }
+
+    setNotifications((current) => {
+      const next = current.filter((item) => item.id !== data.id);
+      next.unshift(data);
+      return next;
+    });
+    toast.success(`Aviso de ${level} dias marcado para ${row.pet.nome}.`);
+  }
+
+  async function unmarkReminder(notification: PetBathReminderNotification) {
+    const key = getNotificationKey(
+      notification.pet_id,
+      notification.reminder_level,
+      notification.bath_reference_key,
+    );
+
+    setSavingNotificationKey(key);
+    const { error } = await unmarkPetBathReminderNotification(notification.id);
+    setSavingNotificationKey("");
+
+    if (error) {
+      console.error(error);
+      toast.error("Não foi possível desmarcar o aviso.");
+      return;
+    }
+
+    setNotifications((current) =>
+      current.filter((item) => item.id !== notification.id),
+    );
+    toast.success("Aviso desmarcado.");
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 p-4 sm:items-center">
@@ -280,7 +513,7 @@ export function LastBathsModal({
         </div>
 
         <div className="max-h-[calc(100dvh-10rem)] overflow-y-auto p-4 sm:p-6">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
             <div className="rounded-2xl border bg-slate-50 p-4">
               <p className="text-sm text-slate-500">Pets listados</p>
               <strong className="mt-1 block text-2xl text-slate-900">
@@ -293,13 +526,47 @@ export function LastBathsModal({
                 {petsWithoutBath}
               </strong>
             </div>
-            <div className="rounded-2xl border bg-purple-50 p-4">
-              <p className="text-sm text-[#8A0EEA]">30 dias ou mais</p>
-              <strong className="mt-1 block text-2xl text-[#8A0EEA]">
-                {petsOverThirtyDays}
-              </strong>
-            </div>
+            {REMINDER_LEVELS.map((level) => (
+              <div
+                key={level}
+                className={`rounded-2xl border p-4 ${
+                  level === 60
+                    ? "bg-red-50"
+                    : level === 45
+                      ? "bg-amber-50"
+                      : "bg-purple-50"
+                }`}
+              >
+                <p
+                  className={`text-sm ${
+                    level === 60
+                      ? "text-red-700"
+                      : level === 45
+                        ? "text-amber-700"
+                        : "text-[#8A0EEA]"
+                  }`}
+                >
+                  Pendentes {level}d
+                </p>
+                <strong
+                  className={`mt-1 block text-2xl ${
+                    level === 60
+                      ? "text-red-700"
+                      : level === 45
+                        ? "text-amber-800"
+                        : "text-[#8A0EEA]"
+                  }`}
+                >
+                  {pendingByLevel[level]}
+                </strong>
+              </div>
+            ))}
           </div>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Total com 30 dias ou mais: {petsOverThirtyDays}. Ao avisar, o
+            sistema grava o nível atual para não repetir a mesma mensagem.
+          </p>
 
           <label className="mt-4 flex items-center gap-3 rounded-xl border px-3">
             <Search size={18} className="text-slate-400" />
@@ -310,6 +577,12 @@ export function LastBathsModal({
               className="min-w-0 flex-1 py-3 outline-none"
             />
           </label>
+
+          {notificationError && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+              {notificationError}
+            </div>
+          )}
 
           <div className="mt-4 hidden overflow-hidden rounded-2xl border md:block">
             <table className="w-full border-collapse text-sm">
@@ -336,11 +609,26 @@ export function LastBathsModal({
                 ) : (
                   filteredRows.map((row) => {
                     const whatsAppUrl = getWhatsAppUrl(row.phone);
+                    const referenceKey = getBathReferenceKey(row);
+                    const currentLevel = getReminderLevel(row);
+                    const currentNotification = currentLevel
+                      ? notificationByKey.get(
+                          getNotificationKey(
+                            row.pet.id,
+                            currentLevel,
+                            referenceKey,
+                          ),
+                        )
+                      : null;
+                    const savingKey = currentLevel
+                      ? getNotificationKey(row.pet.id, currentLevel, referenceKey)
+                      : "";
+                    const isSaving = savingNotificationKey === savingKey;
                     const reminderUrl =
-                      shouldShowBathReminder(row) && row.phone
+                      currentLevel && row.phone && !currentNotification
                         ? getWhatsAppMessageUrl(
                             row.phone,
-                            buildBathReminderMessage(row),
+                            buildBathReminderMessage(row, currentLevel),
                           )
                         : "";
 
@@ -387,20 +675,98 @@ export function LastBathsModal({
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {reminderUrl ? (
-                            <a
-                              href={reminderUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700"
-                            >
-                              <MessageCircle size={15} />
-                              Chamar
-                            </a>
-                          ) : (
+                          {!currentLevel ? (
                             <span className="text-xs text-slate-400">
                               Em dia
                             </span>
+                          ) : (
+                            <div className="space-y-2">
+                              <div className="flex flex-wrap gap-1">
+                                {REMINDER_LEVELS.map((level) => {
+                                  const sent = Boolean(
+                                    notificationByKey.get(
+                                      getNotificationKey(
+                                        row.pet.id,
+                                        level,
+                                        referenceKey,
+                                      ),
+                                    ),
+                                  );
+
+                                  return (
+                                    <span
+                                      key={level}
+                                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                        currentLevel === level || sent
+                                          ? getLevelBadgeClass(level, sent)
+                                          : "bg-slate-100 text-slate-400"
+                                      }`}
+                                    >
+                                      {sent ? "✓ " : ""}
+                                      {level}d
+                                    </span>
+                                  );
+                                })}
+                              </div>
+
+                              {currentNotification ? (
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                                    <CheckCircle2 size={14} />
+                                    Avisado em{" "}
+                                    {formatNotifiedAt(
+                                      currentNotification.notified_at,
+                                    )}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void unmarkReminder(currentNotification)
+                                    }
+                                    disabled={isSaving}
+                                    className="inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-xs font-semibold text-slate-500 disabled:opacity-50"
+                                  >
+                                    <RotateCcw size={13} />
+                                    Desmarcar
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="flex flex-wrap gap-2">
+                                  {reminderUrl && (
+                                    <a
+                                      href={reminderUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      onClick={() =>
+                                        void markReminder(
+                                          row,
+                                          currentLevel,
+                                          "whatsapp",
+                                        )
+                                      }
+                                      className={`inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-emerald-700 ${
+                                        isSaving
+                                          ? "pointer-events-none opacity-60"
+                                          : ""
+                                      }`}
+                                    >
+                                      <MessageCircle size={15} />
+                                      WhatsApp {currentLevel}d
+                                    </a>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void markReminder(row, currentLevel, "manual")
+                                    }
+                                    disabled={isSaving}
+                                    className="rounded-xl border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 disabled:opacity-50"
+                                  >
+                                    {isSaving ? "Salvando..." : "Marcar avisado"}
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -419,11 +785,22 @@ export function LastBathsModal({
             ) : (
               filteredRows.map((row) => {
                 const whatsAppUrl = getWhatsAppUrl(row.phone);
+                const referenceKey = getBathReferenceKey(row);
+                const currentLevel = getReminderLevel(row);
+                const currentNotification = currentLevel
+                  ? notificationByKey.get(
+                      getNotificationKey(row.pet.id, currentLevel, referenceKey),
+                    )
+                  : null;
+                const savingKey = currentLevel
+                  ? getNotificationKey(row.pet.id, currentLevel, referenceKey)
+                  : "";
+                const isSaving = savingNotificationKey === savingKey;
                 const reminderUrl =
-                  shouldShowBathReminder(row) && row.phone
+                  currentLevel && row.phone && !currentNotification
                     ? getWhatsAppMessageUrl(
                         row.phone,
-                        buildBathReminderMessage(row),
+                        buildBathReminderMessage(row, currentLevel),
                       )
                     : "";
 
@@ -482,16 +859,94 @@ export function LastBathsModal({
                       </p>
                     </div>
 
-                    {reminderUrl && (
-                      <a
-                        href={reminderUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white"
-                      >
-                        <MessageCircle size={17} />
-                        Enviar lembrete no WhatsApp
-                      </a>
+                    {currentLevel && (
+                      <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {REMINDER_LEVELS.map((level) => {
+                            const sent = Boolean(
+                              notificationByKey.get(
+                                getNotificationKey(
+                                  row.pet.id,
+                                  level,
+                                  referenceKey,
+                                ),
+                              ),
+                            );
+
+                            return (
+                              <span
+                                key={level}
+                                className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+                                  currentLevel === level || sent
+                                    ? getLevelBadgeClass(level, sent)
+                                    : "bg-white text-slate-400"
+                                }`}
+                              >
+                                {sent ? "✓ " : ""}
+                                {level}d
+                              </span>
+                            );
+                          })}
+                        </div>
+
+                        {currentNotification ? (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <span className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-700">
+                              <CheckCircle2 size={16} />
+                              Avisado em{" "}
+                              {formatNotifiedAt(
+                                currentNotification.notified_at,
+                              )}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void unmarkReminder(currentNotification)
+                              }
+                              disabled={isSaving}
+                              className="inline-flex items-center gap-1 rounded-xl border bg-white px-3 py-2 text-xs font-bold text-slate-500 disabled:opacity-50"
+                            >
+                              <RotateCcw size={14} />
+                              Desmarcar
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mt-3 grid gap-2">
+                            {reminderUrl && (
+                              <a
+                                href={reminderUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() =>
+                                  void markReminder(
+                                    row,
+                                    currentLevel,
+                                    "whatsapp",
+                                  )
+                                }
+                                className={`flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white ${
+                                  isSaving ? "pointer-events-none opacity-60" : ""
+                                }`}
+                              >
+                                <MessageCircle size={17} />
+                                Enviar mensagem {currentLevel}d
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void markReminder(row, currentLevel, "manual")
+                              }
+                              disabled={isSaving}
+                              className="rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold text-emerald-700 disabled:opacity-50"
+                            >
+                              {isSaving
+                                ? "Salvando..."
+                                : "Marcar tutor como avisado"}
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </article>
                 );

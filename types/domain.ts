@@ -80,6 +80,34 @@ export interface Pet {
   };
 }
 
+export type BathReminderLevel = 30 | 45 | 60;
+
+export interface PetBathReminderNotification {
+  id: number;
+  pet_id: number;
+  tutor_id?: number | null;
+  reminder_level: BathReminderLevel;
+  bath_reference_key: string;
+  last_bath_date?: string | null;
+  days_without_bath: number;
+  message: string;
+  channel: "whatsapp" | "manual" | "phone" | "other";
+  notified_at: string;
+  notified_by?: string | null;
+  created_at: string;
+}
+
+export interface NewPetBathReminderNotificationInput {
+  petId: number;
+  tutorId?: number | null;
+  reminderLevel: BathReminderLevel;
+  bathReferenceKey: string;
+  lastBathDate?: string | null;
+  daysWithoutBath: number;
+  message: string;
+  channel: PetBathReminderNotification["channel"];
+}
+
 export interface ClinicalRecord {
   id: number;
   pet_id: number;

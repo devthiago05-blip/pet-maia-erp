@@ -297,6 +297,10 @@ export default function AgendaPage() {
   const isPeriodFilterActive = Boolean(
     startDate && endDate && startDate !== endDate,
   );
+  const isSearchFilterActive = Boolean(search.trim());
+  const hasDateFilter = Boolean(startDate || endDate);
+  const shouldShowFilteredTableInKanban =
+    isSearchFilterActive || isPeriodFilterActive;
 
   const sortedFilteredAppointments = useMemo(
     () => sortAppointmentsForPrint(filteredAppointments),
@@ -764,7 +768,9 @@ export default function AgendaPage() {
   const appointmentsToPrint = useMemo(
     () =>
       sortAppointmentsForPrint(
-        viewMode === "kanban" && !isPeriodFilterActive
+        viewMode === "kanban" &&
+          !isPeriodFilterActive &&
+          !isSearchFilterActive
           ? filteredKanbanAppointments
           : filteredAppointments,
       ),
@@ -772,6 +778,7 @@ export default function AgendaPage() {
       filteredAppointments,
       filteredKanbanAppointments,
       isPeriodFilterActive,
+      isSearchFilterActive,
       viewMode,
     ],
   );
@@ -901,7 +908,21 @@ export default function AgendaPage() {
           {viewMode === "kanban" ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-                {isPeriodFilterActive ? (
+                {isSearchFilterActive ? (
+                  <>
+                    Busca exibindo os agendamentos que combinam com{" "}
+                    <span className="font-semibold">
+                      “{search.trim()}”
+                    </span>
+                    {hasDateFilter
+                      ? ` em ${getDateRangeLabel(startDate, endDate)}`
+                      : " em todo o histórico"}
+                    {filterStatus !== "Todos"
+                      ? ` com status ${filterStatus}`
+                      : ""}
+                    . O botão Ver recibo aparece nos agendamentos finalizados.
+                  </>
+                ) : isPeriodFilterActive ? (
                   <>
                     Período exibindo os agendamentos de{" "}
                     {getDateRangeLabel(startDate, endDate)}
@@ -920,11 +941,15 @@ export default function AgendaPage() {
                 )}
               </div>
 
-              {isPeriodFilterActive ? (
+              {shouldShowFilteredTableInKanban ? (
                 <AppointmentTable
                   appointments={sortedFilteredAppointments}
                   showDate
-                  emptyMessage="Nenhum agendamento encontrado para este período."
+                  emptyMessage={
+                    isSearchFilterActive
+                      ? "Nenhum agendamento encontrado para esta busca."
+                      : "Nenhum agendamento encontrado para este período."
+                  }
                   onFinish={(appointment) =>
                     void handleOpenFinishAppointment(appointment)
                   }
@@ -951,7 +976,7 @@ export default function AgendaPage() {
           ) : (
             <AppointmentTable
               appointments={sortedFilteredAppointments}
-              showDate={Boolean(startDate || endDate)}
+              showDate={Boolean(startDate || endDate || isSearchFilterActive)}
               onFinish={(appointment) =>
                 void handleOpenFinishAppointment(appointment)
               }
@@ -1002,9 +1027,13 @@ export default function AgendaPage() {
         <AppointmentPrintView
           appointments={appointmentsToPrint}
           title={
-            viewMode === "kanban" && !isPeriodFilterActive
+            viewMode === "kanban" &&
+            !isPeriodFilterActive &&
+            !isSearchFilterActive
               ? `Agendamentos de ${formatDateLabel(kanbanDate)}`
-              : "Agendamentos filtrados"
+              : isSearchFilterActive
+                ? `Agendamentos filtrados por “${search.trim()}”`
+                : "Agendamentos filtrados"
           }
         />
       </main>

@@ -20,6 +20,7 @@ interface BookingRequestPayload {
     endereco?: string;
   };
   petId?: number | string;
+  petIds?: Array<number | string>;
   pet?: {
     nome?: string;
     especie?: string;
@@ -62,6 +63,18 @@ function normalizeId(value: unknown) {
   return Number.isFinite(id) && id > 0 ? id : null;
 }
 
+function normalizeIds(value: unknown) {
+  const ids = Array.isArray(value) ? value : [];
+
+  return Array.from(
+    new Set(
+      ids
+        .map((item) => normalizeId(item))
+        .filter((item): item is number => Boolean(item)),
+    ),
+  );
+}
+
 function isDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
@@ -102,9 +115,14 @@ export async function POST(request: Request) {
   const ddd = normalizeDdd(payload.ddd);
   const tutorId = normalizeId(payload.tutorId);
   const petId = normalizeId(payload.petId);
+  const petIds = normalizeIds(payload.petIds);
+  const requestedPetIds = Array.from(
+    new Set([...(petId ? [petId] : []), ...petIds]),
+  );
   const serviceName = requiredText(payload.serviceName);
   const date = requiredText(payload.date);
   const time = requiredText(payload.time);
+  const tutorAddress = requiredText(payload.tutor?.endereco);
 
   if (!phone) {
     return jsonError(
@@ -125,6 +143,27 @@ export async function POST(request: Request) {
   }
 
   const admin = createSupabaseAdmin();
+
+  const { data: occupiedAppointment, error: availabilityError } = await admin
+    .from("appointments")
+    .select("id")
+    .eq("data", date)
+    .eq("hora", time)
+    .neq("status", "Cancelado")
+    .limit(1);
+
+  if (availabilityError) {
+    console.error(availabilityError);
+    return jsonError("Não foi possível validar o horário.", 500);
+  }
+
+  if (occupiedAppointment && occupiedAppointment.length > 0) {
+    return jsonError(
+      "Esse horário acabou de ficar indisponível. Escolha outro horário.",
+      409,
+    );
+  }
+
   let tutor: TutorRow | null = null;
 
   if (tutorId) {
@@ -144,9 +183,24 @@ export async function POST(request: Request) {
     }
 
     tutor = data;
+
+    if (tutorAddress && tutorAddress !== requiredText(data.endereco)) {
+      const { data: updatedTutor, error: updateError } = await admin
+        .from("tutors")
+        .update({ endereco: tutorAddress.toUpperCase() })
+        .eq("id", tutor.id)
+        .select("id, nome, telefone, email, endereco")
+        .single<TutorRow>();
+
+      if (updateError) {
+        console.error(updateError);
+        return jsonError("Não foi possível atualizar o endereço.", 500);
+      }
+
+      tutor = updatedTutor;
+    }
   } else {
     const tutorName = requiredText(payload.tutor?.nome);
-    const tutorAddress = requiredText(payload.tutor?.endereco);
 
     if (!tutorName) {
       return jsonError("Informe o nome do tutor.");
@@ -177,30 +231,37 @@ export async function POST(request: Request) {
     tutor = data;
   }
 
-  let pet: PetRow | null = null;
+  let petsToSchedule: PetRow[] = [];
 
-  if (petId) {
+  if (requestedPetIds.length > 0) {
     const { data, error } = await admin
       .from("pets")
       .select("id, nome, tutor_id")
-      .eq("id", petId)
-      .maybeSingle<PetRow>();
+      .in("id", requestedPetIds)
+      .returns<PetRow[]>();
 
     if (error) {
       console.error(error);
       return jsonError("Não foi possível validar o pet.", 500);
     }
 
-    if (!data || Number(data.tutor_id) !== Number(tutor.id)) {
+    const selectedPets = data || [];
+    const allPetsBelongToTutor =
+      selectedPets.length === requestedPetIds.length &&
+      selectedPets.every((item) => Number(item.tutor_id) === Number(tutor.id));
+
+    if (!allPetsBelongToTutor) {
       return jsonError("Pet não encontrado para este tutor.", 404);
     }
 
-    pet = data;
-  } else {
-    const petName = requiredText(payload.pet?.nome);
+    petsToSchedule = selectedPets;
+  }
 
-    if (!petName) {
-      return jsonError("Informe o nome do pet.");
+  const petName = requiredText(payload.pet?.nome);
+
+  if (petName) {
+    if (!tutor) {
+      return jsonError("Tutor não localizado.", 500);
     }
 
     const { data, error } = await admin
@@ -224,13 +285,17 @@ export async function POST(request: Request) {
       return jsonError("Não foi possível criar o cadastro do pet.", 500);
     }
 
-    pet = data;
+    petsToSchedule = [...petsToSchedule, data];
   }
 
-  const { data: appointment, error: appointmentError } = await admin
+  if (petsToSchedule.length === 0) {
+    return jsonError("Selecione ou cadastre pelo menos um pet.");
+  }
+
+  const { data: appointments, error: appointmentError } = await admin
     .from("appointments")
-    .insert([
-      {
+    .insert(
+      petsToSchedule.map((pet) => ({
         pet_id: pet.id,
         servico: serviceName,
         data: date,
@@ -241,10 +306,10 @@ export async function POST(request: Request) {
           ddd,
           notes: payload.notes,
         }),
-      },
-    ])
+      })),
+    )
     .select("id")
-    .single<{ id: number }>();
+    .returns<Array<{ id: number }>>();
 
   if (appointmentError) {
     console.error(appointmentError);
@@ -253,9 +318,9 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     ok: true,
-    appointmentId: appointment.id,
+    appointmentId: appointments?.[0]?.id || null,
+    appointmentIds: (appointments || []).map((appointment) => appointment.id),
     message:
       "Solicitação enviada. A equipe vai conferir a agenda e confirmar pelo WhatsApp.",
   });
 }
-

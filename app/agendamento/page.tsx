@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  MapPin,
   PawPrint,
   Phone,
   Search,
@@ -64,9 +65,11 @@ export default function PublicBookingPage() {
   const [lookupMessage, setLookupMessage] = useState("");
   const [tutor, setTutor] = useState<LookupTutor | null>(null);
   const [pets, setPets] = useState<LookupPet[]>([]);
-  const [selectedPetId, setSelectedPetId] = useState("");
+  const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
   const [useNewPet, setUseNewPet] = useState(false);
   const [services, setServices] = useState<string[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [loadingTimes, setLoadingTimes] = useState(false);
   const [appointmentId, setAppointmentId] = useState<number | null>(null);
   const [tutorForm, setTutorForm] = useState({
     nome: "",
@@ -89,9 +92,9 @@ export default function PublicBookingPage() {
   });
 
   const isKnownTutor = Boolean(tutor);
-  const selectedPet = useMemo(
-    () => pets.find((pet) => String(pet.id) === selectedPetId),
-    [pets, selectedPetId],
+  const selectedPets = useMemo(
+    () => pets.filter((pet) => selectedPetIds.includes(String(pet.id))),
+    [pets, selectedPetIds],
   );
 
   useEffect(() => {
@@ -115,6 +118,59 @@ export default function PublicBookingPage() {
       }));
     });
   }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAvailability() {
+      if (!bookingForm.date) {
+        setAvailableTimes([]);
+        return;
+      }
+
+      setLoadingTimes(true);
+
+      try {
+        const params = new URLSearchParams({ date: bookingForm.date });
+        const response = await fetch(
+          `/api/public/booking/availability?${params}`,
+        );
+        const payload = (await response.json()) as {
+          availableTimes?: string[];
+        };
+
+        if (!response.ok) {
+          throw new Error("Não foi possível consultar horários livres.");
+        }
+
+        if (!active) {
+          return;
+        }
+
+        const times = payload.availableTimes || [];
+        setAvailableTimes(times);
+        setBookingForm((current) => ({
+          ...current,
+          time: times.includes(current.time) ? current.time : times[0] || "",
+        }));
+      } catch {
+        if (active) {
+          setAvailableTimes([]);
+          setBookingForm((current) => ({ ...current, time: "" }));
+        }
+      } finally {
+        if (active) {
+          setLoadingTimes(false);
+        }
+      }
+    }
+
+    loadAvailability();
+
+    return () => {
+      active = false;
+    };
+  }, [bookingForm.date]);
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,7 +207,13 @@ export default function PublicBookingPage() {
       setNeedsDdd(false);
       setTutor(payload.tutor || null);
       setPets(payload.pets || []);
-      setSelectedPetId(payload.pets?.[0]?.id ? String(payload.pets[0].id) : "");
+      setSelectedPetIds(
+        payload.pets?.[0]?.id ? [String(payload.pets[0].id)] : [],
+      );
+      setTutorForm((current) => ({
+        ...current,
+        endereco: payload.tutor?.endereco || current.endereco,
+      }));
       setUseNewPet(!payload.found || !payload.pets?.length);
       setStep("booking");
 
@@ -187,8 +249,12 @@ export default function PublicBookingPage() {
       return;
     }
 
-    if ((useNewPet || !selectedPetId) && !petForm.nome.trim()) {
-      toast.error("Informe o nome do pet.");
+    const shouldSubmitNewPet =
+      (!isKnownTutor || pets.length === 0 || useNewPet) &&
+      Boolean(petForm.nome.trim());
+
+    if (selectedPetIds.length === 0 && !shouldSubmitNewPet) {
+      toast.error("Selecione ou cadastre pelo menos um pet.");
       return;
     }
 
@@ -202,9 +268,11 @@ export default function PublicBookingPage() {
           phone,
           ddd,
           tutorId: tutor?.id,
-          tutor: isKnownTutor ? undefined : tutorForm,
-          petId: useNewPet ? undefined : selectedPetId,
-          pet: useNewPet || !selectedPetId ? petForm : undefined,
+          tutor: isKnownTutor
+            ? { endereco: tutorForm.endereco }
+            : tutorForm,
+          petIds: selectedPetIds,
+          pet: shouldSubmitNewPet ? petForm : undefined,
           ...bookingForm,
         }),
       });
@@ -235,10 +303,18 @@ export default function PublicBookingPage() {
     setStep("phone");
     setTutor(null);
     setPets([]);
-    setSelectedPetId("");
+    setSelectedPetIds([]);
     setUseNewPet(false);
     setLookupMessage("");
     setAppointmentId(null);
+  }
+
+  function togglePetSelection(petId: string) {
+    setSelectedPetIds((current) =>
+      current.includes(petId)
+        ? current.filter((item) => item !== petId)
+        : [...current, petId],
+    );
   }
 
   return (
@@ -377,11 +453,31 @@ export default function PublicBookingPage() {
                     </h3>
 
                     {isKnownTutor ? (
-                      <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-                        <p className="font-bold">{tutor?.nome}</p>
-                        <p className="text-sm text-slate-500">
-                          Cadastro localizado pelo telefone informado.
-                        </p>
+                      <div className="mt-4 space-y-3">
+                        <div className="rounded-2xl bg-slate-50 p-4">
+                          <p className="font-bold">{tutor?.nome}</p>
+                          <p className="text-sm text-slate-500">
+                            Cadastro localizado pelo telefone informado.
+                          </p>
+                        </div>
+
+                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
+                          Endereço do cliente
+                          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4">
+                            <MapPin size={18} className="text-slate-400" />
+                            <input
+                              value={tutorForm.endereco}
+                              onChange={(event) =>
+                                setTutorForm((current) => ({
+                                  ...current,
+                                  endereco: event.target.value,
+                                }))
+                              }
+                              placeholder="Confirme ou atualize o endereço"
+                              className="min-h-12 min-w-0 flex-1 outline-none"
+                            />
+                          </div>
+                        </label>
                       </div>
                     ) : (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -444,18 +540,20 @@ export default function PublicBookingPage() {
                           onClick={() => setUseNewPet((current) => !current)}
                           className="rounded-xl bg-purple-50 px-4 py-2 text-sm font-semibold text-[#8A0EEA]"
                         >
-                          {useNewPet ? "Usar pet cadastrado" : "Cadastrar outro pet"}
+                          {useNewPet
+                            ? "Ocultar novo pet"
+                            : "Cadastrar outro pet"}
                         </button>
                       )}
                     </div>
 
-                    {isKnownTutor && pets.length > 0 && !useNewPet ? (
+                    {isKnownTutor && pets.length > 0 && (
                       <div className="mt-4 grid gap-3">
                         {pets.map((pet) => (
                           <label
                             key={pet.id}
                             className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 ${
-                              selectedPetId === String(pet.id)
+                              selectedPetIds.includes(String(pet.id))
                                 ? "border-[#8A0EEA] bg-purple-50"
                                 : "border-slate-200"
                             }`}
@@ -468,15 +566,17 @@ export default function PublicBookingPage() {
                               </span>
                             </span>
                             <input
-                              type="radio"
-                              name="pet"
-                              checked={selectedPetId === String(pet.id)}
-                              onChange={() => setSelectedPetId(String(pet.id))}
+                              type="checkbox"
+                              checked={selectedPetIds.includes(String(pet.id))}
+                              onChange={() => togglePetSelection(String(pet.id))}
+                              className="h-5 w-5 rounded border-slate-300 text-[#8A0EEA] accent-[#8A0EEA]"
                             />
                           </label>
                         ))}
                       </div>
-                    ) : (
+                    )}
+
+                    {(!isKnownTutor || pets.length === 0 || useNewPet) && (
                       <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         <input
                           value={petForm.nome}
@@ -557,9 +657,11 @@ export default function PublicBookingPage() {
                       </div>
                     )}
 
-                    {selectedPet && !useNewPet && (
+                    {selectedPets.length > 0 && (
                       <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
-                        Pet selecionado: {selectedPet.nome}
+                        Pet{selectedPets.length > 1 ? "s" : ""} selecionado
+                        {selectedPets.length > 1 ? "s" : ""}:{" "}
+                        {selectedPets.map((pet) => pet.nome).join(", ")}
                       </p>
                     )}
                   </section>
@@ -602,8 +704,7 @@ export default function PublicBookingPage() {
                       </label>
                       <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4">
                         <Clock size={18} className="text-slate-400" />
-                        <input
-                          type="time"
+                        <select
                           value={bookingForm.time}
                           onChange={(event) =>
                             setBookingForm((current) => ({
@@ -611,8 +712,21 @@ export default function PublicBookingPage() {
                               time: event.target.value,
                             }))
                           }
-                          className="min-h-12 min-w-0 flex-1 outline-none"
-                        />
+                          disabled={loadingTimes || availableTimes.length === 0}
+                          className="min-h-12 min-w-0 flex-1 bg-transparent outline-none disabled:text-slate-400"
+                        >
+                          {loadingTimes ? (
+                            <option>Carregando horários...</option>
+                          ) : availableTimes.length > 0 ? (
+                            availableTimes.map((time) => (
+                              <option key={time} value={time}>
+                                {time}
+                              </option>
+                            ))
+                          ) : (
+                            <option value="">Sem horário livre</option>
+                          )}
+                        </select>
                       </label>
                       <textarea
                         value={bookingForm.notes}

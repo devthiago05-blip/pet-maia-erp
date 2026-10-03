@@ -1,6 +1,6 @@
 "use client";
 
-import { PawPrint, Printer, Search } from "lucide-react";
+import { ExternalLink, PawPrint, Printer, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   formatAppointmentObservation,
   getAppointmentPetDisplayName,
 } from "@/lib/appointment-observation";
+import { createAppointmentConfirmationWhatsAppUrl } from "@/lib/whatsapp";
 import {
   createAppointment,
   createAppointments,
@@ -495,15 +496,30 @@ export default function AgendaPage() {
       return;
     }
 
+    const whatsappUrl = createAppointmentConfirmationWhatsAppUrl(appointment);
+    const whatsappWindow = whatsappUrl ? window.open("", "_blank") : null;
+
     const { error } = await updateAppointmentStatus(appointment.id, "Agendado");
 
     if (error) {
+      whatsappWindow?.close();
       console.error(error);
       toast.error("Erro ao confirmar agendamento");
       return;
     }
 
     toast.success("Agendamento confirmado!");
+
+    if (whatsappUrl) {
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else {
+        window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+      }
+    } else {
+      toast.info("Tutor sem WhatsApp válido para mensagem automática.");
+    }
+
     await loadAppointments();
   }
 
@@ -800,6 +816,16 @@ export default function AgendaPage() {
             </div>
 
             <div className="flex flex-col gap-2 sm:flex-row">
+              <a
+                href="/agendamento"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
+              >
+                <ExternalLink size={18} />
+                Link cliente
+              </a>
+
               <button
                 type="button"
                 onClick={() => setLastBathsModalOpen(true)}
@@ -955,6 +981,7 @@ export default function AgendaPage() {
                   }
                   onViewReceipt={handleViewReceipt}
                   onConfirm={handleConfirmAppointment}
+                  onCancel={handleCancelAppointment}
                   onDelete={handleDeleteAppointment}
                   onEdit={handleEditAppointment}
                 />
@@ -982,6 +1009,7 @@ export default function AgendaPage() {
               }
               onViewReceipt={handleViewReceipt}
               onConfirm={handleConfirmAppointment}
+              onCancel={handleCancelAppointment}
               onDelete={handleDeleteAppointment}
               onEdit={handleEditAppointment}
             />

@@ -20,7 +20,15 @@ interface AuthGuardProps {
 }
 
 function isPublicPath(pathname: string) {
-  return pathname === "/login" || pathname.startsWith("/receita/");
+  return (
+    pathname === "/login" ||
+    pathname === "/agendamento" ||
+    pathname.startsWith("/receita/")
+  );
+}
+
+function isAnonymousOnlyPath(pathname: string) {
+  return pathname === "/login";
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
@@ -31,6 +39,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   const [permissions, setPermissions] = useState<AccessModule[]>([]);
 
   const isPublicRoute = isPublicPath(pathname);
+  const isAnonymousOnlyRoute = isAnonymousOnlyPath(pathname);
 
   useEffect(() => {
     let active = true;
@@ -50,7 +59,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         return;
       }
 
-      if (session && isPublicRoute) {
+      if (session && isAnonymousOnlyRoute) {
         router.replace("/");
         setLoading(false);
         return;
@@ -117,7 +126,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
         router.replace("/login");
       }
 
-      if (session && isPublicRoute) {
+      if (session && isAnonymousOnlyRoute) {
         router.replace("/");
       }
     });
@@ -126,7 +135,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       active = false;
       subscription.unsubscribe();
     };
-  }, [isPublicRoute, pathname, router]);
+  }, [isAnonymousOnlyRoute, isPublicRoute, pathname, router]);
 
   if (loading && !isPublicRoute) {
     return (

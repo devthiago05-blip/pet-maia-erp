@@ -71,7 +71,7 @@ export function AppointmentCard({
                 onClick={() => onConfirm(appointment)}
                 className="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
               >
-                Confirmar
+                Confirmar e avisar
               </button>
 
               <button

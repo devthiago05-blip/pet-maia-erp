@@ -18,6 +18,7 @@ interface AppointmentTableProps {
   onFinish: (appointment: Appointment) => void;
   onViewReceipt: (appointment: Appointment) => void;
   onConfirm: (appointment: Appointment) => void;
+  onCancel: (id: number) => void;
   onEdit: (appointment: Appointment) => void;
 }
 
@@ -29,6 +30,7 @@ export function AppointmentTable({
   onFinish,
   onViewReceipt,
   onConfirm,
+  onCancel,
   onEdit,
 }: AppointmentTableProps) {
   const [appointmentToDelete, setAppointmentToDelete] =
@@ -50,7 +52,7 @@ export function AppointmentTable({
               onClick={() => onConfirm(appointment)}
               className={`${buttonClass} ${mobile ? "bg-emerald-50 text-emerald-700" : "text-green-600"}`}
             >
-              Confirmar
+              Confirmar e avisar
             </button>
             <button
               type="button"
@@ -58,6 +60,13 @@ export function AppointmentTable({
               className={`${buttonClass} ${mobile ? "bg-blue-50 text-blue-700" : "text-blue-600"}`}
             >
               Editar
+            </button>
+            <button
+              type="button"
+              onClick={() => onCancel(appointment.id)}
+              className={`${buttonClass} ${mobile ? "bg-yellow-50 text-yellow-700" : "text-yellow-700"}`}
+            >
+              Recusar
             </button>
           </>
         )}

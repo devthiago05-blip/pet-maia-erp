@@ -1,3 +1,5 @@
+import type { Appointment } from "@/types/domain";
+
 export function normalizeBrazilianWhatsAppPhone(phone?: string | null) {
   const digits = phone?.replace(/\D/g, "") || "";
 
@@ -28,6 +30,35 @@ export function createTutorWhatsAppUrl(
   const firstName = tutorName?.trim().split(/\s+/)[0];
   const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
   const message = `${greeting} Aqui é da Pet Maia. Como podemos ajudar?`;
+
+  return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
+}
+
+function formatAppointmentDate(value?: string) {
+  if (!value) {
+    return "";
+  }
+
+  return value.split("-").reverse().join("/");
+}
+
+export function createAppointmentConfirmationWhatsAppUrl(
+  appointment: Appointment,
+) {
+  const tutor = appointment.pets?.tutors;
+  const normalizedPhone = normalizeBrazilianWhatsAppPhone(tutor?.telefone);
+
+  if (!normalizedPhone) {
+    return "";
+  }
+
+  const firstName = tutor?.nome?.trim().split(/\s+/)[0];
+  const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
+  const petName = appointment.pets?.nome || "seu pet";
+  const date = formatAppointmentDate(appointment.data);
+  const time = appointment.hora?.slice(0, 5);
+  const schedule = [date, time ? `às ${time}` : ""].filter(Boolean).join(" ");
+  const message = `${greeting} Aqui é da Pet Maia. O agendamento de ${petName} foi confirmado${schedule ? ` para ${schedule}` : ""}. Serviço: ${appointment.servico}. Se precisar alterar, é só nos avisar.`;
 
   return `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(message)}`;
 }

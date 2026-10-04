@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   normalizeDdd,
-  normalizeLastNinePhone,
+  normalizePublicBookingPhoneInput,
   phoneMatchesPublicBookingInput,
 } from "@/lib/public-booking";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
@@ -29,14 +29,17 @@ interface TutorRow {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const phone = normalizeLastNinePhone(searchParams.get("phone"));
-  const ddd = normalizeDdd(searchParams.get("ddd"));
+  const phoneInput = normalizePublicBookingPhoneInput(
+    searchParams.get("phone"),
+  );
+  const phone = phoneInput.lastNine;
+  const ddd = phoneInput.ddd || normalizeDdd(searchParams.get("ddd"));
 
   if (!phone) {
     return NextResponse.json(
       {
         error:
-          "Informe o telefone sem DDD com 9 dígitos, começando com 9.",
+          "Informe o telefone com DDD, começando com 9. Exemplo: 85988765432.",
       },
       { status: 400 },
     );

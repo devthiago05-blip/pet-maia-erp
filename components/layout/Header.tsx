@@ -3,7 +3,8 @@
 import { Bell, CalendarDays, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { useAccess } from "@/components/auth/AccessContext";
 import { GlobalSearch } from "@/components/layout/GlobalSearch";
@@ -84,12 +85,46 @@ const pageTitles: Record<string, string> = {
   "/usuarios": "Usuários",
 };
 
+const NOTIFICATION_POLL_INTERVAL_MS = 30_000;
+
+function isAppointmentNotification(item: NotificationItem) {
+  return (
+    item.id.startsWith("site-appointment-") ||
+    item.id.startsWith("appointment-")
+  );
+}
+
+function sendBrowserAppointmentNotification(item: NotificationItem) {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return;
+  }
+
+  if (window.Notification.permission !== "granted") {
+    return;
+  }
+
+  const notification = new window.Notification(item.title, {
+    body: item.description,
+    icon: "/icon.png",
+    tag: item.id,
+  });
+
+  notification.onclick = () => {
+    window.focus();
+    window.location.href = item.href;
+    notification.close();
+  };
+}
+
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { profile, canAccess } = useAccess();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [browserNotificationPermission, setBrowserNotificationPermission] =
+    useState<NotificationPermission | "unsupported">("default");
+  const knownNotificationIdsRef = useRef<Set<string> | null>(null);
   const today = new Date().toLocaleDateString("pt-BR");
   const todayIso = new Date().toLocaleDateString("en-CA");
   const initial = profile?.nome?.trim().charAt(0).toUpperCase() || "U";
@@ -101,127 +136,195 @@ export function Header() {
     : pageTitles[pathname] || "PET MAIA ERP";
 
   useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setBrowserNotificationPermission("unsupported");
+      return;
+    }
+
+    setBrowserNotificationPermission(window.Notification.permission);
+  }, []);
+
+  useEffect(() => {
     let active = true;
+    let loadingNotifications = false;
 
     async function loadNotifications() {
-      const [
-        appointmentsResponse,
-        pendingSiteAppointmentsResponse,
-        financialResponse,
-        vaccinationResponse,
-      ] = await Promise.all([
-        canAccess("agenda")
-          ? fetchTodayPendingAppointments(todayIso)
-          : Promise.resolve({ data: [], error: null }),
-        canAccess("agenda")
-          ? fetchPendingSiteAppointmentNotifications()
-          : Promise.resolve({ data: [], error: null }),
-        canAccess("financeiro")
-          ? fetchPendingFinancialNotifications()
-          : Promise.resolve({ data: [], error: null }),
-        canAccess("clinica") || canAccess("pets")
-          ? fetchVaccinationNotifications(
-              getRelativeDateIso(-90),
-              getRelativeDateIso(30),
-            )
-          : Promise.resolve({ data: [], error: null }),
-      ]);
-
-      if (!active) {
+      if (loadingNotifications) {
         return;
       }
 
-      if (appointmentsResponse.error) {
-        console.error(appointmentsResponse.error);
-      }
+      loadingNotifications = true;
 
-      if (financialResponse.error) {
-        console.error(financialResponse.error);
-      }
+      try {
+        const [
+          appointmentsResponse,
+          pendingSiteAppointmentsResponse,
+          financialResponse,
+          vaccinationResponse,
+        ] = await Promise.all([
+          canAccess("agenda")
+            ? fetchTodayPendingAppointments(todayIso)
+            : Promise.resolve({ data: [], error: null }),
+          canAccess("agenda")
+            ? fetchPendingSiteAppointmentNotifications()
+            : Promise.resolve({ data: [], error: null }),
+          canAccess("financeiro")
+            ? fetchPendingFinancialNotifications()
+            : Promise.resolve({ data: [], error: null }),
+          canAccess("clinica") || canAccess("pets")
+            ? fetchVaccinationNotifications(
+                getRelativeDateIso(-90),
+                getRelativeDateIso(30),
+              )
+            : Promise.resolve({ data: [], error: null }),
+        ]);
 
-      if (pendingSiteAppointmentsResponse.error) {
-        console.error(pendingSiteAppointmentsResponse.error);
-      }
+        if (!active) {
+          return;
+        }
 
-      if (vaccinationResponse.error) {
-        console.error(vaccinationResponse.error);
-      }
+        if (appointmentsResponse.error) {
+          console.error(appointmentsResponse.error);
+        }
 
-      const appointmentItems: NotificationItem[] = (
-        (appointmentsResponse.data ||
-          []) as unknown as AppointmentNotificationRow[]
-      ).map((appointment) => ({
-        id: `appointment-${appointment.id}`,
-        title: `${appointment.hora} · ${appointment.pets?.nome || "Pet"}`,
-        description: appointment.servico,
-        href: `/agenda?appointmentId=${appointment.id}`,
-      }));
-      const pendingSiteAppointmentItems: NotificationItem[] = (
-        (pendingSiteAppointmentsResponse.data ||
-          []) as unknown as AppointmentNotificationRow[]
-      ).map((appointment) => ({
-        id: `site-appointment-${appointment.id}`,
-        title: `Solicitacao do site - ${appointment.pets?.nome || "Pet"}`,
-        description: `${appointment.data || "Sem data"} ${appointment.hora || ""} - Tutor: ${appointment.pets?.tutors?.nome || "nao informado"} - ${appointment.servico}`,
-        href: `/agenda?appointmentId=${appointment.id}&status=Pendente`,
-      }));
-      const financialItems: NotificationItem[] = (
-        financialResponse.data || []
-      ).map((entry) => ({
-        id: `financial-${entry.id}`,
-        title: "Pagamento pendente",
-        description: `${entry.descricao} · ${formatCurrency(entry.valor)}`,
-        href: `/financeiro?entryId=${entry.id}`,
-      }));
+        if (financialResponse.error) {
+          console.error(financialResponse.error);
+        }
 
-      const vaccinationItems: NotificationItem[] = (
-        (vaccinationResponse.data ||
-          []) as unknown as VaccinationNotificationRow[]
-      ).map((vaccination) => {
-        const daysUntil = getDaysUntil(vaccination.next_dose_date, todayIso);
-        const urgency =
-          daysUntil < 0
-            ? `Vacina atrasada há ${Math.abs(daysUntil)} dia(s)`
-            : daysUntil === 0
-              ? "Vacina vence hoje"
-              : daysUntil <= 7
-                ? `Vacina vence em ${daysUntil} dia(s)`
-                : `Próxima vacina em ${daysUntil} dia(s)`;
+        if (pendingSiteAppointmentsResponse.error) {
+          console.error(pendingSiteAppointmentsResponse.error);
+        }
 
-        return {
-          id: `vaccination-${vaccination.id}`,
-          title: `${urgency} · ${vaccination.pets?.nome || "Pet"}`,
-          description: `${vaccination.vaccine_name} · Tutor: ${vaccination.pets?.tutors?.nome || "não informado"}`,
-          href: `/pets/${vaccination.pet_id}`,
-        };
-      });
+        if (vaccinationResponse.error) {
+          console.error(vaccinationResponse.error);
+        }
 
-      const currentNotifications = [
-        ...pendingSiteAppointmentItems,
-        ...vaccinationItems,
-        ...appointmentItems,
-        ...financialItems,
-      ];
-      await syncNotificationHistory(currentNotifications);
-      const historyResponse = await fetchNotificationHistory();
-      if (!active) return;
-      setNotifications(
-        (historyResponse.data || []).map((item) => ({
+        const appointmentItems: NotificationItem[] = (
+          (appointmentsResponse.data ||
+            []) as unknown as AppointmentNotificationRow[]
+        ).map((appointment) => ({
+          id: `appointment-${appointment.id}`,
+          title: `${appointment.hora} · ${appointment.pets?.nome || "Pet"}`,
+          description: appointment.servico,
+          href: `/agenda?appointmentId=${appointment.id}`,
+        }));
+        const pendingSiteAppointmentItems: NotificationItem[] = (
+          (pendingSiteAppointmentsResponse.data ||
+            []) as unknown as AppointmentNotificationRow[]
+        ).map((appointment) => ({
+          id: `site-appointment-${appointment.id}`,
+          title: `Solicitação do site - ${appointment.pets?.nome || "Pet"}`,
+          description: `${appointment.data || "Sem data"} ${appointment.hora || ""} - Tutor: ${appointment.pets?.tutors?.nome || "não informado"} - ${appointment.servico}`,
+          href: `/agenda?appointmentId=${appointment.id}&status=Pendente`,
+        }));
+        const financialItems: NotificationItem[] = (
+          financialResponse.data || []
+        ).map((entry) => ({
+          id: `financial-${entry.id}`,
+          title: "Pagamento pendente",
+          description: `${entry.descricao} · ${formatCurrency(entry.valor)}`,
+          href: `/financeiro?entryId=${entry.id}`,
+        }));
+
+        const vaccinationItems: NotificationItem[] = (
+          (vaccinationResponse.data ||
+            []) as unknown as VaccinationNotificationRow[]
+        ).map((vaccination) => {
+          const daysUntil = getDaysUntil(vaccination.next_dose_date, todayIso);
+          const urgency =
+            daysUntil < 0
+              ? `Vacina atrasada há ${Math.abs(daysUntil)} dia(s)`
+              : daysUntil === 0
+                ? "Vacina vence hoje"
+                : daysUntil <= 7
+                  ? `Vacina vence em ${daysUntil} dia(s)`
+                  : `Próxima vacina em ${daysUntil} dia(s)`;
+
+          return {
+            id: `vaccination-${vaccination.id}`,
+            title: `${urgency} · ${vaccination.pets?.nome || "Pet"}`,
+            description: `${vaccination.vaccine_name} · Tutor: ${vaccination.pets?.tutors?.nome || "não informado"}`,
+            href: `/pets/${vaccination.pet_id}`,
+          };
+        });
+
+        const currentNotifications = [
+          ...pendingSiteAppointmentItems,
+          ...vaccinationItems,
+          ...appointmentItems,
+          ...financialItems,
+        ];
+        await syncNotificationHistory(currentNotifications);
+        const historyResponse = await fetchNotificationHistory();
+        if (!active) return;
+        const nextNotifications = (historyResponse.data || []).map((item) => ({
           id: item.notification_key,
           title: item.title,
           description: item.description,
           href: item.href,
           readAt: item.read_at,
-        })),
-      );
+        }));
+        const previousIds = knownNotificationIdsRef.current;
+
+        if (previousIds) {
+          const newAppointmentNotifications = nextNotifications.filter(
+            (item) =>
+              !previousIds.has(item.id) &&
+              !item.readAt &&
+              isAppointmentNotification(item),
+          );
+          const firstAppointmentNotification = newAppointmentNotifications[0];
+
+          if (firstAppointmentNotification) {
+            toast.info(firstAppointmentNotification.title, {
+              description: firstAppointmentNotification.description,
+              action: {
+                label: "Abrir",
+                onClick: () => router.push(firstAppointmentNotification.href),
+              },
+            });
+            sendBrowserAppointmentNotification(firstAppointmentNotification);
+          }
+        }
+
+        knownNotificationIdsRef.current = new Set(
+          nextNotifications.map((item) => item.id),
+        );
+        setNotifications(nextNotifications);
+      } catch (error) {
+        console.error("Erro ao carregar notificações", error);
+      } finally {
+        loadingNotifications = false;
+      }
     }
 
-    loadNotifications();
+    void loadNotifications();
+    const intervalId = window.setInterval(
+      () => void loadNotifications(),
+      NOTIFICATION_POLL_INTERVAL_MS,
+    );
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
     };
-  }, [canAccess, todayIso]);
+  }, [canAccess, router, todayIso]);
+
+  async function handleEnableBrowserNotifications() {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setBrowserNotificationPermission("unsupported");
+      return;
+    }
+
+    const permission = await window.Notification.requestPermission();
+    setBrowserNotificationPermission(permission);
+
+    if (permission === "granted") {
+      toast.success("Alertas do navegador ativados para novos agendamentos.");
+    } else if (permission === "denied") {
+      toast.error("As notificações estão bloqueadas no navegador.");
+    }
+  }
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -270,8 +373,23 @@ export function Header() {
                   <div>
                     <p className="font-bold">Notificações</p>
                     <p className="text-xs text-slate-500">
-                      Solicitacoes do site, vacinas, agenda e pagamentos
+                      Solicitações do site, vacinas, agenda e pagamentos
                     </p>
+                    {browserNotificationPermission === "default" && (
+                      <button
+                        type="button"
+                        onClick={handleEnableBrowserNotifications}
+                        className="mt-2 rounded-lg bg-purple-50 px-3 py-1.5 text-xs font-semibold text-[#8A0EEA] hover:bg-purple-100"
+                      >
+                        Ativar alertas no celular/PC
+                      </button>
+                    )}
+                    {browserNotificationPermission === "denied" && (
+                      <p className="mt-2 max-w-[13rem] text-xs text-amber-600">
+                        Alertas bloqueados no navegador. Libere nas permissões
+                        do site se quiser aviso fora da tela.
+                      </p>
+                    )}
                   </div>
                   {notifications.some((item) => !item.readAt) && (
                     <button

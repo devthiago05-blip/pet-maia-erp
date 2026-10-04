@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import {
   formatBrazilianMobilePhone,
   normalizeDdd,
-  normalizeLastNinePhone,
+  normalizePublicBookingPhoneInput,
   phoneMatchesPublicBookingInput,
 } from "@/lib/public-booking";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
@@ -111,8 +111,9 @@ export async function POST(request: Request) {
     return jsonError("Dados inválidos.");
   }
 
-  const phone = normalizeLastNinePhone(payload.phone);
-  const ddd = normalizeDdd(payload.ddd);
+  const phoneInput = normalizePublicBookingPhoneInput(payload.phone);
+  const phone = phoneInput.lastNine;
+  const ddd = phoneInput.ddd || normalizeDdd(payload.ddd);
   const tutorId = normalizeId(payload.tutorId);
   const petId = normalizeId(payload.petId);
   const petIds = normalizeIds(payload.petIds);
@@ -126,7 +127,7 @@ export async function POST(request: Request) {
 
   if (!phone) {
     return jsonError(
-      "Informe o telefone sem DDD com 9 dígitos, começando com 9.",
+      "Informe o telefone com DDD, começando com 9. Exemplo: 85988765432.",
     );
   }
 

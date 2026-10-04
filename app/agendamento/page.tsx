@@ -14,6 +14,8 @@ import {
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { normalizePublicBookingPhoneInput } from "@/lib/public-booking";
+
 interface LookupTutor {
   id: number;
   nome: string;
@@ -54,6 +56,14 @@ function todayInputValue() {
 
 function onlyDigits(value: string, maxLength: number) {
   return value.replace(/\D/g, "").slice(0, maxLength);
+}
+
+function normalizePhoneField(value: string) {
+  const digits = onlyDigits(value, 13);
+  const withoutCountryCode =
+    digits.startsWith("55") && digits.length > 11 ? digits.slice(2) : digits;
+
+  return withoutCountryCode.slice(0, 11);
 }
 
 export default function PublicBookingPage() {
@@ -174,11 +184,14 @@ export default function PublicBookingPage() {
 
   async function handleLookup(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const cleanPhone = onlyDigits(phone, 9);
-    const cleanDdd = onlyDigits(ddd, 2);
+    const phoneInput = normalizePublicBookingPhoneInput(phone);
+    const cleanPhone = phoneInput.normalized;
+    const cleanDdd = phoneInput.ddd || onlyDigits(ddd, 2);
 
-    if (!/^9\d{8}$/.test(cleanPhone)) {
-      toast.error("Digite o telefone sem DDD com 9 dígitos começando por 9.");
+    if (!phoneInput.ddd || !phoneInput.lastNine) {
+      toast.error(
+        "Digite o telefone com DDD, começando com 9. Exemplo: 85988765432.",
+      );
       return;
     }
 
@@ -187,9 +200,8 @@ export default function PublicBookingPage() {
 
     try {
       const params = new URLSearchParams({ phone: cleanPhone });
-      if (cleanDdd) {
-        params.set("ddd", cleanDdd);
-      }
+      params.set("ddd", cleanDdd);
+      setDdd(cleanDdd);
 
       const response = await fetch(`/api/public/booking/lookup?${params}`);
       const payload = (await response.json()) as LookupResponse;
@@ -233,6 +245,9 @@ export default function PublicBookingPage() {
 
   async function handleSubmitBooking(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const phoneInput = normalizePublicBookingPhoneInput(phone);
+    const cleanPhone = phoneInput.normalized;
+    const cleanDdd = phoneInput.ddd || onlyDigits(ddd, 2);
 
     if (!bookingForm.serviceName || !bookingForm.date || !bookingForm.time) {
       toast.error("Informe serviço, data e horário desejado.");
@@ -244,7 +259,12 @@ export default function PublicBookingPage() {
       return;
     }
 
-    if (!isKnownTutor && !/^\d{2}$/.test(ddd)) {
+    if (!phoneInput.ddd || !phoneInput.lastNine) {
+      toast.error("Informe o telefone com DDD para concluir o agendamento.");
+      return;
+    }
+
+    if (!isKnownTutor && !/^\d{2}$/.test(cleanDdd)) {
       toast.error("Informe o DDD para concluir o cadastro.");
       return;
     }
@@ -265,12 +285,10 @@ export default function PublicBookingPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          phone,
-          ddd,
+          phone: cleanPhone,
+          ddd: cleanDdd,
           tutorId: tutor?.id,
-          tutor: isKnownTutor
-            ? { endereco: tutorForm.endereco }
-            : tutorForm,
+          tutor: isKnownTutor ? { endereco: tutorForm.endereco } : tutorForm,
           petIds: selectedPetIds,
           pet: shouldSubmitNewPet ? petForm : undefined,
           ...bookingForm,
@@ -290,9 +308,7 @@ export default function PublicBookingPage() {
       toast.success("Solicitação enviada para aprovação!");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "Erro ao enviar solicitação.",
+        error instanceof Error ? error.message : "Erro ao enviar solicitação.",
       );
     } finally {
       setLoading(false);
@@ -363,22 +379,33 @@ export default function PublicBookingPage() {
                       Digite o telefone do tutor
                     </h2>
                     <p className="mt-2 text-sm text-slate-500">
-                      Use o número sem DDD, com o 9 na frente. Exemplo:
-                      988765432.
+                      Use o número com DDD e com o 9 na frente. Exemplo:
+                      85988765432.
                     </p>
                   </div>
 
                   <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                    Telefone sem DDD
+                    Telefone com DDD
                     <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4">
                       <Phone size={20} className="text-slate-400" />
                       <input
                         value={phone}
-                        onChange={(event) =>
-                          setPhone(onlyDigits(event.target.value, 9))
-                        }
-                        inputMode="numeric"
-                        placeholder="988765432"
+                        onChange={(event) => {
+                          const nextPhone = normalizePhoneField(
+                            event.target.value,
+                          );
+                          const phoneInput =
+                            normalizePublicBookingPhoneInput(nextPhone);
+
+                          setPhone(nextPhone);
+
+                          if (phoneInput.ddd) {
+                            setDdd(phoneInput.ddd);
+                            setNeedsDdd(false);
+                          }
+                        }}
+                        inputMode="tel"
+                        placeholder="85988765432"
                         className="min-h-14 min-w-0 flex-1 text-lg font-semibold outline-none"
                       />
                     </div>
@@ -559,16 +586,21 @@ export default function PublicBookingPage() {
                             }`}
                           >
                             <span>
-                              <span className="block font-bold">{pet.nome}</span>
+                              <span className="block font-bold">
+                                {pet.nome}
+                              </span>
                               <span className="text-sm text-slate-500">
-                                {[pet.especie, pet.raca].filter(Boolean).join(" · ") ||
-                                  "Pet cadastrado"}
+                                {[pet.especie, pet.raca]
+                                  .filter(Boolean)
+                                  .join(" · ") || "Pet cadastrado"}
                               </span>
                             </span>
                             <input
                               type="checkbox"
                               checked={selectedPetIds.includes(String(pet.id))}
-                              onChange={() => togglePetSelection(String(pet.id))}
+                              onChange={() =>
+                                togglePetSelection(String(pet.id))
+                              }
                               className="h-5 w-5 rounded border-slate-300 text-[#8A0EEA] accent-[#8A0EEA]"
                             />
                           </label>

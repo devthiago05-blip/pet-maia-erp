@@ -8,20 +8,50 @@ export function normalizeDdd(value?: string | null) {
   return /^\d{2}$/.test(digits) ? digits : "";
 }
 
-export function normalizeLastNinePhone(value?: string | null) {
-  const digits = digitsOnly(value);
+export function normalizePublicBookingPhoneInput(value?: string | null) {
+  let digits = digitsOnly(value);
 
-  if (/^9\d{8}$/.test(digits)) {
-    return digits;
+  if (
+    digits.startsWith("55") &&
+    (digits.length === 12 || digits.length === 13)
+  ) {
+    digits = digits.slice(2);
   }
 
-  return "";
+  if (/^\d{2}9\d{8}$/.test(digits)) {
+    return {
+      ddd: digits.slice(0, 2),
+      lastNine: digits.slice(2),
+      normalized: digits,
+    };
+  }
+
+  if (/^9\d{8}$/.test(digits)) {
+    return {
+      ddd: "",
+      lastNine: digits,
+      normalized: digits,
+    };
+  }
+
+  return {
+    ddd: "",
+    lastNine: "",
+    normalized: digits,
+  };
+}
+
+export function normalizeLastNinePhone(value?: string | null) {
+  return normalizePublicBookingPhoneInput(value).lastNine;
 }
 
 export function getBrazilianPhoneParts(value?: string | null) {
   let digits = digitsOnly(value);
 
-  if (digits.startsWith("55") && (digits.length === 12 || digits.length === 13)) {
+  if (
+    digits.startsWith("55") &&
+    (digits.length === 12 || digits.length === 13)
+  ) {
     digits = digits.slice(2);
   }
 
@@ -51,4 +81,3 @@ export function phoneMatchesPublicBookingInput(
 
   return !ddd || phoneParts.ddd === ddd;
 }
-

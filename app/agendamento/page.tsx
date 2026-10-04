@@ -50,13 +50,6 @@ const filterTabs: Array<{ label: string; value: FilterKind }> = [
   })),
 ];
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(value);
-}
-
 function normalizePhoneForWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "");
 
@@ -76,11 +69,7 @@ function normalizePhoneForWhatsapp(value: string) {
 }
 
 function createWhatsappMessage(items: PublicAccessory[]) {
-  const lines = items.map((item) => {
-    const price = item.price > 0 ? ` - ${formatCurrency(item.price)}` : "";
-
-    return `• ${item.name} (${item.kind})${price}`;
-  });
+  const lines = items.map((item) => `• ${item.name} (${item.kind})`);
 
   return [
     "Olá! Vim pelo catálogo da Pet Maia e gostaria destes adereços:",
@@ -221,10 +210,6 @@ export default function PublicAccessoriesCatalogPage() {
         .map((id) => items.find((item) => item.id === id))
         .filter(Boolean) as PublicAccessory[],
     [items, selectedIds],
-  );
-  const selectedTotal = selectedItems.reduce(
-    (sum, item) => sum + Math.max(item.price, 0),
-    0,
   );
   const displayClinicName = useMemo(
     () => getCatalogBrandName(clinicName),
@@ -419,9 +404,7 @@ export default function PublicAccessoriesCatalogPage() {
                           </p>
                           <div className="mt-3 flex flex-wrap items-center gap-2">
                             <span className="text-base font-black text-[#8A0EEA]">
-                              {item.price > 0
-                                ? formatCurrency(item.price)
-                                : "Consultar valor"}
+                              Incluso no banho
                             </span>
                             <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">
                               {item.stock} un.
@@ -469,7 +452,7 @@ export default function PublicAccessoriesCatalogPage() {
                 {selectedItems.length > 1 ? "s" : ""}
               </p>
               <p className="truncate text-xs font-semibold text-slate-500">
-                Total estimado: {formatCurrency(selectedTotal)}
+                Adereços inclusos no banho
               </p>
             </div>
 

@@ -8,7 +8,14 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { type ChangeEvent, type FormEvent, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type FormEvent,
+  type RefObject,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
 
 import { Header } from "@/components/layout/Header";
@@ -118,6 +125,10 @@ export default function SitePage() {
   const [petImagesLoading, setPetImagesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [petImageSaving, setPetImageSaving] = useState(false);
+  const petImageFormRef = useRef<HTMLFormElement>(null);
+  const petImageNameInputRef = useRef<HTMLInputElement>(null);
+  const accessoryFormRef = useRef<HTMLFormElement>(null);
+  const accessoryNameInputRef = useRef<HTMLInputElement>(null);
 
   const groupedAccessories = useMemo(
     () => groupAccessories(accessories),
@@ -193,6 +204,19 @@ export default function SitePage() {
     setPetImageForm((current) => ({ ...current, [field]: value }));
   }
 
+  function focusEditForm(
+    formRef: RefObject<HTMLFormElement | null>,
+    inputRef: RefObject<HTMLInputElement | null>,
+  ) {
+    requestAnimationFrame(() => {
+      formRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      inputRef.current?.focus({ preventScroll: true });
+    });
+  }
+
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] || null;
 
@@ -246,6 +270,8 @@ export default function SitePage() {
       imagePreview: product.image_url || "",
       imageUrl: product.image_url || "",
     });
+    toast.success("Item carregado para edição");
+    focusEditForm(accessoryFormRef, accessoryNameInputRef);
   }
 
   function startEditPetImage(image: SitePetImage) {
@@ -259,6 +285,8 @@ export default function SitePage() {
       imagePreview: image.image_url || "",
       imageUrl: image.image_url || "",
     });
+    toast.success("Imagem carregada para edição");
+    focusEditForm(petImageFormRef, petImageNameInputRef);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -472,6 +500,7 @@ export default function SitePage() {
 
             <form
               onSubmit={handlePetImageSubmit}
+              ref={petImageFormRef}
               className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
             >
               <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -482,6 +511,7 @@ export default function SitePage() {
                     onChange={(event) =>
                       updatePetImageForm("name", event.target.value)
                     }
+                    ref={petImageNameInputRef}
                     placeholder="Ex: Estela"
                     className="w-full min-w-0 rounded-xl border p-3 font-normal"
                   />
@@ -600,6 +630,7 @@ export default function SitePage() {
 
           <form
             onSubmit={handleSubmit}
+            ref={accessoryFormRef}
             className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
           >
             <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -628,6 +659,7 @@ export default function SitePage() {
                 <input
                   value={form.nome}
                   onChange={(event) => updateForm("nome", event.target.value)}
+                  ref={accessoryNameInputRef}
                   placeholder="Ex: Topete fêmea rosa, gravata ou bandana"
                   className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />

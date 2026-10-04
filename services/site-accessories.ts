@@ -1,11 +1,18 @@
 import { supabase } from "@/lib/supabase";
 import type { Product } from "@/types/domain";
 
-export type SiteAccessoryKind = "Bandana" | "Lacinho";
+export type SiteAccessoryKind = "Bandana" | "Lacinho" | "Adesivo";
+
+export const siteAccessoryKinds: SiteAccessoryKind[] = [
+  "Bandana",
+  "Lacinho",
+  "Adesivo",
+];
 
 export interface SiteAccessoryInput {
   kind: SiteAccessoryKind;
   nome: string;
+  precoVenda: number;
   estoque: number;
   image_url: string | null;
 }
@@ -13,7 +20,13 @@ export interface SiteAccessoryInput {
 const siteAccessoriesBucket = "site-accessories";
 
 function createAccessoryCode(kind: SiteAccessoryKind) {
-  const prefix = kind === "Bandana" ? "BANDANA" : "LACINHO";
+  const prefixByKind: Record<SiteAccessoryKind, string> = {
+    Bandana: "BANDANA",
+    Lacinho: "LACINHO",
+    Adesivo: "ADESIVO",
+  };
+  const prefix = prefixByKind[kind];
+
   return `SITE-${prefix}-${Date.now()}`;
 }
 
@@ -23,9 +36,15 @@ export function getSiteAccessoryKind(product: Product): SiteAccessoryKind {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 
-  return text.includes("lacinho") || text.includes("laco")
-    ? "Lacinho"
-    : "Bandana";
+  if (text.includes("adesivo") || text.includes("sticker")) {
+    return "Adesivo";
+  }
+
+  if (text.includes("lacinho") || text.includes("laco")) {
+    return "Lacinho";
+  }
+
+  return "Bandana";
 }
 
 export function isVisibleOnSite(product: Product) {
@@ -42,10 +61,16 @@ export async function fetchSiteAccessories() {
         "categoria.ilike.%Lacinho%",
         "categoria.ilike.%Laco%",
         "categoria.ilike.%Laço%",
+        "categoria.ilike.%Adesivo%",
+        "categoria.ilike.%Adesivos%",
+        "categoria.ilike.%Sticker%",
         "nome.ilike.%Bandana%",
         "nome.ilike.%Lacinho%",
         "nome.ilike.%Laco%",
         "nome.ilike.%Laço%",
+        "nome.ilike.%Adesivo%",
+        "nome.ilike.%Adesivos%",
+        "nome.ilike.%Sticker%",
       ].join(","),
     )
     .order("nome")
@@ -97,8 +122,8 @@ export async function createSiteAccessory(input: SiteAccessoryInput) {
       category: input.kind,
       preco_custo: 0,
       cost_price: 0,
-      preco_venda: 0,
-      sale_price: 0,
+      preco_venda: input.precoVenda,
+      sale_price: input.precoVenda,
       profit_margin: 0,
       estoque: input.estoque,
       stock_quantity: input.estoque,
@@ -124,6 +149,8 @@ export async function updateSiteAccessory(
       name,
       categoria: input.kind,
       category: input.kind,
+      preco_venda: input.precoVenda,
+      sale_price: input.precoVenda,
       estoque: input.estoque,
       stock_quantity: input.estoque,
       image_url: input.image_url,

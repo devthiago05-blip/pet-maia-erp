@@ -784,9 +784,7 @@ export default function AgendaPage() {
   const appointmentsToPrint = useMemo(
     () =>
       sortAppointmentsForPrint(
-        viewMode === "kanban" &&
-          !isPeriodFilterActive &&
-          !isSearchFilterActive
+        viewMode === "kanban" && !isPeriodFilterActive && !isSearchFilterActive
           ? filteredKanbanAppointments
           : filteredAppointments,
       ),
@@ -823,7 +821,7 @@ export default function AgendaPage() {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#8A0EEA]/20 bg-white px-4 py-2 font-semibold text-[#8A0EEA] transition hover:bg-purple-50 sm:w-auto"
               >
                 <ExternalLink size={18} />
-                Link cliente
+                Catálogo adereços
               </a>
 
               <button
@@ -937,9 +935,7 @@ export default function AgendaPage() {
                 {isSearchFilterActive ? (
                   <>
                     Busca exibindo os agendamentos que combinam com{" "}
-                    <span className="font-semibold">
-                      “{search.trim()}”
-                    </span>
+                    <span className="font-semibold">“{search.trim()}”</span>
                     {hasDateFilter
                       ? ` em ${getDateRangeLabel(startDate, endDate)}`
                       : " em todo o histórico"}

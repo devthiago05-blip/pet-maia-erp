@@ -21,6 +21,7 @@ import {
   getSiteAccessoryKind,
   isVisibleOnSite,
   type SiteAccessoryKind,
+  siteAccessoryKinds,
   updateSiteAccessory,
   uploadSiteAccessoryImage,
 } from "@/services/site-accessories";
@@ -38,6 +39,7 @@ interface AccessoryFormState {
   id: number | null;
   kind: SiteAccessoryKind;
   nome: string;
+  precoVenda: string;
   estoque: string;
   imageFile: File | null;
   imagePreview: string;
@@ -48,6 +50,7 @@ const emptyForm: AccessoryFormState = {
   id: null,
   kind: "Bandana",
   nome: "",
+  precoVenda: "0",
   estoque: "0",
   imageFile: null,
   imagePreview: "",
@@ -100,6 +103,9 @@ function splitAccessories(products: Product[]) {
     bows: products.filter(
       (product) => getSiteAccessoryKind(product) === "Lacinho",
     ),
+    stickers: products.filter(
+      (product) => getSiteAccessoryKind(product) === "Adesivo",
+    ),
   };
 }
 
@@ -122,7 +128,9 @@ export default function SitePage() {
   const noStockCount = accessories.filter(
     (product) => product.ativo && product.estoque <= 0,
   ).length;
-  const visiblePetImagesCount = petImages.filter((image) => image.active).length;
+  const visiblePetImagesCount = petImages.filter(
+    (image) => image.active,
+  ).length;
 
   async function loadAccessories() {
     setLoading(true);
@@ -233,6 +241,7 @@ export default function SitePage() {
       id: product.id,
       kind: getSiteAccessoryKind(product),
       nome: product.nome || "",
+      precoVenda: String(product.preco_venda ?? 0),
       estoque: String(product.estoque ?? 0),
       imageFile: null,
       imagePreview: product.image_url || "",
@@ -257,6 +266,7 @@ export default function SitePage() {
     event.preventDefault();
 
     const estoque = Number(form.estoque);
+    const precoVenda = Number(String(form.precoVenda).replace(",", "."));
 
     if (!form.nome.trim()) {
       toast.error("Informe o nome");
@@ -265,6 +275,11 @@ export default function SitePage() {
 
     if (!Number.isInteger(estoque) || estoque < 0) {
       toast.error("Informe um estoque valido");
+      return;
+    }
+
+    if (!Number.isFinite(precoVenda) || precoVenda < 0) {
+      toast.error("Informe um valor de venda valido");
       return;
     }
 
@@ -294,6 +309,7 @@ export default function SitePage() {
     const payload = {
       kind: form.kind,
       nome: form.nome,
+      precoVenda,
       estoque,
       image_url: imageUrl,
     };
@@ -372,7 +388,9 @@ export default function SitePage() {
       return;
     }
 
-    toast.success(petImageForm.id ? "Imagem pet atualizada" : "Imagem pet cadastrada");
+    toast.success(
+      petImageForm.id ? "Imagem pet atualizada" : "Imagem pet cadastrada",
+    );
     resetPetImageForm();
     setPetImageSaving(false);
     await loadPetImages();
@@ -418,7 +436,7 @@ export default function SitePage() {
                 Site
               </h1>
               <p className="text-slate-500">
-                Bandanas, lacinhos e imagens pets do site
+                Bandanas, lacinhos, adesivos e imagens pets do site
               </p>
             </div>
 
@@ -447,9 +465,7 @@ export default function SitePage() {
 
           <section className="space-y-4">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                Imagens pets
-              </h2>
+              <h2 className="text-lg font-bold text-slate-900">Imagens pets</h2>
               <p className="text-sm text-slate-500">
                 Fotos cadastradas aqui aparecem na area Clientes do site.
               </p>
@@ -576,10 +592,10 @@ export default function SitePage() {
 
           <div>
             <h2 className="text-lg font-bold text-slate-900">
-              Bandanas e lacinhos
+              Adereços do catálogo
             </h2>
             <p className="text-sm text-slate-500">
-              Itens com foto e estoque aparecem no agendamento do site.
+              Itens com foto e estoque aparecem no catálogo público.
             </p>
           </div>
 
@@ -587,26 +603,24 @@ export default function SitePage() {
             onSubmit={handleSubmit}
             className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
           >
-            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-5">
               <div className="grid min-w-0 gap-2 text-sm font-medium">
                 Tipo
-                <div className="grid min-w-0 grid-cols-2 rounded-xl border bg-slate-50 p-1">
-                  {(["Bandana", "Lacinho"] as SiteAccessoryKind[]).map(
-                    (kind) => (
-                      <button
-                        key={kind}
-                        type="button"
-                        onClick={() => updateForm("kind", kind)}
-                        className={`min-w-0 rounded-lg px-3 py-2 font-semibold transition ${
-                          form.kind === kind
-                            ? "bg-[#8A0EEA] text-white"
-                            : "text-slate-600 hover:bg-white"
-                        }`}
-                      >
-                        {kind}
-                      </button>
-                    ),
-                  )}
+                <div className="grid min-w-0 grid-cols-3 rounded-xl border bg-slate-50 p-1">
+                  {siteAccessoryKinds.map((kind) => (
+                    <button
+                      key={kind}
+                      type="button"
+                      onClick={() => updateForm("kind", kind)}
+                      className={`min-w-0 rounded-lg px-2 py-2 text-xs font-semibold transition sm:text-sm ${
+                        form.kind === kind
+                          ? "bg-[#8A0EEA] text-white"
+                          : "text-slate-600 hover:bg-white"
+                      }`}
+                    >
+                      {kind}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -615,7 +629,21 @@ export default function SitePage() {
                 <input
                   value={form.nome}
                   onChange={(event) => updateForm("nome", event.target.value)}
-                  placeholder="Ex: Bandana rosa floral"
+                  placeholder="Ex: Bandana rosa floral, lacinho ou adesivo"
+                  className="w-full min-w-0 rounded-xl border p-3 font-normal"
+                />
+              </label>
+
+              <label className="grid min-w-0 gap-2 text-sm font-medium">
+                Valor no catálogo
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.precoVenda}
+                  onChange={(event) =>
+                    updateForm("precoVenda", event.target.value)
+                  }
                   className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />
               </label>
@@ -627,12 +655,14 @@ export default function SitePage() {
                   min="0"
                   step="1"
                   value={form.estoque}
-                  onChange={(event) => updateForm("estoque", event.target.value)}
+                  onChange={(event) =>
+                    updateForm("estoque", event.target.value)
+                  }
                   className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />
               </label>
 
-              <label className="grid min-w-0 gap-2 text-sm font-medium md:col-span-2 xl:col-span-4">
+              <label className="grid min-w-0 gap-2 text-sm font-medium md:col-span-2 xl:col-span-5">
                 Foto
                 <input
                   type="file"
@@ -642,7 +672,7 @@ export default function SitePage() {
                 />
               </label>
 
-              <div className="flex min-w-0 flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-4">
+              <div className="flex min-w-0 flex-col gap-3 sm:flex-row md:col-span-2 xl:col-span-5">
                 <button
                   type="submit"
                   disabled={saving}
@@ -687,7 +717,7 @@ export default function SitePage() {
               Carregando itens...
             </div>
           ) : (
-            <div className="grid gap-6 xl:grid-cols-2">
+            <div className="grid gap-6 xl:grid-cols-3">
               <AccessorySection
                 title="Bandanas"
                 products={groupedAccessories.bandanas}
@@ -697,6 +727,12 @@ export default function SitePage() {
               <AccessorySection
                 title="Lacinhos"
                 products={groupedAccessories.bows}
+                onEdit={startEdit}
+                onArchive={handleArchive}
+              />
+              <AccessorySection
+                title="Adesivos"
+                products={groupedAccessories.stickers}
                 onEdit={startEdit}
                 onArchive={handleArchive}
               />

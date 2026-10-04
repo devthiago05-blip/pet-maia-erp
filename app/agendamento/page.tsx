@@ -1,820 +1,489 @@
 "use client";
 
 import {
-  CalendarDays,
-  CheckCircle2,
-  Clock,
-  MapPin,
-  PawPrint,
-  Phone,
+  Check,
+  ImageIcon,
+  Loader2,
+  MessageCircle,
+  RefreshCw,
   Search,
-  Send,
-  UserRound,
+  ShoppingBag,
+  Sparkles,
+  Tag,
+  X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-import { normalizePublicBookingPhoneInput } from "@/lib/public-booking";
+type AccessoryKind = "Bandana" | "Lacinho" | "Adesivo";
+type FilterKind = "Todos" | AccessoryKind;
 
-interface LookupTutor {
+interface PublicAccessory {
   id: number;
-  nome: string;
-  telefone?: string;
-  email?: string;
-  endereco?: string;
+  name: string;
+  kind: AccessoryKind;
+  price: number;
+  stock: number;
+  imageUrl: string;
+  detail?: string;
 }
 
-interface LookupPet {
-  id: number;
-  nome: string;
-  especie?: string;
-  raca?: string;
-  porte?: string;
-  sexo?: string;
-  idade?: string;
-}
-
-interface LookupResponse {
-  found?: boolean;
-  needsDdd?: boolean;
-  message?: string;
+interface CatalogResponse {
+  clinic?: {
+    name?: string;
+    phone?: string;
+  };
+  items?: PublicAccessory[];
   error?: string;
-  tutor?: LookupTutor;
-  pets?: LookupPet[];
 }
 
-type FlowStep = "phone" | "booking" | "done";
+const kindLabels: Record<AccessoryKind, string> = {
+  Bandana: "Bandanas",
+  Lacinho: "Lacinhos",
+  Adesivo: "Adesivos",
+};
 
-function todayInputValue() {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
+const filterTabs: Array<{ label: string; value: FilterKind }> = [
+  { label: "Tudo", value: "Todos" },
+  { label: "Bandanas", value: "Bandana" },
+  { label: "Laços", value: "Lacinho" },
+  { label: "Adesivos", value: "Adesivo" },
+];
 
-  return `${year}-${month}-${day}`;
+const accessoryKinds: AccessoryKind[] = ["Bandana", "Lacinho", "Adesivo"];
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
 }
 
-function onlyDigits(value: string, maxLength: number) {
-  return value.replace(/\D/g, "").slice(0, maxLength);
+function normalizeText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
-function normalizePhoneField(value: string) {
-  const digits = onlyDigits(value, 13);
-  const withoutCountryCode =
-    digits.startsWith("55") && digits.length > 11 ? digits.slice(2) : digits;
+function normalizePhoneForWhatsapp(value: string) {
+  const digits = value.replace(/\D/g, "");
 
-  return withoutCountryCode.slice(0, 11);
+  if (!digits) {
+    return "";
+  }
+
+  if (digits.startsWith("55")) {
+    return digits;
+  }
+
+  if (digits.length === 10 || digits.length === 11) {
+    return `55${digits}`;
+  }
+
+  return digits;
 }
 
-export default function PublicBookingPage() {
-  const [step, setStep] = useState<FlowStep>("phone");
-  const [loading, setLoading] = useState(false);
-  const [phone, setPhone] = useState("");
-  const [ddd, setDdd] = useState("");
-  const [needsDdd, setNeedsDdd] = useState(false);
-  const [lookupMessage, setLookupMessage] = useState("");
-  const [tutor, setTutor] = useState<LookupTutor | null>(null);
-  const [pets, setPets] = useState<LookupPet[]>([]);
-  const [selectedPetIds, setSelectedPetIds] = useState<string[]>([]);
-  const [useNewPet, setUseNewPet] = useState(false);
-  const [services, setServices] = useState<string[]>([]);
-  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
-  const [loadingTimes, setLoadingTimes] = useState(false);
-  const [appointmentId, setAppointmentId] = useState<number | null>(null);
-  const [tutorForm, setTutorForm] = useState({
-    nome: "",
-    email: "",
-    endereco: "",
-  });
-  const [petForm, setPetForm] = useState({
-    nome: "",
-    especie: "Cachorro",
-    raca: "",
-    porte: "",
-    sexo: "",
-    idade: "",
-  });
-  const [bookingForm, setBookingForm] = useState({
-    serviceName: "",
-    date: todayInputValue(),
-    time: "",
-    notes: "",
+function createWhatsappMessage(items: PublicAccessory[]) {
+  const lines = items.map((item) => {
+    const price = item.price > 0 ? ` - ${formatCurrency(item.price)}` : "";
+
+    return `• ${item.name} (${item.kind})${price}`;
   });
 
-  const isKnownTutor = Boolean(tutor);
-  const selectedPets = useMemo(
-    () => pets.filter((pet) => selectedPetIds.includes(String(pet.id))),
-    [pets, selectedPetIds],
-  );
+  return [
+    "Olá! Vim pelo catálogo da Pet Maia e gostaria destes adereços:",
+    "",
+    ...lines,
+    "",
+    "Pode confirmar disponibilidade para mim?",
+  ].join("\n");
+}
 
-  useEffect(() => {
-    async function loadOptions() {
-      const response = await fetch("/api/public/booking/options");
-      const payload = (await response.json()) as { services?: string[] };
-      const availableServices = payload.services || [];
+async function fetchCatalog() {
+  const response = await fetch("/api/public/accessories", {
+    cache: "no-store",
+  });
+  const payload = (await response.json()) as CatalogResponse;
 
-      setServices(availableServices);
-      setBookingForm((current) => ({
-        ...current,
-        serviceName: current.serviceName || availableServices[0] || "Banho",
-      }));
+  if (!response.ok) {
+    throw new Error(payload.error || "Não foi possível carregar.");
+  }
+
+  return payload;
+}
+
+export default function PublicAccessoriesCatalogPage() {
+  const [items, setItems] = useState<PublicAccessory[]>([]);
+  const [clinicName, setClinicName] = useState("Pet Maia");
+  const [clinicPhone, setClinicPhone] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterKind>("Todos");
+  const [search, setSearch] = useState("");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadCatalog = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const payload = await fetchCatalog();
+      setItems(payload.items || []);
+      setClinicName(payload.clinic?.name || "Pet Maia");
+      setClinicPhone(payload.clinic?.phone || "");
+    } catch (requestError) {
+      setItems([]);
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível carregar o catálogo.",
+      );
+    } finally {
+      setLoading(false);
     }
-
-    loadOptions().catch(() => {
-      setServices(["Banho", "Banho + Tosa", "Consulta", "Vacina"]);
-      setBookingForm((current) => ({
-        ...current,
-        serviceName: current.serviceName || "Banho",
-      }));
-    });
   }, []);
 
   useEffect(() => {
     let active = true;
 
-    async function loadAvailability() {
-      if (!bookingForm.date) {
-        setAvailableTimes([]);
-        return;
-      }
-
-      setLoadingTimes(true);
-
+    async function loadInitialCatalog() {
       try {
-        const params = new URLSearchParams({ date: bookingForm.date });
-        const response = await fetch(
-          `/api/public/booking/availability?${params}`,
-        );
-        const payload = (await response.json()) as {
-          availableTimes?: string[];
-        };
-
-        if (!response.ok) {
-          throw new Error("Não foi possível consultar horários livres.");
-        }
+        const payload = await fetchCatalog();
 
         if (!active) {
           return;
         }
 
-        const times = payload.availableTimes || [];
-        setAvailableTimes(times);
-        setBookingForm((current) => ({
-          ...current,
-          time: times.includes(current.time) ? current.time : times[0] || "",
-        }));
-      } catch {
-        if (active) {
-          setAvailableTimes([]);
-          setBookingForm((current) => ({ ...current, time: "" }));
+        setItems(payload.items || []);
+        setClinicName(payload.clinic?.name || "Pet Maia");
+        setClinicPhone(payload.clinic?.phone || "");
+      } catch (requestError) {
+        if (!active) {
+          return;
         }
+
+        setItems([]);
+        setError(
+          requestError instanceof Error
+            ? requestError.message
+            : "Não foi possível carregar o catálogo.",
+        );
       } finally {
         if (active) {
-          setLoadingTimes(false);
+          setLoading(false);
         }
       }
     }
 
-    loadAvailability();
+    loadInitialCatalog();
 
     return () => {
       active = false;
     };
-  }, [bookingForm.date]);
+  }, []);
 
-  async function handleLookup(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const phoneInput = normalizePublicBookingPhoneInput(phone);
-    const cleanPhone = phoneInput.normalized;
-    const cleanDdd = phoneInput.ddd || onlyDigits(ddd, 2);
+  const filteredItems = useMemo(() => {
+    const normalizedSearch = normalizeText(search.trim());
 
-    if (!phoneInput.ddd || !phoneInput.lastNine) {
-      toast.error(
-        "Digite o telefone com DDD, começando com 9. Exemplo: 85988765432.",
+    return items.filter((item) => {
+      const matchesFilter =
+        activeFilter === "Todos" || item.kind === activeFilter;
+      const matchesSearch =
+        !normalizedSearch ||
+        normalizeText(
+          `${item.name} ${item.kind} ${item.detail || ""}`,
+        ).includes(normalizedSearch);
+
+      return matchesFilter && matchesSearch;
+    });
+  }, [activeFilter, items, search]);
+
+  const sections = useMemo(() => {
+    return accessoryKinds
+      .map((kind) => ({
+        kind,
+        title: kindLabels[kind],
+        items: filteredItems.filter((item) => item.kind === kind),
+      }))
+      .filter(
+        (section) => activeFilter !== "Todos" || section.items.length > 0,
       );
-      return;
-    }
+  }, [activeFilter, filteredItems]);
 
-    setLoading(true);
-    setLookupMessage("");
+  const selectedItems = useMemo(
+    () =>
+      selectedIds
+        .map((id) => items.find((item) => item.id === id))
+        .filter(Boolean) as PublicAccessory[],
+    [items, selectedIds],
+  );
+  const selectedTotal = selectedItems.reduce(
+    (sum, item) => sum + Math.max(item.price, 0),
+    0,
+  );
 
-    try {
-      const params = new URLSearchParams({ phone: cleanPhone });
-      params.set("ddd", cleanDdd);
-      setDdd(cleanDdd);
-
-      const response = await fetch(`/api/public/booking/lookup?${params}`);
-      const payload = (await response.json()) as LookupResponse;
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Não foi possível consultar.");
-      }
-
-      if (payload.needsDdd) {
-        setNeedsDdd(true);
-        setLookupMessage(payload.message || "Informe o DDD para continuar.");
-        return;
-      }
-
-      setNeedsDdd(false);
-      setTutor(payload.tutor || null);
-      setPets(payload.pets || []);
-      setSelectedPetIds(
-        payload.pets?.[0]?.id ? [String(payload.pets[0].id)] : [],
-      );
-      setTutorForm((current) => ({
-        ...current,
-        endereco: payload.tutor?.endereco || current.endereco,
-      }));
-      setUseNewPet(!payload.found || !payload.pets?.length);
-      setStep("booking");
-
-      if (!payload.found) {
-        setLookupMessage(
-          "Não encontramos cadastro com esse telefone. Preencha seus dados para criar a solicitação.",
-        );
-      }
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao consultar telefone.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSubmitBooking(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const phoneInput = normalizePublicBookingPhoneInput(phone);
-    const cleanPhone = phoneInput.normalized;
-    const cleanDdd = phoneInput.ddd || onlyDigits(ddd, 2);
-
-    if (!bookingForm.serviceName || !bookingForm.date || !bookingForm.time) {
-      toast.error("Informe serviço, data e horário desejado.");
-      return;
-    }
-
-    if (!isKnownTutor && !tutorForm.nome.trim()) {
-      toast.error("Informe o nome do tutor.");
-      return;
-    }
-
-    if (!phoneInput.ddd || !phoneInput.lastNine) {
-      toast.error("Informe o telefone com DDD para concluir o agendamento.");
-      return;
-    }
-
-    if (!isKnownTutor && !/^\d{2}$/.test(cleanDdd)) {
-      toast.error("Informe o DDD para concluir o cadastro.");
-      return;
-    }
-
-    const shouldSubmitNewPet =
-      (!isKnownTutor || pets.length === 0 || useNewPet) &&
-      Boolean(petForm.nome.trim());
-
-    if (selectedPetIds.length === 0 && !shouldSubmitNewPet) {
-      toast.error("Selecione ou cadastre pelo menos um pet.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/public/booking/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          ddd: cleanDdd,
-          tutorId: tutor?.id,
-          tutor: isKnownTutor ? { endereco: tutorForm.endereco } : tutorForm,
-          petIds: selectedPetIds,
-          pet: shouldSubmitNewPet ? petForm : undefined,
-          ...bookingForm,
-        }),
-      });
-      const payload = (await response.json()) as {
-        appointmentId?: number;
-        error?: string;
-      };
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Não foi possível enviar.");
-      }
-
-      setAppointmentId(payload.appointmentId || null);
-      setStep("done");
-      toast.success("Solicitação enviada para aprovação!");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao enviar solicitação.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function resetFlow() {
-    setStep("phone");
-    setTutor(null);
-    setPets([]);
-    setSelectedPetIds([]);
-    setUseNewPet(false);
-    setLookupMessage("");
-    setAppointmentId(null);
-  }
-
-  function togglePetSelection(petId: string) {
-    setSelectedPetIds((current) =>
-      current.includes(petId)
-        ? current.filter((item) => item !== petId)
-        : [...current, petId],
+  function toggleSelected(itemId: number) {
+    setSelectedIds((current) =>
+      current.includes(itemId)
+        ? current.filter((id) => id !== itemId)
+        : [...current, itemId],
     );
   }
 
+  function handleWhatsappOrder() {
+    if (selectedItems.length === 0) {
+      toast.error("Selecione pelo menos um adereço.");
+      return;
+    }
+
+    const phone = normalizePhoneForWhatsapp(clinicPhone);
+
+    if (!phone) {
+      toast.error("Cadastre o telefone da loja nas configurações da clínica.");
+      return;
+    }
+
+    const message = encodeURIComponent(createWhatsappMessage(selectedItems));
+    window.open(`https://wa.me/${phone}?text=${message}`, "_blank", "noopener");
+  }
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-emerald-50 px-4 py-8 text-slate-900 sm:px-6">
-      <div className="mx-auto flex max-w-5xl flex-col gap-6">
-        <section className="overflow-hidden rounded-[2rem] border border-purple-100 bg-white shadow-xl shadow-purple-100/60">
-          <div className="grid gap-0 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="bg-[#8A0EEA] p-8 text-white sm:p-10">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold">
-                <PawPrint size={18} />
-                Pet Maia
-              </span>
+    <main className="min-h-screen bg-[#f6f1e8] pb-28 text-[#221507]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#ffd44d] via-[#f5b12f] to-[#e98218] px-4 pb-8 pt-5 text-[#201000] shadow-sm">
+        <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
+        <div className="absolute -bottom-16 left-8 h-48 w-48 rounded-full bg-white/25 blur-3xl" />
 
-              <h1 className="mt-8 text-3xl font-black leading-tight sm:text-4xl">
-                Solicite o banho, tosa ou atendimento do seu pet.
-              </h1>
-
-              <p className="mt-4 max-w-md text-white/85">
-                Você informa o telefone e escolhe o melhor horário. A equipe
-                confere a agenda, pode ajustar o dia ou horário e confirma pelo
-                WhatsApp.
-              </p>
-
-              <div className="mt-8 grid gap-3 text-sm">
-                {[
-                  "Cadastro rápido de tutor e pet quando ainda não existir.",
-                  "Solicitação entra como pendente para aprovação.",
-                  "Confirmação enviada pelo WhatsApp após aprovação.",
-                ].map((item) => (
-                  <div key={item} className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-                    <span>{item}</span>
-                  </div>
-                ))}
+        <div className="relative mx-auto flex max-w-5xl flex-col gap-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-2xl bg-white shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/pet-maia-logo-web.png"
+                  alt="Pet Maia"
+                  className="h-full w-full object-contain p-1.5"
+                />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#6b3200]">
+                  {clinicName}
+                </p>
+                <h1 className="text-2xl font-black leading-tight sm:text-4xl">
+                  Catálogo de adereços
+                </h1>
               </div>
             </div>
 
-            <div className="p-5 sm:p-8">
-              {step === "phone" && (
-                <form onSubmit={handleLookup} className="space-y-5">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
-                      Primeiro passo
-                    </p>
-                    <h2 className="mt-1 text-2xl font-bold">
-                      Digite o telefone do tutor
-                    </h2>
-                    <p className="mt-2 text-sm text-slate-500">
-                      Use o número com DDD e com o 9 na frente. Exemplo:
-                      85988765432.
-                    </p>
-                  </div>
+            <span className="hidden items-center gap-2 rounded-full bg-white/55 px-4 py-2 text-sm font-black shadow-sm sm:inline-flex">
+              <Sparkles size={17} />
+              Banho estiloso
+            </span>
+          </div>
 
-                  <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                    Telefone com DDD
-                    <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4">
-                      <Phone size={20} className="text-slate-400" />
-                      <input
-                        value={phone}
-                        onChange={(event) => {
-                          const nextPhone = normalizePhoneField(
-                            event.target.value,
-                          );
-                          const phoneInput =
-                            normalizePublicBookingPhoneInput(nextPhone);
+          <div className="max-w-2xl rounded-[1.6rem] bg-white/45 p-4 shadow-sm backdrop-blur">
+            <p className="text-base font-semibold sm:text-lg">
+              Escolha bandanas, laços e adesivos para combinar com o banho do
+              seu pet. Toque no botão preto para selecionar os itens e enviar a
+              lista pelo WhatsApp.
+            </p>
+          </div>
+        </div>
+      </section>
 
-                          setPhone(nextPhone);
+      <section className="sticky top-0 z-20 border-b border-black/5 bg-[#f6f1e8]/95 px-4 py-3 backdrop-blur">
+        <div className="mx-auto flex max-w-5xl flex-col gap-3">
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => setActiveFilter(tab.value)}
+                className={`shrink-0 rounded-full px-4 py-2 text-sm font-black transition ${
+                  activeFilter === tab.value
+                    ? "bg-[#111827] text-white shadow-md"
+                    : "bg-white text-slate-700 shadow-sm"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-                          if (phoneInput.ddd) {
-                            setDdd(phoneInput.ddd);
-                            setNeedsDdd(false);
-                          }
-                        }}
-                        inputMode="tel"
-                        placeholder="85988765432"
-                        className="min-h-14 min-w-0 flex-1 text-lg font-semibold outline-none"
-                      />
-                    </div>
-                  </label>
+          <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 shadow-sm">
+            <Search size={20} className="text-slate-400" />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar adereço"
+              className="min-w-0 flex-1 bg-transparent text-base font-semibold outline-none placeholder:text-slate-400"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Limpar busca"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </label>
+        </div>
+      </section>
 
-                  {needsDdd && (
-                    <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                      DDD para localizar o cadastro certo
-                      <input
-                        value={ddd}
-                        onChange={(event) =>
-                          setDdd(onlyDigits(event.target.value, 2))
-                        }
-                        inputMode="numeric"
-                        placeholder="85"
-                        className="min-h-14 rounded-2xl border border-slate-200 px-4 text-lg font-semibold outline-none focus:border-[#8A0EEA]"
-                      />
-                    </label>
-                  )}
-
-                  {lookupMessage && (
-                    <p className="rounded-2xl bg-amber-50 p-4 text-sm font-medium text-amber-800">
-                      {lookupMessage}
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#8A0EEA] px-5 font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-[#7600d1] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Search size={20} />
-                    {loading ? "Consultando..." : "Continuar"}
-                  </button>
-                </form>
-              )}
-
-              {step === "booking" && (
-                <form onSubmit={handleSubmitBooking} className="space-y-6">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold uppercase tracking-wide text-[#8A0EEA]">
-                        Solicitação
-                      </p>
-                      <h2 className="mt-1 text-2xl font-bold">
-                        Dados para o agendamento
-                      </h2>
-                      <p className="mt-2 text-sm text-slate-500">
-                        A confirmação final será feita pela equipe da Pet Maia.
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={resetFlow}
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50"
-                    >
-                      Trocar telefone
-                    </button>
-                  </div>
-
-                  {lookupMessage && !isKnownTutor && (
-                    <p className="rounded-2xl bg-blue-50 p-4 text-sm font-medium text-blue-800">
-                      {lookupMessage}
-                    </p>
-                  )}
-
-                  <section className="rounded-3xl border border-slate-200 p-4">
-                    <h3 className="flex items-center gap-2 font-bold">
-                      <UserRound size={18} className="text-[#8A0EEA]" />
-                      Tutor
-                    </h3>
-
-                    {isKnownTutor ? (
-                      <div className="mt-4 space-y-3">
-                        <div className="rounded-2xl bg-slate-50 p-4">
-                          <p className="font-bold">{tutor?.nome}</p>
-                          <p className="text-sm text-slate-500">
-                            Cadastro localizado pelo telefone informado.
-                          </p>
-                        </div>
-
-                        <label className="grid gap-2 text-sm font-semibold text-slate-700">
-                          Endereço do cliente
-                          <div className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4">
-                            <MapPin size={18} className="text-slate-400" />
-                            <input
-                              value={tutorForm.endereco}
-                              onChange={(event) =>
-                                setTutorForm((current) => ({
-                                  ...current,
-                                  endereco: event.target.value,
-                                }))
-                              }
-                              placeholder="Confirme ou atualize o endereço"
-                              className="min-h-12 min-w-0 flex-1 outline-none"
-                            />
-                          </div>
-                        </label>
-                      </div>
-                    ) : (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <input
-                          value={tutorForm.nome}
-                          onChange={(event) =>
-                            setTutorForm((current) => ({
-                              ...current,
-                              nome: event.target.value,
-                            }))
-                          }
-                          placeholder="Nome do tutor"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                        <input
-                          value={ddd}
-                          onChange={(event) =>
-                            setDdd(onlyDigits(event.target.value, 2))
-                          }
-                          inputMode="numeric"
-                          placeholder="DDD"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                        <input
-                          value={tutorForm.email}
-                          onChange={(event) =>
-                            setTutorForm((current) => ({
-                              ...current,
-                              email: event.target.value,
-                            }))
-                          }
-                          placeholder="E-mail opcional"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                        <input
-                          value={tutorForm.endereco}
-                          onChange={(event) =>
-                            setTutorForm((current) => ({
-                              ...current,
-                              endereco: event.target.value,
-                            }))
-                          }
-                          placeholder="Endereço"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                      </div>
-                    )}
-                  </section>
-
-                  <section className="rounded-3xl border border-slate-200 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <h3 className="flex items-center gap-2 font-bold">
-                        <PawPrint size={18} className="text-[#8A0EEA]" />
-                        Pet
-                      </h3>
-
-                      {isKnownTutor && pets.length > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setUseNewPet((current) => !current)}
-                          className="rounded-xl bg-purple-50 px-4 py-2 text-sm font-semibold text-[#8A0EEA]"
-                        >
-                          {useNewPet
-                            ? "Ocultar novo pet"
-                            : "Cadastrar outro pet"}
-                        </button>
-                      )}
-                    </div>
-
-                    {isKnownTutor && pets.length > 0 && (
-                      <div className="mt-4 grid gap-3">
-                        {pets.map((pet) => (
-                          <label
-                            key={pet.id}
-                            className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 ${
-                              selectedPetIds.includes(String(pet.id))
-                                ? "border-[#8A0EEA] bg-purple-50"
-                                : "border-slate-200"
-                            }`}
-                          >
-                            <span>
-                              <span className="block font-bold">
-                                {pet.nome}
-                              </span>
-                              <span className="text-sm text-slate-500">
-                                {[pet.especie, pet.raca]
-                                  .filter(Boolean)
-                                  .join(" · ") || "Pet cadastrado"}
-                              </span>
-                            </span>
-                            <input
-                              type="checkbox"
-                              checked={selectedPetIds.includes(String(pet.id))}
-                              onChange={() =>
-                                togglePetSelection(String(pet.id))
-                              }
-                              className="h-5 w-5 rounded border-slate-300 text-[#8A0EEA] accent-[#8A0EEA]"
-                            />
-                          </label>
-                        ))}
-                      </div>
-                    )}
-
-                    {(!isKnownTutor || pets.length === 0 || useNewPet) && (
-                      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        <input
-                          value={petForm.nome}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              nome: event.target.value,
-                            }))
-                          }
-                          placeholder="Nome do pet"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                        <select
-                          value={petForm.especie}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              especie: event.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        >
-                          <option>Cachorro</option>
-                          <option>Gato</option>
-                          <option>Outro</option>
-                        </select>
-                        <input
-                          value={petForm.raca}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              raca: event.target.value,
-                            }))
-                          }
-                          placeholder="Raça"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                        <select
-                          value={petForm.porte}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              porte: event.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        >
-                          <option value="">Porte</option>
-                          <option>Pequeno</option>
-                          <option>Médio</option>
-                          <option>Grande</option>
-                        </select>
-                        <select
-                          value={petForm.sexo}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              sexo: event.target.value,
-                            }))
-                          }
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        >
-                          <option value="">Sexo</option>
-                          <option>Macho</option>
-                          <option>Fêmea</option>
-                        </select>
-                        <input
-                          value={petForm.idade}
-                          onChange={(event) =>
-                            setPetForm((current) => ({
-                              ...current,
-                              idade: event.target.value,
-                            }))
-                          }
-                          placeholder="Idade aproximada"
-                          className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                        />
-                      </div>
-                    )}
-
-                    {selectedPets.length > 0 && (
-                      <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm font-medium text-emerald-700">
-                        Pet{selectedPets.length > 1 ? "s" : ""} selecionado
-                        {selectedPets.length > 1 ? "s" : ""}:{" "}
-                        {selectedPets.map((pet) => pet.nome).join(", ")}
-                      </p>
-                    )}
-                  </section>
-
-                  <section className="rounded-3xl border border-slate-200 p-4">
-                    <h3 className="flex items-center gap-2 font-bold">
-                      <CalendarDays size={18} className="text-[#8A0EEA]" />
-                      Preferência de agenda
-                    </h3>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      <select
-                        value={bookingForm.serviceName}
-                        onChange={(event) =>
-                          setBookingForm((current) => ({
-                            ...current,
-                            serviceName: event.target.value,
-                          }))
-                        }
-                        className="rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA]"
-                      >
-                        {services.map((service) => (
-                          <option key={service}>{service}</option>
-                        ))}
-                      </select>
-                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4">
-                        <CalendarDays size={18} className="text-slate-400" />
-                        <input
-                          type="date"
-                          min={todayInputValue()}
-                          value={bookingForm.date}
-                          onChange={(event) =>
-                            setBookingForm((current) => ({
-                              ...current,
-                              date: event.target.value,
-                            }))
-                          }
-                          className="min-h-12 min-w-0 flex-1 outline-none"
-                        />
-                      </label>
-                      <label className="flex items-center gap-3 rounded-2xl border border-slate-200 px-4">
-                        <Clock size={18} className="text-slate-400" />
-                        <select
-                          value={bookingForm.time}
-                          onChange={(event) =>
-                            setBookingForm((current) => ({
-                              ...current,
-                              time: event.target.value,
-                            }))
-                          }
-                          disabled={loadingTimes || availableTimes.length === 0}
-                          className="min-h-12 min-w-0 flex-1 bg-transparent outline-none disabled:text-slate-400"
-                        >
-                          {loadingTimes ? (
-                            <option>Carregando horários...</option>
-                          ) : availableTimes.length > 0 ? (
-                            availableTimes.map((time) => (
-                              <option key={time} value={time}>
-                                {time}
-                              </option>
-                            ))
-                          ) : (
-                            <option value="">Sem horário livre</option>
-                          )}
-                        </select>
-                      </label>
-                      <textarea
-                        value={bookingForm.notes}
-                        onChange={(event) =>
-                          setBookingForm((current) => ({
-                            ...current,
-                            notes: event.target.value,
-                          }))
-                        }
-                        placeholder="Observações: preferência, comportamento, taxi pet..."
-                        className="min-h-24 rounded-2xl border border-slate-200 px-4 py-3 outline-none focus:border-[#8A0EEA] sm:col-span-2"
-                      />
-                    </div>
-                  </section>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#8A0EEA] px-5 font-bold text-white shadow-lg shadow-purple-200 transition hover:bg-[#7600d1] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Send size={20} />
-                    {loading ? "Enviando..." : "Enviar para aprovação"}
-                  </button>
-                </form>
-              )}
-
-              {step === "done" && (
-                <div className="flex min-h-[520px] flex-col items-center justify-center text-center">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
-                    <CheckCircle2 size={42} />
-                  </div>
-                  <h2 className="mt-6 text-3xl font-black">
-                    Solicitação enviada!
-                  </h2>
-                  <p className="mt-3 max-w-md text-slate-500">
-                    Recebemos seu pedido de agendamento. A equipe vai conferir a
-                    agenda e confirmar pelo WhatsApp.
-                  </p>
-                  {appointmentId && (
-                    <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                      Protocolo #{appointmentId}
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={resetFlow}
-                    className="mt-8 rounded-2xl border border-[#8A0EEA]/20 px-5 py-3 font-bold text-[#8A0EEA] hover:bg-purple-50"
-                  >
-                    Fazer outra solicitação
-                  </button>
-                </div>
-              )}
+      <section className="mx-auto max-w-5xl space-y-6 px-4 py-5">
+        {loading ? (
+          <div className="grid min-h-64 place-items-center rounded-[2rem] bg-white p-8 text-center shadow-sm">
+            <div className="grid gap-3 place-items-center">
+              <Loader2 className="animate-spin text-[#8A0EEA]" size={34} />
+              <p className="font-bold text-slate-600">Carregando adereços...</p>
             </div>
           </div>
-        </section>
-      </div>
+        ) : error ? (
+          <div className="rounded-[2rem] bg-white p-6 shadow-sm">
+            <p className="font-bold text-red-600">{error}</p>
+            <button
+              type="button"
+              onClick={loadCatalog}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#111827] px-4 py-3 font-bold text-white"
+            >
+              <RefreshCw size={18} />
+              Tentar novamente
+            </button>
+          </div>
+        ) : filteredItems.length === 0 ? (
+          <div className="rounded-[2rem] bg-white p-8 text-center shadow-sm">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+              <ImageIcon size={32} />
+            </div>
+            <h2 className="mt-4 text-xl font-black">
+              Nenhum adereço encontrado
+            </h2>
+            <p className="mt-2 text-sm font-medium text-slate-500">
+              Cadastre itens com foto e estoque em Site &gt; Adereços do
+              catálogo.
+            </p>
+          </div>
+        ) : (
+          sections.map((section) => (
+            <section key={section.kind} className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-slate-700">
+                  <Tag size={17} className="text-[#8A0EEA]" />
+                  {section.title}
+                </h2>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500 shadow-sm">
+                  {section.items.length}
+                </span>
+              </div>
+
+              {section.items.length === 0 ? (
+                <div className="rounded-2xl bg-white p-5 text-sm font-semibold text-slate-500 shadow-sm">
+                  Nenhum item nesta categoria.
+                </div>
+              ) : (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {section.items.map((item) => {
+                    const selected = selectedIds.includes(item.id);
+
+                    return (
+                      <article
+                        key={item.id}
+                        className="flex gap-3 rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/5"
+                      >
+                        <div className="h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+
+                        <div className="min-w-0 flex-1 py-1">
+                          <h3 className="font-black leading-snug text-slate-900">
+                            {item.name}
+                          </h3>
+                          <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                            {item.kind}
+                            {item.detail ? ` · ${item.detail}` : ""}
+                          </p>
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            <span className="text-base font-black text-[#8A0EEA]">
+                              {item.price > 0
+                                ? formatCurrency(item.price)
+                                : "Consultar valor"}
+                            </span>
+                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">
+                              {item.stock} un.
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => toggleSelected(item.id)}
+                          aria-label={
+                            selected
+                              ? `Remover ${item.name}`
+                              : `Selecionar ${item.name}`
+                          }
+                          className={`grid h-11 w-11 shrink-0 place-items-center self-center rounded-xl text-white shadow-sm transition ${
+                            selected
+                              ? "bg-[#8A0EEA]"
+                              : "bg-[#111827] hover:bg-black"
+                          }`}
+                        >
+                          {selected ? (
+                            <Check size={21} />
+                          ) : (
+                            <ShoppingBag size={20} />
+                          )}
+                        </button>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          ))
+        )}
+      </section>
+
+      {selectedItems.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-black/10 bg-white/95 px-4 py-3 shadow-2xl backdrop-blur">
+          <div className="mx-auto flex max-w-5xl items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-slate-900">
+                {selectedItems.length} item
+                {selectedItems.length > 1 ? "s" : ""} selecionado
+                {selectedItems.length > 1 ? "s" : ""}
+              </p>
+              <p className="truncate text-xs font-semibold text-slate-500">
+                Total estimado: {formatCurrency(selectedTotal)}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="hidden rounded-xl border px-3 py-3 text-sm font-bold text-slate-600 sm:inline-flex"
+            >
+              Limpar
+            </button>
+
+            <button
+              type="button"
+              onClick={handleWhatsappOrder}
+              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-[#25D366] px-4 font-black text-white shadow-lg shadow-emerald-200"
+            >
+              <MessageCircle size={20} />
+              Enviar
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -91,6 +91,19 @@ function createWhatsappMessage(items: PublicAccessory[]) {
   ].join("\n");
 }
 
+function getCatalogBrandName(value: string) {
+  const cleanedName = value
+    .replace(/\bERP\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+
+  if (!cleanedName || /^pet maia$/i.test(cleanedName)) {
+    return "Pet Maia";
+  }
+
+  return cleanedName;
+}
+
 async function fetchCatalog() {
   const response = await fetch("/api/public/accessories", {
     cache: "no-store",
@@ -213,6 +226,10 @@ export default function PublicAccessoriesCatalogPage() {
     (sum, item) => sum + Math.max(item.price, 0),
     0,
   );
+  const displayClinicName = useMemo(
+    () => getCatalogBrandName(clinicName),
+    [clinicName],
+  );
 
   function toggleSelected(itemId: number) {
     setSelectedIds((current) =>
@@ -240,8 +257,8 @@ export default function PublicAccessoriesCatalogPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f1e8] pb-28 text-[#221507]">
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#ffd44d] via-[#f5b12f] to-[#e98218] px-4 pb-8 pt-5 text-[#201000] shadow-sm">
+    <main className="min-h-screen bg-[#f7f0ff] pb-28 text-[#180024]">
+      <section className="relative overflow-hidden bg-gradient-to-br from-[#8A0EEA] via-[#9B1CF3] to-[#5F00B5] px-4 pb-8 pt-5 text-white shadow-sm">
         <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-white/20 blur-2xl" />
         <div className="absolute -bottom-16 left-8 h-48 w-48 rounded-full bg-white/25 blur-3xl" />
 
@@ -257,8 +274,8 @@ export default function PublicAccessoriesCatalogPage() {
                 />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#6b3200]">
-                  {clinicName}
+                <p className="text-xs font-black tracking-[0.22em] text-white/80">
+                  {displayClinicName}
                 </p>
                 <h1 className="text-2xl font-black leading-tight sm:text-4xl">
                   Catálogo de adereços
@@ -272,7 +289,7 @@ export default function PublicAccessoriesCatalogPage() {
             </span>
           </div>
 
-          <div className="max-w-2xl rounded-[1.6rem] bg-white/45 p-4 shadow-sm backdrop-blur">
+          <div className="max-w-2xl rounded-[1.6rem] bg-white/15 p-4 shadow-sm backdrop-blur">
             <p className="text-base font-semibold sm:text-lg">
               Escolha topetes, gravatas, bandanas, adesivos e outros adereços
               para combinar com o banho do seu pet. Toque no botão preto para
@@ -282,7 +299,7 @@ export default function PublicAccessoriesCatalogPage() {
         </div>
       </section>
 
-      <section className="sticky top-0 z-20 border-b border-black/5 bg-[#f6f1e8]/95 px-4 py-3 backdrop-blur">
+      <section className="sticky top-0 z-20 border-b border-purple-100 bg-[#f7f0ff]/95 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-5xl flex-col gap-3">
           <div className="flex gap-2 overflow-x-auto pb-1">
             {filterTabs.map((tab) => (

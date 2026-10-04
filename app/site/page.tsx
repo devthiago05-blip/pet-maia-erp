@@ -48,7 +48,7 @@ interface AccessoryFormState {
 
 const emptyForm: AccessoryFormState = {
   id: null,
-  kind: "Bandana",
+  kind: "Topete fêmea",
   nome: "",
   precoVenda: "0",
   estoque: "0",
@@ -95,18 +95,17 @@ function getProductStatus(product: Product) {
   return { label: "No site", className: "bg-emerald-50 text-emerald-700" };
 }
 
-function splitAccessories(products: Product[]) {
-  return {
-    bandanas: products.filter(
-      (product) => getSiteAccessoryKind(product) === "Bandana",
-    ),
-    bows: products.filter(
-      (product) => getSiteAccessoryKind(product) === "Lacinho",
-    ),
-    stickers: products.filter(
-      (product) => getSiteAccessoryKind(product) === "Adesivo",
-    ),
-  };
+function groupAccessories(products: Product[]) {
+  const grouped = new Map<SiteAccessoryKind, Product[]>(
+    siteAccessoryKinds.map((kind) => [kind, []]),
+  );
+
+  products.forEach((product) => {
+    const kind = getSiteAccessoryKind(product);
+    grouped.get(kind)?.push(product);
+  });
+
+  return grouped;
 }
 
 export default function SitePage() {
@@ -121,7 +120,7 @@ export default function SitePage() {
   const [petImageSaving, setPetImageSaving] = useState(false);
 
   const groupedAccessories = useMemo(
-    () => splitAccessories(accessories),
+    () => groupAccessories(accessories),
     [accessories],
   );
   const visibleCount = accessories.filter(isVisibleOnSite).length;
@@ -436,7 +435,7 @@ export default function SitePage() {
                 Site
               </h1>
               <p className="text-slate-500">
-                Bandanas, lacinhos, adesivos e imagens pets do site
+                Tópicos de adereços e imagens pets do site
               </p>
             </div>
 
@@ -604,9 +603,9 @@ export default function SitePage() {
             className="grid min-w-0 gap-5 rounded-xl border bg-white p-4 shadow-sm lg:grid-cols-[minmax(0,1fr)_220px]"
           >
             <div className="grid min-w-0 gap-4 md:grid-cols-2 xl:grid-cols-5">
-              <div className="grid min-w-0 gap-2 text-sm font-medium">
+              <div className="grid min-w-0 gap-2 text-sm font-medium md:col-span-2 xl:col-span-5">
                 Tipo
-                <div className="grid min-w-0 grid-cols-3 rounded-xl border bg-slate-50 p-1">
+                <div className="grid min-w-0 grid-cols-2 rounded-xl border bg-slate-50 p-1 sm:grid-cols-4">
                   {siteAccessoryKinds.map((kind) => (
                     <button
                       key={kind}
@@ -629,7 +628,7 @@ export default function SitePage() {
                 <input
                   value={form.nome}
                   onChange={(event) => updateForm("nome", event.target.value)}
-                  placeholder="Ex: Bandana rosa floral, lacinho ou adesivo"
+                  placeholder="Ex: Topete fêmea rosa, gravata ou bandana"
                   className="w-full min-w-0 rounded-xl border p-3 font-normal"
                 />
               </label>
@@ -717,25 +716,16 @@ export default function SitePage() {
               Carregando itens...
             </div>
           ) : (
-            <div className="grid gap-6 xl:grid-cols-3">
-              <AccessorySection
-                title="Bandanas"
-                products={groupedAccessories.bandanas}
-                onEdit={startEdit}
-                onArchive={handleArchive}
-              />
-              <AccessorySection
-                title="Lacinhos"
-                products={groupedAccessories.bows}
-                onEdit={startEdit}
-                onArchive={handleArchive}
-              />
-              <AccessorySection
-                title="Adesivos"
-                products={groupedAccessories.stickers}
-                onEdit={startEdit}
-                onArchive={handleArchive}
-              />
+            <div className="grid gap-6 xl:grid-cols-4">
+              {siteAccessoryKinds.map((kind) => (
+                <AccessorySection
+                  key={kind}
+                  title={kind}
+                  products={groupedAccessories.get(kind) || []}
+                  onEdit={startEdit}
+                  onArchive={handleArchive}
+                />
+              ))}
             </div>
           )}
         </div>

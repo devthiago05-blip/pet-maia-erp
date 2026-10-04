@@ -1,13 +1,14 @@
+import {
+  createSiteAccessoryCodePrefix,
+  createSiteAccessorySearchFilters,
+  getSiteAccessoryKindFromText,
+  type SiteAccessoryKind,
+  siteAccessoryKinds,
+} from "@/lib/site-accessory-kinds";
 import { supabase } from "@/lib/supabase";
 import type { Product } from "@/types/domain";
 
-export type SiteAccessoryKind = "Bandana" | "Lacinho" | "Adesivo";
-
-export const siteAccessoryKinds: SiteAccessoryKind[] = [
-  "Bandana",
-  "Lacinho",
-  "Adesivo",
-];
+export { type SiteAccessoryKind, siteAccessoryKinds };
 
 export interface SiteAccessoryInput {
   kind: SiteAccessoryKind;
@@ -20,31 +21,15 @@ export interface SiteAccessoryInput {
 const siteAccessoriesBucket = "site-accessories";
 
 function createAccessoryCode(kind: SiteAccessoryKind) {
-  const prefixByKind: Record<SiteAccessoryKind, string> = {
-    Bandana: "BANDANA",
-    Lacinho: "LACINHO",
-    Adesivo: "ADESIVO",
-  };
-  const prefix = prefixByKind[kind];
+  const prefix = createSiteAccessoryCodePrefix(kind);
 
   return `SITE-${prefix}-${Date.now()}`;
 }
 
 export function getSiteAccessoryKind(product: Product): SiteAccessoryKind {
-  const text = `${product.nome || ""} ${product.categoria || ""}`
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-  if (text.includes("adesivo") || text.includes("sticker")) {
-    return "Adesivo";
-  }
-
-  if (text.includes("lacinho") || text.includes("laco")) {
-    return "Lacinho";
-  }
-
-  return "Bandana";
+  return getSiteAccessoryKindFromText(
+    `${product.nome || ""} ${product.categoria || ""}`,
+  );
 }
 
 export function isVisibleOnSite(product: Product) {
@@ -55,24 +40,7 @@ export async function fetchSiteAccessories() {
   return supabase
     .from("products")
     .select("*")
-    .or(
-      [
-        "categoria.ilike.%Bandana%",
-        "categoria.ilike.%Lacinho%",
-        "categoria.ilike.%Laco%",
-        "categoria.ilike.%Laço%",
-        "categoria.ilike.%Adesivo%",
-        "categoria.ilike.%Adesivos%",
-        "categoria.ilike.%Sticker%",
-        "nome.ilike.%Bandana%",
-        "nome.ilike.%Lacinho%",
-        "nome.ilike.%Laco%",
-        "nome.ilike.%Laço%",
-        "nome.ilike.%Adesivo%",
-        "nome.ilike.%Adesivos%",
-        "nome.ilike.%Sticker%",
-      ].join(","),
-    )
+    .or(createSiteAccessorySearchFilters().join(","))
     .order("nome")
     .returns<Product[]>();
 }

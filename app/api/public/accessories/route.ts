@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 
+import {
+  createSiteAccessorySearchFilters,
+  getSiteAccessoryKindFromText,
+  type SiteAccessoryKind,
+  siteAccessoryKinds,
+} from "@/lib/site-accessory-kinds";
 import { createSupabaseAdmin } from "@/lib/supabase-admin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-type AccessoryKind = "Bandana" | "Lacinho" | "Adesivo";
 
 interface AccessoryProductRow {
   id: number;
@@ -24,18 +28,9 @@ interface ClinicSettingsRow {
   telefone?: string | null;
 }
 
-const kindOrder: Record<AccessoryKind, number> = {
-  Bandana: 1,
-  Lacinho: 2,
-  Adesivo: 3,
-};
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-}
+const kindOrder = Object.fromEntries(
+  siteAccessoryKinds.map((kind, index) => [kind, index + 1]),
+) as Record<SiteAccessoryKind, number>;
 
 function toNumber(value: number | string | null | undefined) {
   const parsed = Number(value);
@@ -43,20 +38,10 @@ function toNumber(value: number | string | null | undefined) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getAccessoryKind(product: AccessoryProductRow): AccessoryKind {
-  const text = normalizeText(
+function getAccessoryKind(product: AccessoryProductRow): SiteAccessoryKind {
+  return getSiteAccessoryKindFromText(
     `${product.nome || ""} ${product.categoria || ""}`,
   );
-
-  if (text.includes("adesivo") || text.includes("sticker")) {
-    return "Adesivo";
-  }
-
-  if (text.includes("lacinho") || text.includes("laco")) {
-    return "Lacinho";
-  }
-
-  return "Bandana";
 }
 
 export async function GET() {
@@ -69,24 +54,7 @@ export async function GET() {
         .select(
           "id,nome,categoria,preco_venda,estoque,image_url,tamanho,cor,ativo",
         )
-        .or(
-          [
-            "categoria.ilike.%Bandana%",
-            "categoria.ilike.%Lacinho%",
-            "categoria.ilike.%Laco%",
-            "categoria.ilike.%Laço%",
-            "categoria.ilike.%Adesivo%",
-            "categoria.ilike.%Adesivos%",
-            "categoria.ilike.%Sticker%",
-            "nome.ilike.%Bandana%",
-            "nome.ilike.%Lacinho%",
-            "nome.ilike.%Laco%",
-            "nome.ilike.%Laço%",
-            "nome.ilike.%Adesivo%",
-            "nome.ilike.%Adesivos%",
-            "nome.ilike.%Sticker%",
-          ].join(","),
-        )
+        .or(createSiteAccessorySearchFilters().join(","))
         .order("nome"),
       supabase
         .from("clinic_settings")

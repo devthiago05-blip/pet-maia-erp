@@ -15,13 +15,18 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-type AccessoryKind = "Bandana" | "Lacinho" | "Adesivo";
-type FilterKind = "Todos" | AccessoryKind;
+import {
+  normalizeAccessoryText,
+  type SiteAccessoryKind,
+  siteAccessoryKinds,
+} from "@/lib/site-accessory-kinds";
+
+type FilterKind = "Todos" | SiteAccessoryKind;
 
 interface PublicAccessory {
   id: number;
   name: string;
-  kind: AccessoryKind;
+  kind: SiteAccessoryKind;
   price: number;
   stock: number;
   imageUrl: string;
@@ -37,33 +42,19 @@ interface CatalogResponse {
   error?: string;
 }
 
-const kindLabels: Record<AccessoryKind, string> = {
-  Bandana: "Bandanas",
-  Lacinho: "Lacinhos",
-  Adesivo: "Adesivos",
-};
-
 const filterTabs: Array<{ label: string; value: FilterKind }> = [
   { label: "Tudo", value: "Todos" },
-  { label: "Bandanas", value: "Bandana" },
-  { label: "Laços", value: "Lacinho" },
-  { label: "Adesivos", value: "Adesivo" },
+  ...siteAccessoryKinds.map((kind) => ({
+    label: kind,
+    value: kind,
+  })),
 ];
-
-const accessoryKinds: AccessoryKind[] = ["Bandana", "Lacinho", "Adesivo"];
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
   }).format(value);
-}
-
-function normalizeText(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
 }
 
 function normalizePhoneForWhatsapp(value: string) {
@@ -184,14 +175,14 @@ export default function PublicAccessoriesCatalogPage() {
   }, []);
 
   const filteredItems = useMemo(() => {
-    const normalizedSearch = normalizeText(search.trim());
+    const normalizedSearch = normalizeAccessoryText(search.trim());
 
     return items.filter((item) => {
       const matchesFilter =
         activeFilter === "Todos" || item.kind === activeFilter;
       const matchesSearch =
         !normalizedSearch ||
-        normalizeText(
+        normalizeAccessoryText(
           `${item.name} ${item.kind} ${item.detail || ""}`,
         ).includes(normalizedSearch);
 
@@ -200,10 +191,10 @@ export default function PublicAccessoriesCatalogPage() {
   }, [activeFilter, items, search]);
 
   const sections = useMemo(() => {
-    return accessoryKinds
+    return siteAccessoryKinds
       .map((kind) => ({
         kind,
-        title: kindLabels[kind],
+        title: kind,
         items: filteredItems.filter((item) => item.kind === kind),
       }))
       .filter(
@@ -283,9 +274,9 @@ export default function PublicAccessoriesCatalogPage() {
 
           <div className="max-w-2xl rounded-[1.6rem] bg-white/45 p-4 shadow-sm backdrop-blur">
             <p className="text-base font-semibold sm:text-lg">
-              Escolha bandanas, laços e adesivos para combinar com o banho do
-              seu pet. Toque no botão preto para selecionar os itens e enviar a
-              lista pelo WhatsApp.
+              Escolha topetes, gravatas, bandanas, adesivos e outros adereços
+              para combinar com o banho do seu pet. Toque no botão preto para
+              selecionar os itens e enviar a lista pelo WhatsApp.
             </p>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import {
   Camera,
+  EyeOff,
   ImagePlus,
   Pencil,
   RefreshCw,
@@ -24,6 +25,7 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   archiveSiteAccessory,
   createSiteAccessory,
+  deleteSiteAccessory,
   fetchSiteAccessories,
   getSiteAccessoryKind,
   isVisibleOnSite,
@@ -35,6 +37,7 @@ import {
 import {
   archiveSitePetImage,
   createSitePetImage,
+  deleteSitePetImage,
   fetchSitePetImages,
   type SitePetImage,
   updateSitePetImage,
@@ -436,6 +439,33 @@ export default function SitePage() {
     await loadAccessories();
   }
 
+  async function handleDelete(product: Product) {
+    const confirmed = window.confirm(
+      `Excluir permanentemente "${product.nome}"? Esta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await deleteSiteAccessory(product);
+
+    if (error) {
+      console.error(error);
+      toast.error(
+        "Não foi possível excluir. Se este item já foi usado em venda, use Ocultar.",
+      );
+      return;
+    }
+
+    if (form.id === product.id) {
+      resetForm();
+    }
+
+    toast.success("Item excluído");
+    await loadAccessories();
+  }
+
   async function handleArchivePetImage(image: SitePetImage) {
     const { error } = await archiveSitePetImage(image.id);
 
@@ -446,6 +476,31 @@ export default function SitePage() {
     }
 
     toast.success("Imagem pet ocultada do site");
+    await loadPetImages();
+  }
+
+  async function handleDeletePetImage(image: SitePetImage) {
+    const confirmed = window.confirm(
+      `Excluir permanentemente "${image.name}"? Esta ação não pode ser desfeita.`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const { error } = await deleteSitePetImage(image);
+
+    if (error) {
+      console.error(error);
+      toast.error("Não foi possível excluir a imagem pet.");
+      return;
+    }
+
+    if (petImageForm.id === image.id) {
+      resetPetImageForm();
+    }
+
+    toast.success("Imagem pet excluída");
     await loadPetImages();
   }
 
@@ -615,6 +670,7 @@ export default function SitePage() {
                 images={petImages}
                 onEdit={startEditPetImage}
                 onArchive={handleArchivePetImage}
+                onDelete={handleDeletePetImage}
               />
             )}
           </section>
@@ -756,6 +812,7 @@ export default function SitePage() {
                   products={groupedAccessories.get(kind) || []}
                   onEdit={startEdit}
                   onArchive={handleArchive}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>
@@ -780,11 +837,13 @@ function AccessorySection({
   products,
   onEdit,
   onArchive,
+  onDelete,
 }: {
   title: string;
   products: Product[];
   onEdit: (product: Product) => void;
   onArchive: (product: Product) => void;
+  onDelete: (product: Product) => void;
 }) {
   return (
     <section className="space-y-3">
@@ -807,6 +866,7 @@ function AccessorySection({
               product={product}
               onEdit={onEdit}
               onArchive={onArchive}
+              onDelete={onDelete}
             />
           ))}
         </div>
@@ -819,10 +879,12 @@ function PetImageSection({
   images,
   onEdit,
   onArchive,
+  onDelete,
 }: {
   images: SitePetImage[];
   onEdit: (image: SitePetImage) => void;
   onArchive: (image: SitePetImage) => void;
+  onDelete: (image: SitePetImage) => void;
 }) {
   return (
     <section className="space-y-3">
@@ -845,6 +907,7 @@ function PetImageSection({
               image={image}
               onEdit={onEdit}
               onArchive={onArchive}
+              onDelete={onDelete}
             />
           ))}
         </div>
@@ -857,10 +920,12 @@ function PetImageCard({
   image,
   onEdit,
   onArchive,
+  onDelete,
 }: {
   image: SitePetImage;
   onEdit: (image: SitePetImage) => void;
   onArchive: (image: SitePetImage) => void;
+  onDelete: (image: SitePetImage) => void;
 }) {
   return (
     <article className="overflow-hidden rounded-xl border bg-white shadow-sm">
@@ -903,7 +968,7 @@ function PetImageCard({
           Ordem: {image.sort_order}
         </p>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2">
           <button
             type="button"
             onClick={() => onEdit(image)}
@@ -915,10 +980,18 @@ function PetImageCard({
           <button
             type="button"
             onClick={() => onArchive(image)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            <EyeOff size={16} />
+            Ocultar
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(image)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
           >
             <Trash2 size={16} />
-            Ocultar
+            Excluir
           </button>
         </div>
       </div>
@@ -930,10 +1003,12 @@ function AccessoryCard({
   product,
   onEdit,
   onArchive,
+  onDelete,
 }: {
   product: Product;
   onEdit: (product: Product) => void;
   onArchive: (product: Product) => void;
+  onDelete: (product: Product) => void;
 }) {
   const status = getProductStatus(product);
 
@@ -970,7 +1045,7 @@ function AccessoryCard({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid gap-2">
           <button
             type="button"
             onClick={() => onEdit(product)}
@@ -982,10 +1057,18 @@ function AccessoryCard({
           <button
             type="button"
             onClick={() => onArchive(product)}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+            className="inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+          >
+            <EyeOff size={16} />
+            Ocultar
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(product)}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
           >
             <Trash2 size={16} />
-            Ocultar
+            Excluir
           </button>
         </div>
       </div>

@@ -21,6 +21,29 @@ export interface SitePetImageInput {
 
 const sitePetImagesBucket = "site-pet-images";
 
+function getPublicStoragePathFromUrl(
+  url: string | null | undefined,
+  bucket: string,
+) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const { pathname } = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const markerIndex = pathname.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSitePetImages() {
   return supabase
     .from("site_pet_images")
@@ -98,4 +121,34 @@ export async function archiveSitePetImage(id: number) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
+}
+
+export async function deleteSitePetImage(
+  image: Pick<SitePetImage, "id" | "image_url">,
+) {
+  const deleteResponse = await supabase
+    .from("site_pet_images")
+    .delete()
+    .eq("id", image.id);
+
+  if (deleteResponse.error) {
+    return deleteResponse;
+  }
+
+  const storagePath = getPublicStoragePathFromUrl(
+    image.image_url,
+    sitePetImagesBucket,
+  );
+
+  if (storagePath) {
+    const storageResponse = await supabase.storage
+      .from(sitePetImagesBucket)
+      .remove([storagePath]);
+
+    if (storageResponse.error) {
+      console.error(storageResponse.error);
+    }
+  }
+
+  return deleteResponse;
 }

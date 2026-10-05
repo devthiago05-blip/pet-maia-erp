@@ -20,6 +20,29 @@ export interface SiteAccessoryInput {
 
 const siteAccessoriesBucket = "site-accessories";
 
+function getPublicStoragePathFromUrl(
+  url: string | null | undefined,
+  bucket: string,
+) {
+  if (!url) {
+    return null;
+  }
+
+  try {
+    const { pathname } = new URL(url);
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const markerIndex = pathname.indexOf(marker);
+
+    if (markerIndex === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(pathname.slice(markerIndex + marker.length));
+  } catch {
+    return null;
+  }
+}
+
 function createAccessoryCode(kind: SiteAccessoryKind) {
   const prefix = createSiteAccessoryCodePrefix(kind);
 
@@ -140,4 +163,34 @@ export async function archiveSiteAccessory(productId: number) {
       updated_at: new Date().toISOString(),
     })
     .eq("id", productId);
+}
+
+export async function deleteSiteAccessory(
+  product: Pick<Product, "id" | "image_url">,
+) {
+  const deleteResponse = await supabase
+    .from("products")
+    .delete()
+    .eq("id", product.id);
+
+  if (deleteResponse.error) {
+    return deleteResponse;
+  }
+
+  const storagePath = getPublicStoragePathFromUrl(
+    product.image_url,
+    siteAccessoriesBucket,
+  );
+
+  if (storagePath) {
+    const storageResponse = await supabase.storage
+      .from(siteAccessoriesBucket)
+      .remove([storagePath]);
+
+    if (storageResponse.error) {
+      console.error(storageResponse.error);
+    }
+  }
+
+  return deleteResponse;
 }

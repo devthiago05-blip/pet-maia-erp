@@ -16,6 +16,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   formatAppointmentObservation,
+  getAppointmentPetAndTutorDisplayName,
   getAppointmentPetDisplayName,
   getAppointmentTutorDisplayName,
   isWalkInAppointment,
@@ -632,10 +633,9 @@ export default function AgendaPage() {
     }
 
     const completedAppointment = appointmentToFinish;
-    const petName = getAppointmentPetDisplayName(
-      completedAppointment,
-      "Avulso",
-    );
+    const petName = isWalkInAppointment(completedAppointment)
+      ? getAppointmentPetAndTutorDisplayName(completedAppointment, "Avulso")
+      : getAppointmentPetDisplayName(completedAppointment, "Avulso");
 
     const descricaoCompleta = observacoes
       ? `${servicoDescricao} | Obs: ${observacoes}`

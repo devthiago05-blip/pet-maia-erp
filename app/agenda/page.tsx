@@ -17,11 +17,14 @@ import { useMountEffect } from "@/hooks/useMountEffect";
 import {
   formatAppointmentObservation,
   getAppointmentPetDisplayName,
+  getAppointmentTutorDisplayName,
+  isWalkInAppointment,
 } from "@/lib/appointment-observation";
 import { createAppointmentConfirmationWhatsAppUrl } from "@/lib/whatsapp";
 import {
   createAppointment,
   createAppointments,
+  createWalkInAppointment,
   deleteAppointment,
   deleteAppointmentServicesByAppointmentId,
   fetchAppointments,
@@ -382,6 +385,39 @@ export default function AgendaPage() {
   });
 
   async function handleCreateAppointment(novoAgendamento: NewAppointmentInput) {
+    if (novoAgendamento.isWalkIn) {
+      if (appointmentToEdit) {
+        const { error } = await updateAppointment(
+          appointmentToEdit.id,
+          novoAgendamento,
+          null,
+        );
+
+        if (error) {
+          console.error(error);
+          toast.error(error.message);
+          return false;
+        }
+
+        toast.success("Agendamento avulso atualizado com sucesso!");
+        setAppointmentToEdit(null);
+        await loadAppointments();
+        return true;
+      }
+
+      const { error } = await createWalkInAppointment(novoAgendamento);
+
+      if (error) {
+        console.error(error);
+        toast.error(error.message);
+        return;
+      }
+
+      toast.success("Agendamento avulso criado com sucesso!");
+      await loadAppointments();
+      return true;
+    }
+
     const selectedPetIds = Array.from(
       new Set(
         (novoAgendamento.petIds?.length
@@ -489,7 +525,7 @@ export default function AgendaPage() {
   }
 
   async function handleConfirmAppointment(appointment: Appointment) {
-    if (!appointment.pet_id) {
+    if (!appointment.pet_id && !isWalkInAppointment(appointment)) {
       setAppointmentToEdit(appointment);
       setAppointmentModalOpen(true);
       toast.info("Selecione o tutor e associe o pet antes de confirmar.");
@@ -596,7 +632,10 @@ export default function AgendaPage() {
     }
 
     const completedAppointment = appointmentToFinish;
-    const petName = completedAppointment.pets?.nome || "";
+    const petName = getAppointmentPetDisplayName(
+      completedAppointment,
+      "Avulso",
+    );
 
     const descricaoCompleta = observacoes
       ? `${servicoDescricao} | Obs: ${observacoes}`
@@ -634,7 +673,7 @@ export default function AgendaPage() {
       descricaoCompleta,
       valor,
       formaPagamento,
-      completedAppointment.pet_id,
+      completedAppointment.pet_id ?? undefined,
       completedAppointment.pets?.tutor_id,
       completedAppointment.data,
       completedAppointment.hora,
@@ -1014,12 +1053,13 @@ export default function AgendaPage() {
 
         {appointmentToFinish && (
           <FinishAppointmentModal
-            pet={appointmentToFinish.pets?.nome || ""}
+            pet={getAppointmentPetDisplayName(appointmentToFinish, "Avulso")}
             porte={appointmentToFinish.pets?.porte}
             servico={appointmentToFinish.servico}
             services={services}
             previousServicePrices={previousServicePrices}
             planSubscription={activePlanSubscription}
+            allowCustomPricingWithoutPet={!appointmentToFinish.pet_id}
             onClose={() => {
               setAppointmentToFinish(null);
               setActivePlanSubscription(null);
@@ -1127,7 +1167,7 @@ function AppointmentPrintView({
                   {getAppointmentPetDisplayName(appointment)}
                 </td>
                 <td className="border p-2">
-                  {appointment.pets?.tutors?.nome || "-"}
+                  {getAppointmentTutorDisplayName(appointment)}
                 </td>
                 <td className="border p-2">{appointment.servico}</td>
                 <td className="border p-2">{appointment.status}</td>

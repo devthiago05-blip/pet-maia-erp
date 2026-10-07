@@ -59,10 +59,25 @@ export async function createAppointments(
   );
 }
 
+export async function createWalkInAppointment(
+  appointment: NewAppointmentInput,
+) {
+  return supabase.from("appointments").insert([
+    {
+      data: appointment.data,
+      hora: appointment.hora,
+      observacao: appointment.observacao?.trim() || null,
+      pet_id: null,
+      servico: appointment.servico,
+      status: appointment.status,
+    },
+  ]);
+}
+
 export async function updateAppointment(
   id: number,
   appointment: NewAppointmentInput,
-  petId: number,
+  petId: number | null,
 ) {
   return supabase
     .from("appointments")

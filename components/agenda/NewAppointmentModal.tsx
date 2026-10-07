@@ -3,7 +3,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-import { extractRequestedPetNameFromObservation } from "@/lib/appointment-observation";
+import {
+  buildWalkInAppointmentObservation,
+  extractRequestedPetNameFromObservation,
+  getWalkInPetCountFromObservation,
+  getWalkInTutorNameFromObservation,
+  isWalkInAppointment,
+  stripWalkInGeneratedObservationLines,
+} from "@/lib/appointment-observation";
 import type {
   Appointment,
   AppointmentStatus,
@@ -81,6 +88,23 @@ function syncObservationTutorContact(
   return [...contactLines, cleanObservation].filter(Boolean).join("\n");
 }
 
+function findTutorByAppointmentTutorName(
+  observation: string | undefined,
+  tutors: Tutor[],
+) {
+  const tutorName = getWalkInTutorNameFromObservation(observation);
+
+  if (!tutorName) {
+    return undefined;
+  }
+
+  const normalizedTutorName = tutorName.trim().toLowerCase();
+
+  return tutors.find(
+    (tutor) => tutor.nome.trim().toLowerCase() === normalizedTutorName,
+  );
+}
+
 export function NewAppointmentModal({
   tutors,
   pets,
@@ -94,11 +118,16 @@ export function NewAppointmentModal({
   appointment = null,
 }: NewAppointmentModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
+  const [appointmentType, setAppointmentType] = useState<"pet" | "walkIn">(
+    "pet",
+  );
   const [petId, setPetId] = useState(defaultPetId);
   const [selectedPetIds, setSelectedPetIds] = useState<string[]>(
     defaultPetId ? [defaultPetId] : [],
   );
   const [tutorId, setTutorId] = useState(defaultTutorId);
+  const [walkInTutorName, setWalkInTutorName] = useState("");
+  const [walkInPetCount, setWalkInPetCount] = useState("1");
   const [servicos, setServicos] = useState<string[]>([]);
   const [data, setData] = useState("");
   const [hora, setHora] = useState("");
@@ -120,6 +149,7 @@ export function NewAppointmentModal({
     !appointment && Boolean(tutorId) && petsFiltrados.length > 1;
   const selectedPetCount = selectedPetIdsForDisplay.length;
   const selectedTutor = tutors.find((tutor) => String(tutor.id) === tutorId);
+  const isWalkInMode = appointmentType === "walkIn";
   const requestedPetName = !petId
     ? extractRequestedPetNameFromObservation(
         observacao || appointment?.observacao,
@@ -129,11 +159,15 @@ export function NewAppointmentModal({
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (modalOpen) {
+        const editingWalkIn = appointment
+          ? isWalkInAppointment(appointment)
+          : false;
         const selectedPet = appointment
           ? pets.find((pet) => pet.id === appointment.pet_id)
           : null;
         const matchedTutor = appointment
-          ? findTutorByAppointmentPhone(appointment.observacao, tutors)
+          ? findTutorByAppointmentPhone(appointment.observacao, tutors) ||
+            findTutorByAppointmentTutorName(appointment.observacao, tutors)
           : undefined;
         const initialTutorId = selectedPet?.tutor_id
           ? String(selectedPet.tutor_id)
@@ -142,13 +176,24 @@ export function NewAppointmentModal({
           (tutor) => String(tutor.id) === initialTutorId,
         );
 
+        setAppointmentType(editingWalkIn ? "walkIn" : "pet");
         setTutorId(initialTutorId);
         const initialPetId = appointment?.pet_id
           ? String(appointment.pet_id)
           : defaultPetId;
 
-        setPetId(initialPetId);
-        setSelectedPetIds(initialPetId ? [initialPetId] : []);
+        setPetId(editingWalkIn ? "" : initialPetId);
+        setSelectedPetIds(editingWalkIn || !initialPetId ? [] : [initialPetId]);
+        setWalkInTutorName(
+          getWalkInTutorNameFromObservation(appointment?.observacao) ||
+            initialTutor?.nome ||
+            "",
+        );
+        setWalkInPetCount(
+          String(
+            getWalkInPetCountFromObservation(appointment?.observacao) || 1,
+          ),
+        );
         setServicos(
           appointment?.servico
             ? appointment.servico.split(" + ").filter(Boolean)
@@ -158,10 +203,12 @@ export function NewAppointmentModal({
         setHora(appointment?.hora || "");
         setStatus(appointment?.status || "Agendado");
         setObservacao(
-          syncObservationTutorContact(
-            appointment?.observacao || "",
-            initialTutor,
-          ),
+          editingWalkIn
+            ? stripWalkInGeneratedObservationLines(appointment?.observacao)
+            : syncObservationTutorContact(
+                appointment?.observacao || "",
+                initialTutor,
+              ),
         );
       }
     }, 0);
@@ -178,9 +225,12 @@ export function NewAppointmentModal({
   }
 
   function resetForm() {
+    setAppointmentType("pet");
     setPetId(defaultPetId);
     setSelectedPetIds(defaultPetId ? [defaultPetId] : []);
     setTutorId(defaultTutorId);
+    setWalkInTutorName("");
+    setWalkInPetCount("1");
     setServicos([]);
     setData("");
     setHora("");
@@ -194,12 +244,16 @@ export function NewAppointmentModal({
     setTutorId(nextTutorId);
     setPetId("");
     setSelectedPetIds([]);
+    setWalkInTutorName(nextTutor?.nome || "");
     setObservacao((currentObservation) =>
-      syncObservationTutorContact(currentObservation, nextTutor),
+      isWalkInMode
+        ? stripWalkInGeneratedObservationLines(currentObservation)
+        : syncObservationTutorContact(currentObservation, nextTutor),
     );
   }
 
   function handlePetChange(nextPetId: string) {
+    setAppointmentType("pet");
     setPetId(nextPetId);
     setSelectedPetIds(nextPetId ? [nextPetId] : []);
 
@@ -246,18 +300,52 @@ export function NewAppointmentModal({
     setSelectedPetIds(petId ? [petId] : []);
   }
 
+  function handleAppointmentTypeChange(nextType: "pet" | "walkIn") {
+    setAppointmentType(nextType);
+
+    if (nextType === "walkIn") {
+      setPetId("");
+      setSelectedPetIds([]);
+      setWalkInTutorName(selectedTutor?.nome || walkInTutorName);
+      setObservacao((currentObservation) =>
+        stripWalkInGeneratedObservationLines(currentObservation),
+      );
+      return;
+    }
+
+    setObservacao((currentObservation) =>
+      syncObservationTutorContact(currentObservation, selectedTutor),
+    );
+  }
+
   function handleClose() {
     resetForm();
     setModalOpen(false);
   }
 
   async function handleSave() {
+    const dogCount = Number(walkInPetCount || 0);
+    const tutorName = walkInTutorName.trim() || selectedTutor?.nome || "";
     const petIdsToSave = appointment
       ? [petId].filter(Boolean)
       : selectedPetIdsForDisplay;
     const primaryPetId = petIdsToSave[0] || petId;
 
-    if (!primaryPetId || servicos.length === 0 || !data || !hora) {
+    if (isWalkInMode) {
+      if (
+        !tutorName ||
+        !Number.isFinite(dogCount) ||
+        dogCount < 1 ||
+        servicos.length === 0 ||
+        !data ||
+        !hora
+      ) {
+        toast.error(
+          "Informe tutor, quantidade de cães, serviço, data e horário",
+        );
+        return;
+      }
+    } else if (!primaryPetId || servicos.length === 0 || !data || !hora) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -265,13 +353,24 @@ export function NewAppointmentModal({
     setSaving(true);
 
     const result = await onSave({
-      petId: primaryPetId,
-      petIds: appointment ? undefined : petIdsToSave,
+      petId: isWalkInMode ? "" : primaryPetId,
+      petIds: isWalkInMode || appointment ? undefined : petIdsToSave,
+      isWalkIn: isWalkInMode,
+      tutorId,
+      walkInTutorName: isWalkInMode ? tutorName : undefined,
+      walkInPetCount: isWalkInMode ? String(Math.trunc(dogCount)) : undefined,
       servico: servicos.join(" + "),
       data,
       hora,
       status,
-      observacao: syncObservationTutorContact(observacao, selectedTutor),
+      observacao: isWalkInMode
+        ? buildWalkInAppointmentObservation({
+            dogCount,
+            observation: observacao,
+            tutor: selectedTutor,
+            tutorName,
+          })
+        : syncObservationTutorContact(observacao, selectedTutor),
     });
 
     setSaving(false);
@@ -303,6 +402,32 @@ export function NewAppointmentModal({
             </h2>
 
             <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => handleAppointmentTypeChange("pet")}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    appointmentType === "pet"
+                      ? "bg-white text-[#8A0EEA] shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Pet cadastrado
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleAppointmentTypeChange("walkIn")}
+                  className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                    appointmentType === "walkIn"
+                      ? "bg-white text-[#8A0EEA] shadow-sm"
+                      : "text-slate-500"
+                  }`}
+                >
+                  Avulso / protetora
+                </button>
+              </div>
+
               <select
                 value={tutorId}
                 onChange={(event) => handleTutorChange(event.target.value)}
@@ -317,25 +442,65 @@ export function NewAppointmentModal({
                 ))}
               </select>
 
-              <select
-                value={petId}
-                onChange={(event) => handlePetChange(event.target.value)}
-                className="w-full rounded-xl border p-3"
-              >
-                <option value="">
-                  {requestedPetName
-                    ? `Pet informado no site: ${requestedPetName}`
-                    : "Selecione um Pet"}
-                </option>
+              {isWalkInMode ? (
+                <div className="rounded-2xl border border-purple-100 bg-purple-50/60 p-3">
+                  <p className="font-medium text-slate-900">
+                    Agendamento avulso
+                  </p>
+                  <p className="text-sm text-slate-500">
+                    Use para protetoras ou clientes com vários cães sem
+                    cadastrar cada pet.
+                  </p>
 
-                {petsFiltrados.map((petItem) => (
-                  <option key={petItem.id} value={petItem.id}>
-                    {petItem.nome}
+                  <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_160px]">
+                    <label className="grid gap-2 text-sm font-medium">
+                      Nome do tutor/protetora
+                      <input
+                        value={walkInTutorName}
+                        onChange={(event) =>
+                          setWalkInTutorName(event.target.value)
+                        }
+                        placeholder="Ex.: ANA PROTETORA"
+                        className="w-full rounded-xl border bg-white p-3 font-normal"
+                      />
+                    </label>
+
+                    <label className="grid gap-2 text-sm font-medium">
+                      Quantidade de cães
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        value={walkInPetCount}
+                        onChange={(event) =>
+                          setWalkInPetCount(event.target.value)
+                        }
+                        className="w-full rounded-xl border bg-white p-3 font-normal"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : (
+                <select
+                  value={petId}
+                  onChange={(event) => handlePetChange(event.target.value)}
+                  className="w-full rounded-xl border p-3"
+                >
+                  <option value="">
+                    {requestedPetName
+                      ? `Pet informado no site: ${requestedPetName}`
+                      : "Selecione um Pet"}
                   </option>
-                ))}
-              </select>
 
-              {canSelectMultiplePets && (
+                  {petsFiltrados.map((petItem) => (
+                    <option key={petItem.id} value={petItem.id}>
+                      {petItem.nome}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {!isWalkInMode && canSelectMultiplePets && (
                 <div className="rounded-xl border border-purple-100 bg-purple-50/60 p-3">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div>
@@ -519,9 +684,11 @@ export function NewAppointmentModal({
                     ? "Salvando..."
                     : appointment
                       ? "Salvar alterações"
-                      : selectedPetCount > 1
-                        ? `Salvar ${selectedPetCount} agendamentos`
-                        : "Salvar"}
+                      : isWalkInMode
+                        ? "Salvar avulso"
+                        : selectedPetCount > 1
+                          ? `Salvar ${selectedPetCount} agendamentos`
+                          : "Salvar"}
                 </button>
               </div>
             </div>

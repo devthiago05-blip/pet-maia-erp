@@ -653,7 +653,7 @@ export type AppointmentStatus =
 
 export interface Appointment {
   id: number;
-  pet_id?: number;
+  pet_id?: number | null;
   servico: string;
   data: string;
   hora: string;
@@ -1203,6 +1203,10 @@ export interface NewPetInput {
 export interface NewAppointmentInput {
   petId: string;
   petIds?: string[];
+  isWalkIn?: boolean;
+  tutorId?: string;
+  walkInTutorName?: string;
+  walkInPetCount?: string;
   servico: string;
   data: string;
   hora: string;

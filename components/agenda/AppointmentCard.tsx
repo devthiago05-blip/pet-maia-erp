@@ -4,6 +4,7 @@ import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   buildAppointmentObservation,
   getAppointmentPetDisplayName,
+  getAppointmentTutorDisplayName,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
@@ -31,7 +32,10 @@ export function AppointmentCard({
     appointment,
     "Pet nao informado",
   );
-  const tutorName = appointment.pets?.tutors?.nome || "Tutor nao informado";
+  const tutorName = getAppointmentTutorDisplayName(
+    appointment,
+    "Tutor nao informado",
+  );
   const observation = buildAppointmentObservation(appointment);
 
   return (

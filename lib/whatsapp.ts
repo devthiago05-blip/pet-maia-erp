@@ -1,3 +1,8 @@
+import {
+  getAppointmentPetDisplayName,
+  getAppointmentTutorDisplayName,
+  getAppointmentTutorPhone,
+} from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
 export function normalizeBrazilianWhatsAppPhone(phone?: string | null) {
@@ -45,16 +50,18 @@ function formatAppointmentDate(value?: string) {
 export function createAppointmentConfirmationWhatsAppUrl(
   appointment: Appointment,
 ) {
-  const tutor = appointment.pets?.tutors;
-  const normalizedPhone = normalizeBrazilianWhatsAppPhone(tutor?.telefone);
+  const tutorName = getAppointmentTutorDisplayName(appointment, "");
+  const normalizedPhone = normalizeBrazilianWhatsAppPhone(
+    getAppointmentTutorPhone(appointment),
+  );
 
   if (!normalizedPhone) {
     return "";
   }
 
-  const firstName = tutor?.nome?.trim().split(/\s+/)[0];
+  const firstName = tutorName.trim().split(/\s+/)[0];
   const greeting = firstName ? `Olá, ${firstName}!` : "Olá!";
-  const petName = appointment.pets?.nome || "seu pet";
+  const petName = getAppointmentPetDisplayName(appointment, "seu pet");
   const date = formatAppointmentDate(appointment.data);
   const time = appointment.hora?.slice(0, 5);
   const schedule = [date, time ? `às ${time}` : ""].filter(Boolean).join(" ");

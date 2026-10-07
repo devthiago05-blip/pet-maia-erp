@@ -16,6 +16,7 @@ interface FinishAppointmentModalProps {
   services: Service[];
   previousServicePrices?: Record<string, number>;
   planSubscription?: GroomingPlanSubscription | null;
+  allowCustomPricingWithoutPet?: boolean;
   onClose: () => void;
   onSave: (dados: {
     valor: number;
@@ -126,7 +127,9 @@ function getPlanSummary(subscription?: GroomingPlanSubscription | null) {
 }
 
 function normalizeBenefitForMatch(value: string) {
-  return normalizeText(value).replace(/^\d+\s*/, "").trim();
+  return normalizeText(value)
+    .replace(/^\d+\s*/, "")
+    .trim();
 }
 
 function isBathService(service: Service) {
@@ -154,7 +157,9 @@ function isServiceCoveredByPlan(
 
   return (
     isBathService(service) ||
-    selectedPlanBenefits.some((benefit) => serviceMatchesBenefit(service, benefit))
+    selectedPlanBenefits.some((benefit) =>
+      serviceMatchesBenefit(service, benefit),
+    )
   );
 }
 
@@ -165,6 +170,7 @@ export function FinishAppointmentModal({
   services,
   previousServicePrices = {},
   planSubscription,
+  allowCustomPricingWithoutPet = false,
   onClose,
   onSave,
 }: FinishAppointmentModalProps) {
@@ -228,7 +234,14 @@ export function FinishAppointmentModal({
     }, 0);
 
     return () => window.clearTimeout(timer);
-  }, [services, servico, porte, previousServicePrices, planSubscription, hasBathBalance]);
+  }, [
+    services,
+    servico,
+    porte,
+    previousServicePrices,
+    planSubscription,
+    hasBathBalance,
+  ]);
 
   const selectedServices = useMemo(
     () => services.filter((service) => selectedServiceIds.includes(service.id)),
@@ -251,9 +264,9 @@ export function FinishAppointmentModal({
   const isPlanPayment = usePlan && total === 0 && !isGiftPayment;
   const usesPlanBath = usePlan && selectedServices.some(isBathService);
 
-  const hasValidSize = ["pequeno", "medio", "grande"].includes(
-    normalizeText(porte || ""),
-  );
+  const hasValidSize =
+    allowCustomPricingWithoutPet ||
+    ["pequeno", "medio", "grande"].includes(normalizeText(porte || ""));
 
   function handleToggleService(service: Service) {
     setSelectedServiceIds((currentIds) => {
@@ -284,7 +297,9 @@ export function FinishAppointmentModal({
   function handleTogglePlanBenefit(benefit: string) {
     setSelectedPlanBenefits((currentBenefits) => {
       if (currentBenefits.includes(benefit)) {
-        return currentBenefits.filter((currentBenefit) => currentBenefit !== benefit);
+        return currentBenefits.filter(
+          (currentBenefit) => currentBenefit !== benefit,
+        );
       }
 
       return [...currentBenefits, benefit];
@@ -364,7 +379,9 @@ export function FinishAppointmentModal({
       observacoes: finalObservations || undefined,
       services: completedServices,
       planUsage:
-        usePlan && planSubscription && (usesPlanBath || selectedPlanBenefits.length > 0)
+        usePlan &&
+        planSubscription &&
+        (usesPlanBath || selectedPlanBenefits.length > 0)
           ? {
               subscriptionId: planSubscription.id,
               benefitNames: selectedPlanBenefits,
@@ -393,8 +410,9 @@ export function FinishAppointmentModal({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Selecione os serviços realizados. Os valores serão calculados pelo
-            porte do pet.
+            {allowCustomPricingWithoutPet
+              ? "Selecione os serviços realizados e informe os valores manualmente."
+              : "Selecione os serviços realizados. Os valores serão calculados pelo porte do pet."}
           </p>
         </div>
 
@@ -485,12 +503,17 @@ export function FinishAppointmentModal({
             </section>
           )}
 
-          {!hasValidSize && (
+          {allowCustomPricingWithoutPet ? (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800">
+              Agendamento avulso: o sistema não usa porte do pet. Informe o
+              valor cobrado em cada serviço antes de finalizar.
+            </div>
+          ) : !hasValidSize ? (
             <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-700">
               O pet precisa ter porte Pequeno, Médio ou Grande cadastrado para o
               sistema calcular o valor automaticamente.
             </div>
-          )}
+          ) : null}
 
           <section className="rounded-2xl border border-slate-200 p-4">
             <div className="mb-3">
@@ -624,9 +647,9 @@ export function FinishAppointmentModal({
 
           {isPlanPayment && (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Plano mensal selecionado: o atendimento será finalizado com
-              valor R$ 0,00, o uso será abatido do plano e o financeiro ficará
-              como pago.
+              Plano mensal selecionado: o atendimento será finalizado com valor
+              R$ 0,00, o uso será abatido do plano e o financeiro ficará como
+              pago.
             </div>
           )}
 

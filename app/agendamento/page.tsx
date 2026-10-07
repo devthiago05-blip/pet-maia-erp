@@ -50,6 +50,8 @@ const filterTabs: Array<{ label: string; value: FilterKind }> = [
   })),
 ];
 
+const defaultStoreWhatsApp = "85988250021";
+
 function normalizePhoneForWhatsapp(value: string) {
   const digits = value.replace(/\D/g, "");
 
@@ -69,14 +71,19 @@ function normalizePhoneForWhatsapp(value: string) {
 }
 
 function createWhatsappMessage(items: PublicAccessory[]) {
-  const lines = items.map((item) => `• ${item.name} (${item.kind})`);
+  const lines = items.map((item, index) => {
+    const detail = item.detail ? ` · ${item.detail}` : "";
+
+    return `${index + 1}. ${item.name} — ${item.kind}${detail}`;
+  });
 
   return [
-    "Olá! Vim pelo catálogo da Pet Maia e gostaria destes adereços:",
+    "Olá! Vim pelo catálogo de adereços da Pet Maia.",
+    "Gostaria destas opções para o banho:",
     "",
     ...lines,
     "",
-    "Pode confirmar disponibilidade para mim?",
+    "Pode separar essas opções para mim?",
   ].join("\n");
 }
 
@@ -230,10 +237,12 @@ export default function PublicAccessoriesCatalogPage() {
       return;
     }
 
-    const phone = normalizePhoneForWhatsapp(clinicPhone);
+    const phone = normalizePhoneForWhatsapp(
+      clinicPhone || defaultStoreWhatsApp,
+    );
 
     if (!phone) {
-      toast.error("Cadastre o telefone da loja nas configurações da clínica.");
+      toast.error("Não foi possível montar o WhatsApp da loja.");
       return;
     }
 

@@ -1,22 +1,14 @@
 "use client";
 
-import { MessageCircle, PawPrint, Pencil, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { MessageCircle, PawPrint, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
+import { TutorDetailsDialog } from "@/components/tutors/TutorDetailsDialog";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { formatCpf } from "@/lib/formatters";
 import { createTutorWhatsAppUrl } from "@/lib/whatsapp";
-import { fetchPetsByTutorId } from "@/services/pets";
-import type { Pet, Tutor } from "@/types/domain";
+import type { Tutor } from "@/types/domain";
 
 interface TutorTableProps {
   tutors: Tutor[];
@@ -33,26 +25,8 @@ export function TutorTable({
 }: TutorTableProps) {
   const [tutorToDelete, setTutorToDelete] = useState<Tutor | null>(null);
   const [selectedTutor, setSelectedTutor] = useState<Tutor | null>(null);
-  const [relatedPets, setRelatedPets] = useState<Pet[]>([]);
-  const [loadingPets, setLoadingPets] = useState(false);
-  const [petsError, setPetsError] = useState("");
-
-  async function handleTutorClick(tutor: Tutor) {
+  function handleTutorClick(tutor: Tutor) {
     setSelectedTutor(tutor);
-    setRelatedPets([]);
-    setPetsError("");
-    setLoadingPets(true);
-
-    const { data, error } = await fetchPetsByTutorId(tutor.id);
-
-    if (error) {
-      console.error(error);
-      setPetsError("Não foi possível carregar os pets deste tutor.");
-    } else {
-      setRelatedPets(data || []);
-    }
-
-    setLoadingPets(false);
   }
 
   function handleConfirmDelete() {
@@ -196,7 +170,7 @@ export function TutorTable({
                         type="button"
                         onClick={() => handleTutorClick(tutor)}
                         className="font-semibold text-violet-700 underline decoration-violet-300 underline-offset-2 transition hover:text-violet-900"
-                        title="Ver pets relacionados"
+                        title="Ver ficha e histórico do tutor"
                       >
                         {tutor.nome}
                       </button>
@@ -266,75 +240,14 @@ export function TutorTable({
         onCancel={() => setTutorToDelete(null)}
       />
 
-      <Dialog
-        open={Boolean(selectedTutor)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedTutor(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Pets de {selectedTutor?.nome}</DialogTitle>
-            <DialogDescription>
-              Pets relacionados a este tutor. Clique em um pet para abrir o
-              cadastro completo.
-            </DialogDescription>
-          </DialogHeader>
-
-          {loadingPets && (
-            <p className="rounded-xl bg-slate-50 p-4 text-slate-500">
-              Carregando pets...
-            </p>
-          )}
-
-          {!loadingPets && petsError && (
-            <p className="rounded-xl bg-red-50 p-4 text-red-700">{petsError}</p>
-          )}
-
-          {!loadingPets && !petsError && relatedPets.length === 0 && (
-            <p className="rounded-xl bg-slate-50 p-4 text-slate-500">
-              Nenhum pet relacionado a este tutor.
-            </p>
-          )}
-
-          {!loadingPets && !petsError && relatedPets.length > 0 && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {relatedPets.map((pet) => (
-                <Link
-                  key={pet.id}
-                  href={`/pets/${pet.id}`}
-                  className="rounded-2xl border border-slate-200 p-4 transition hover:border-violet-300 hover:bg-violet-50"
-                >
-                  <p className="font-semibold text-slate-900">{pet.nome}</p>
-                  <p className="mt-1 text-sm text-slate-500">
-                    {[pet.especie, pet.raca].filter(Boolean).join(" • ") ||
-                      "Dados não informados"}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={() => {
-              if (!selectedTutor) {
-                return;
-              }
-
-              const tutor = selectedTutor;
-              setSelectedTutor(null);
-              onAddPet(tutor);
-            }}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-3 font-semibold text-white transition hover:bg-violet-800"
-          >
-            <Plus size={18} />
-            Cadastrar novo pet
-          </button>
-        </DialogContent>
-      </Dialog>
+      {selectedTutor && (
+        <TutorDetailsDialog
+          key={selectedTutor.id}
+          tutorId={selectedTutor.id}
+          onClose={() => setSelectedTutor(null)}
+          onAddPet={onAddPet}
+        />
+      )}
     </>
   );
 }

@@ -494,7 +494,7 @@ export function NewAppointmentModal({
 
                   {petsFiltrados.map((petItem) => (
                     <option key={petItem.id} value={petItem.id}>
-                      {petItem.nome}
+                      {petItem.nome} — {petItem.tutors?.nome || "Não informado"}
                     </option>
                   ))}
                 </select>

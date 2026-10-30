@@ -58,6 +58,16 @@ const financialEntrySelect = `
   )
 `;
 
+function getStartOfCurrentWeek() {
+  const start = new Date();
+  const daysSinceMonday = (start.getDay() + 6) % 7;
+
+  start.setDate(start.getDate() - daysSinceMonday);
+  start.setHours(0, 0, 0, 0);
+
+  return start;
+}
+
 export async function fetchFinancialEntries() {
   return supabase
     .from("financial_entries")
@@ -122,9 +132,7 @@ function buildAppointmentFinancialCreatedAt(
     return undefined;
   }
 
-  const timeMatch = (appointmentTime || "").match(
-    /^([01]\d|2[0-3]):([0-5]\d)/,
-  );
+  const timeMatch = (appointmentTime || "").match(/^([01]\d|2[0-3]):([0-5]\d)/);
   const hour = timeMatch ? Number(timeMatch[1]) : 12;
   const normalizedTime = timeMatch && hour < 21 ? timeMatch[0] : "12:00";
 
@@ -258,10 +266,7 @@ export async function fetchFinancialEntriesByAppointmentId(
 }
 
 export async function fetchWeeklyPaidRevenue() {
-  const inicioSemana = new Date();
-
-  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
-  inicioSemana.setHours(0, 0, 0, 0);
+  const inicioSemana = getStartOfCurrentWeek();
 
   return supabase
     .from("financial_entries")
@@ -271,11 +276,26 @@ export async function fetchWeeklyPaidRevenue() {
     .gte("created_at", inicioSemana.toISOString());
 }
 
-export async function fetchWeeklyPendingRevenue() {
-  const inicioSemana = new Date();
+export async function fetchPreviousWeekPaidRevenue() {
+  const startOfCurrentWeek = getStartOfCurrentWeek();
 
-  inicioSemana.setDate(inicioSemana.getDate() - inicioSemana.getDay());
-  inicioSemana.setHours(0, 0, 0, 0);
+  const startOfPreviousWeek = new Date(startOfCurrentWeek);
+  startOfPreviousWeek.setDate(startOfPreviousWeek.getDate() - 7);
+
+  const endOfPreviousWeek = new Date(startOfCurrentWeek);
+  endOfPreviousWeek.setMilliseconds(-1);
+
+  return supabase
+    .from("financial_entries")
+    .select(financialEntrySelect)
+    .eq("status_pagamento", "Pago")
+    .eq("tipo", "Receita")
+    .gte("created_at", startOfPreviousWeek.toISOString())
+    .lte("created_at", endOfPreviousWeek.toISOString());
+}
+
+export async function fetchWeeklyPendingRevenue() {
+  const inicioSemana = getStartOfCurrentWeek();
 
   return supabase
     .from("financial_entries")

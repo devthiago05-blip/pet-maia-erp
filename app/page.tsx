@@ -8,11 +8,13 @@ import {
   Trash2,
   Users,
   Wallet,
+  X,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -21,11 +23,13 @@ import {
   fetchFinalizedBathAppointmentsForReminders,
   fetchPendingAppointmentRequests,
   fetchPetsForBathReminders,
+  fetchPreviousWeekAppointments,
   fetchRecentAppointments,
   fetchWeeklyAppointments,
   fetchWeeklyAppointmentsByStatus,
 } from "@/services/dashboard";
 import {
+  fetchPreviousWeekPaidRevenue,
   fetchRecentFinancialEntries,
   fetchWeeklyPaidRevenue,
   fetchWeeklyPendingRevenue,
@@ -220,6 +224,8 @@ export default function HomePage() {
   const [weeklyAppointmentsList, setWeeklyAppointmentsList] = useState<
     Appointment[]
   >([]);
+  const [previousWeekAppointmentsList, setPreviousWeekAppointmentsList] =
+    useState<Appointment[]>([]);
   const [completedAppointmentsList, setCompletedAppointmentsList] = useState<
     Appointment[]
   >([]);
@@ -233,7 +239,10 @@ export default function HomePage() {
   const [weeklyPendingRevenueList, setWeeklyPendingRevenueList] = useState<
     FinancialEntry[]
   >([]);
+  const [previousWeekPaidRevenueList, setPreviousWeekPaidRevenueList] =
+    useState<FinancialEntry[]>([]);
   const [bathReminders, setBathReminders] = useState<BathReminder[]>([]);
+  const [bathReminderStartupOpen, setBathReminderStartupOpen] = useState(false);
   const [lowStockSupplies, setLowStockSupplies] = useState<GroomingSupply[]>(
     [],
   );
@@ -262,6 +271,8 @@ export default function HomePage() {
           receitas,
           pendentes,
           weeklyAppointments,
+          previousWeekAppointments,
+          previousWeekPaidRevenue,
           completed,
           pending,
           petsForReminders,
@@ -274,6 +285,8 @@ export default function HomePage() {
           fetchWeeklyPaidRevenue(),
           fetchWeeklyPendingRevenue(),
           fetchWeeklyAppointments(),
+          fetchPreviousWeekAppointments(),
+          fetchPreviousWeekPaidRevenue(),
           fetchWeeklyAppointmentsByStatus("Finalizado"),
           fetchPendingAppointmentRequests(),
           fetchPetsForBathReminders(),
@@ -282,6 +295,9 @@ export default function HomePage() {
         ]);
 
         const weeklyAppointmentsData = weeklyAppointments.data || [];
+        const previousWeekAppointmentsData =
+          previousWeekAppointments.data || [];
+        const previousWeekPaidRevenueData = previousWeekPaidRevenue.data || [];
         const completedAppointmentsData = completed.data || [];
         const pendingAppointmentsData = pending.data || [];
         const weeklyPaidRevenueData = receitas.data || [];
@@ -305,21 +321,27 @@ export default function HomePage() {
         setPendingAppointments(pendingAppointmentsData.length);
 
         setWeeklyAppointmentsList(weeklyAppointmentsData);
+        setPreviousWeekAppointmentsList(previousWeekAppointmentsData);
         setCompletedAppointmentsList(completedAppointmentsData);
         setPendingAppointmentsList(pendingAppointmentsData);
         setWeeklyPaidRevenueList(weeklyPaidRevenueData);
         setWeeklyPendingRevenueList(weeklyPendingRevenueData);
+        setPreviousWeekPaidRevenueList(previousWeekPaidRevenueData);
 
         setUltimosAgendamentos(appointmentsResponse.data || []);
         setUltimosRecebimentos(recebimentos.data || []);
         setRecebido(totalRecebido);
         setReceber(totalReceber);
-        setBathReminders(
-          buildBathReminders(
-            petsForReminders.data || [],
-            finalizedBathAppointments.data || [],
-          ),
+        const currentBathReminders = buildBathReminders(
+          petsForReminders.data || [],
+          finalizedBathAppointments.data || [],
         );
+
+        setBathReminders(currentBathReminders);
+
+        if (currentBathReminders.length > 0) {
+          setBathReminderStartupOpen(true);
+        }
 
         if (!groomingAlerts.error && groomingAlerts.data) {
           setLowStockSupplies(groomingAlerts.data.lowStockSupplies || []);
@@ -341,7 +363,6 @@ export default function HomePage() {
       currentDetail === detail ? null : detail,
     );
   }
-
 
   function openReminderDestination(
     reminder: BathReminder,
@@ -380,6 +401,11 @@ export default function HomePage() {
         (currentReminder) => currentReminder.petId !== reminder.petId,
       ),
     );
+
+    if (bathReminders.length <= 1) {
+      setBathReminderStartupOpen(false);
+    }
+
     toast.success("Lembrete removido até a próxima quinta-feira.");
     return true;
   }
@@ -769,6 +795,12 @@ Equipe Pet Maia Banho e Tosa.`;
       </div>
     );
   }
+
+  const previousWeekPaidRevenueTotal = previousWeekPaidRevenueList.reduce(
+    (total, entry) => total + Number(entry.valor || 0),
+    0,
+  );
+
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-slate-50">
       <Sidebar />
@@ -895,6 +927,14 @@ Equipe Pet Maia Banho e Tosa.`;
             </StatCard>
           </div>
 
+          <DashboardInsights
+            currentAppointments={weeklyAppointmentsList}
+            previousAppointments={previousWeekAppointmentsList}
+            currentPaidRevenue={recebido}
+            currentPendingRevenue={receber}
+            previousPaidRevenue={previousWeekPaidRevenueTotal}
+          />
+
           <div className="mt-6 grid grid-cols-1 gap-4 lg:gap-6 xl:grid-cols-2">
             <div className="rounded-2xl border bg-white p-4 sm:p-6">
               <h2 className="mb-4 text-lg font-bold sm:text-xl">
@@ -982,6 +1022,47 @@ Equipe Pet Maia Banho e Tosa.`;
           </div>
         </div>
       </main>
+
+      {bathReminderStartupOpen && bathReminders.length > 0 && (
+        <div
+          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bath-reminders-startup-title"
+        >
+          <section className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
+            <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:p-6">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A0EEA]">
+                  Ação do dia
+                </p>
+                <h2
+                  id="bath-reminders-startup-title"
+                  className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl"
+                >
+                  Clientes para lembrar do banho
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Envie a mensagem pelo WhatsApp ou já abra um novo agendamento.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setBathReminderStartupOpen(false)}
+                aria-label="Fechar lembretes de banho"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
+              >
+                <X size={20} />
+              </button>
+            </header>
+
+            <div className="overflow-y-auto p-4 sm:p-6">
+              {renderBathRemindersList()}
+            </div>
+          </section>
+        </div>
+      )}
 
       {pendingReminderAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

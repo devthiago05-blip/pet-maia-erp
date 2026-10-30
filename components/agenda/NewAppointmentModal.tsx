@@ -47,6 +47,14 @@ function normalizePhoneDigits(phone?: string | null) {
     : digits;
 }
 
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+}
+
 function findTutorByAppointmentPhone(
   observation: string | undefined,
   tutors: Tutor[],
@@ -126,6 +134,7 @@ export function NewAppointmentModal({
     defaultPetId ? [defaultPetId] : [],
   );
   const [tutorId, setTutorId] = useState(defaultTutorId);
+  const [petSearch, setPetSearch] = useState("");
   const [walkInTutorName, setWalkInTutorName] = useState("");
   const [walkInPetCount, setWalkInPetCount] = useState("1");
   const [servicos, setServicos] = useState<string[]>([]);
@@ -140,6 +149,14 @@ export function NewAppointmentModal({
   const petsFiltrados = tutorId
     ? pets.filter((petItem) => String(petItem.tutor_id) === tutorId)
     : pets;
+  const normalizedPetSearch = normalizeSearchText(petSearch);
+  const petsForSelect = normalizedPetSearch
+    ? petsFiltrados.filter((petItem) =>
+        normalizeSearchText(
+          `${petItem.nome} ${petItem.tutors?.nome || ""}`,
+        ).includes(normalizedPetSearch),
+      )
+    : petsFiltrados;
   const selectedPetIdsForDisplay = Array.from(
     new Set([petId, ...selectedPetIds].filter(Boolean)),
   ).filter((selectedId) =>
@@ -229,6 +246,7 @@ export function NewAppointmentModal({
     setPetId(defaultPetId);
     setSelectedPetIds(defaultPetId ? [defaultPetId] : []);
     setTutorId(defaultTutorId);
+    setPetSearch("");
     setWalkInTutorName("");
     setWalkInPetCount("1");
     setServicos([]);
@@ -242,6 +260,7 @@ export function NewAppointmentModal({
     const nextTutor = tutors.find((tutor) => String(tutor.id) === nextTutorId);
 
     setTutorId(nextTutorId);
+    setPetSearch("");
     setPetId("");
     setSelectedPetIds([]);
     setWalkInTutorName(nextTutor?.nome || "");
@@ -255,6 +274,7 @@ export function NewAppointmentModal({
   function handlePetChange(nextPetId: string) {
     setAppointmentType("pet");
     setPetId(nextPetId);
+    setPetSearch("");
     setSelectedPetIds(nextPetId ? [nextPetId] : []);
 
     const selectedPet = pets.find((pet) => String(pet.id) === nextPetId);
@@ -481,23 +501,43 @@ export function NewAppointmentModal({
                   </div>
                 </div>
               ) : (
-                <select
-                  value={petId}
-                  onChange={(event) => handlePetChange(event.target.value)}
-                  className="w-full rounded-xl border p-3"
-                >
-                  <option value="">
-                    {requestedPetName
-                      ? `Pet informado no site: ${requestedPetName}`
-                      : "Selecione um Pet"}
-                  </option>
+                <div className="grid gap-2">
+                  <label className="grid gap-2 text-sm font-medium">
+                    Buscar pet ou tutor
+                    <input
+                      type="search"
+                      value={petSearch}
+                      onChange={(event) => setPetSearch(event.target.value)}
+                      placeholder="Digite o nome do pet ou do tutor"
+                      className="w-full rounded-xl border p-3 font-normal"
+                    />
+                  </label>
 
-                  {petsFiltrados.map((petItem) => (
-                    <option key={petItem.id} value={petItem.id}>
-                      {petItem.nome} — {petItem.tutors?.nome || "Não informado"}
+                  <select
+                    value={petId}
+                    onChange={(event) => handlePetChange(event.target.value)}
+                    className="w-full rounded-xl border p-3"
+                  >
+                    <option value="">
+                      {requestedPetName
+                        ? `Pet informado no site: ${requestedPetName}`
+                        : "Selecione um Pet"}
                     </option>
-                  ))}
-                </select>
+
+                    {petsForSelect.map((petItem) => (
+                      <option key={petItem.id} value={petItem.id}>
+                        {petItem.nome} —{" "}
+                        {petItem.tutors?.nome || "Não informado"}
+                      </option>
+                    ))}
+
+                    {petsForSelect.length === 0 && (
+                      <option value="" disabled>
+                        Nenhum pet ou tutor encontrado
+                      </option>
+                    )}
+                  </select>
+                </div>
               )}
 
               {!isWalkInMode && canSelectMultiplePets && (

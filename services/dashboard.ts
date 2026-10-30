@@ -8,10 +8,11 @@ function formatDateOnly(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-function getCurrentMondayToSundayRange() {
+function getMondayToSundayRange(weekOffset = 0) {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  start.setDate(start.getDate() + weekOffset * 7);
 
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
@@ -52,7 +53,31 @@ export async function fetchRecentAppointments() {
 }
 
 export async function fetchWeeklyAppointments() {
-  const { endDate, startDate } = getCurrentMondayToSundayRange();
+  const { endDate, startDate } = getMondayToSundayRange();
+
+  return supabase
+    .from("appointments")
+    .select(
+      `
+      *,
+      pets (
+        nome,
+        porte,
+        tutors (
+          nome,
+          telefone
+        )
+      )
+    `,
+    )
+    .gte("data", startDate)
+    .lte("data", endDate)
+    .order("data", { ascending: true })
+    .order("hora", { ascending: true });
+}
+
+export async function fetchPreviousWeekAppointments() {
+  const { endDate, startDate } = getMondayToSundayRange(-1);
 
   return supabase
     .from("appointments")
@@ -76,7 +101,7 @@ export async function fetchWeeklyAppointments() {
 }
 
 export async function fetchWeeklyAppointmentsByStatus(status: string) {
-  const { endDate, startDate } = getCurrentMondayToSundayRange();
+  const { endDate, startDate } = getMondayToSundayRange();
 
   return supabase
     .from("appointments")

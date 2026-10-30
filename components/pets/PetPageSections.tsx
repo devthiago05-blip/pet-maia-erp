@@ -1288,7 +1288,14 @@ export function AppointmentHistory({
                 <tr key={appointment.id} className="border-t">
                   <td className="p-4">{formatDate(appointment.data)}</td>
                   <td className="p-4">{appointment.hora}</td>
-                  <td className="p-4">{appointment.servico}</td>
+                  <td className="p-4">
+                    <p>{appointment.servico}</p>
+                    {appointment.grooming_tools?.length ? (
+                      <p className="mt-1 text-xs text-slate-500">
+                        Pentes/lâminas: {appointment.grooming_tools.join(", ")}
+                      </p>
+                    ) : null}
+                  </td>
                   <td className="p-4">{appointment.status}</td>
                   <td className="p-4">
                     {appointment.status === "Finalizado" &&

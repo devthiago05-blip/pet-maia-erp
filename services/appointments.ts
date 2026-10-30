@@ -99,6 +99,16 @@ export async function updateAppointmentStatus(
   return supabase.from("appointments").update({ status }).eq("id", id);
 }
 
+export async function completeAppointment(id: number, groomingTools: string[]) {
+  return supabase
+    .from("appointments")
+    .update({
+      grooming_tools: groomingTools.length > 0 ? groomingTools : null,
+      status: "Finalizado" satisfies AppointmentStatus,
+    })
+    .eq("id", id);
+}
+
 export async function updateAppointmentTime(id: number, hora: string) {
   return supabase.from("appointments").update({ hora }).eq("id", id);
 }

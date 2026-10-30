@@ -655,6 +655,7 @@ export interface Appointment {
   id: number;
   pet_id?: number | null;
   servico: string;
+  grooming_tools?: string[] | null;
   data: string;
   hora: string;
   status: AppointmentStatus;

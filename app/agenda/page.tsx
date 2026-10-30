@@ -23,6 +23,7 @@ import {
 } from "@/lib/appointment-observation";
 import { createAppointmentConfirmationWhatsAppUrl } from "@/lib/whatsapp";
 import {
+  completeAppointment,
   createAppointment,
   createAppointments,
   createWalkInAppointment,
@@ -221,6 +222,7 @@ export default function AgendaPage() {
     formaPagamento: string;
     services: CompletedAppointmentService[];
     observacoes?: string;
+    groomingTools?: string[];
   } | null>(null);
 
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
@@ -614,6 +616,7 @@ export default function AgendaPage() {
     formaPagamento,
     servicoDescricao,
     observacoes,
+    groomingTools,
     services: completedServices,
     planUsage,
   }: {
@@ -621,6 +624,7 @@ export default function AgendaPage() {
     formaPagamento: string;
     servicoDescricao: string;
     observacoes?: string;
+    groomingTools: string[];
     services: CompletedAppointmentService[];
     planUsage?: {
       subscriptionId: number;
@@ -738,9 +742,9 @@ export default function AgendaPage() {
       }
     }
 
-    const { error: statusError } = await updateAppointmentStatus(
+    const { error: statusError } = await completeAppointment(
       completedAppointment.id,
-      "Finalizado",
+      groomingTools,
     );
 
     if (statusError) {
@@ -759,11 +763,16 @@ export default function AgendaPage() {
     toast.success("Atendimento finalizado!");
 
     setCompletedReceipt({
-      appointment: completedAppointment,
+      appointment: {
+        ...completedAppointment,
+        grooming_tools: groomingTools.length > 0 ? groomingTools : null,
+        status: "Finalizado",
+      },
       valor,
       formaPagamento,
       services: completedServices,
       observacoes,
+      groomingTools,
     });
 
     setAppointmentToFinish(null);
@@ -813,6 +822,7 @@ export default function AgendaPage() {
         financialEntry.descricao,
         appointment.pets?.nome,
       ),
+      groomingTools: appointment.grooming_tools || [],
     });
   }
 
@@ -1076,6 +1086,7 @@ export default function AgendaPage() {
             formaPagamento={completedReceipt.formaPagamento}
             services={completedReceipt.services}
             observacoes={completedReceipt.observacoes}
+            groomingTools={completedReceipt.groomingTools}
             onClose={() => setCompletedReceipt(null)}
           />
         )}

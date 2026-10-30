@@ -237,6 +237,12 @@ export function TutorDetailsDialog({
                                 appointment={bath}
                                 showPrices={services}
                               />
+                              {bath.grooming_tools?.length ? (
+                                <p className="mt-1 text-sm text-slate-600">
+                                  <strong>Pentes/lâminas:</strong>{" "}
+                                  {bath.grooming_tools.join(", ")}
+                                </p>
+                              ) : null}
                               <p className="mt-1 font-semibold">
                                 Valor do atendimento:{" "}
                                 {showValues
@@ -296,6 +302,12 @@ export function TutorDetailsDialog({
                               appointment={appointment}
                               showPrices={services}
                             />
+                            {appointment.grooming_tools?.length ? (
+                              <p className="mt-2 text-sm text-slate-600">
+                                <strong>Pentes/lâminas:</strong>{" "}
+                                {appointment.grooming_tools.join(", ")}
+                              </p>
+                            ) : null}
                             <p className="mt-2 font-semibold">
                               Valor do atendimento:{" "}
                               {showValues

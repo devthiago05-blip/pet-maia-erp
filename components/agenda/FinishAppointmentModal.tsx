@@ -23,6 +23,7 @@ interface FinishAppointmentModalProps {
     formaPagamento: string;
     servicoDescricao: string;
     observacoes?: string;
+    groomingTools: string[];
     services: CompletedAppointmentService[];
     planUsage?: {
       subscriptionId: number;
@@ -31,6 +32,17 @@ interface FinishAppointmentModalProps {
     };
   }) => Promise<void> | void;
 }
+
+const suggestedGroomingTools = [
+  "Lâmina 10",
+  "Lâmina 7F",
+  "Lâmina 5F",
+  "Lâmina 4F",
+  "Pente 1",
+  "Pente 2",
+  "Pente 3",
+  "Pente 4",
+];
 
 function normalizeText(value: string) {
   return value
@@ -136,6 +148,10 @@ function isBathService(service: Service) {
   return normalizeText(service.nome).includes("banho");
 }
 
+function isGroomingService(service: Service) {
+  return normalizeText(service.nome).includes("tosa");
+}
+
 function serviceMatchesBenefit(service: Service, benefit: string) {
   const serviceName = normalizeText(service.nome);
   const benefitName = normalizeBenefitForMatch(benefit);
@@ -180,6 +196,10 @@ export function FinishAppointmentModal({
   );
   const [formaPagamento, setFormaPagamento] = useState("PIX");
   const [observacoes, setObservacoes] = useState("");
+  const [selectedGroomingTools, setSelectedGroomingTools] = useState<string[]>(
+    [],
+  );
+  const [customGroomingTool, setCustomGroomingTool] = useState("");
   const [usePlan, setUsePlan] = useState(false);
   const [selectedPlanBenefits, setSelectedPlanBenefits] = useState<string[]>(
     [],
@@ -247,6 +267,7 @@ export function FinishAppointmentModal({
     () => services.filter((service) => selectedServiceIds.includes(service.id)),
     [selectedServiceIds, services],
   );
+  const hasGroomingService = selectedServices.some(isGroomingService);
 
   const servicesTotal = useMemo(
     () =>
@@ -304,6 +325,31 @@ export function FinishAppointmentModal({
 
       return [...currentBenefits, benefit];
     });
+  }
+
+  function toggleGroomingTool(tool: string) {
+    setSelectedGroomingTools((currentTools) =>
+      currentTools.includes(tool)
+        ? currentTools.filter((currentTool) => currentTool !== tool)
+        : [...currentTools, tool],
+    );
+  }
+
+  function addCustomGroomingTool() {
+    const tool = customGroomingTool.trim();
+
+    if (!tool) {
+      return;
+    }
+
+    setSelectedGroomingTools((currentTools) =>
+      currentTools.some(
+        (currentTool) => normalizeText(currentTool) === normalizeText(tool),
+      )
+        ? currentTools
+        : [...currentTools, tool],
+    );
+    setCustomGroomingTool("");
   }
 
   async function handleSave() {
@@ -377,6 +423,7 @@ export function FinishAppointmentModal({
       formaPagamento: finalPaymentMethod,
       servicoDescricao,
       observacoes: finalObservations || undefined,
+      groomingTools: hasGroomingService ? selectedGroomingTools : [],
       services: completedServices,
       planUsage:
         usePlan &&
@@ -623,6 +670,74 @@ export function FinishAppointmentModal({
               )}
             </div>
           </section>
+
+          {hasGroomingService && (
+            <section className="rounded-2xl border border-violet-200 bg-violet-50/60 p-4">
+              <div>
+                <h3 className="font-bold text-slate-800">
+                  Pentes e lâminas utilizados
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Selecione quantos forem necessários. O registro ficará salvo
+                  no histórico deste atendimento.
+                </p>
+              </div>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {suggestedGroomingTools.map((tool) => {
+                  const selected = selectedGroomingTools.includes(tool);
+
+                  return (
+                    <button
+                      key={tool}
+                      type="button"
+                      onClick={() => toggleGroomingTool(tool)}
+                      aria-pressed={selected}
+                      className={`min-h-10 rounded-full border px-3 py-2 text-sm font-semibold transition ${
+                        selected
+                          ? "border-[#8A0EEA] bg-[#8A0EEA] text-white"
+                          : "border-violet-200 bg-white text-slate-700 hover:border-[#8A0EEA]"
+                      }`}
+                    >
+                      {tool}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="text"
+                  value={customGroomingTool}
+                  onChange={(event) =>
+                    setCustomGroomingTool(event.target.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      addCustomGroomingTool();
+                    }
+                  }}
+                  placeholder="Outra combinação, ex.: pente 6 mm"
+                  className="min-h-11 flex-1 rounded-xl border bg-white p-3"
+                />
+                <button
+                  type="button"
+                  onClick={addCustomGroomingTool}
+                  className="min-h-11 rounded-xl border border-[#8A0EEA] bg-white px-4 font-semibold text-[#8A0EEA]"
+                >
+                  Adicionar
+                </button>
+              </div>
+
+              {selectedGroomingTools.length > 0 && (
+                <div className="mt-3 rounded-xl bg-white p-3 text-sm text-slate-700">
+                  <strong>Selecionados:</strong>{" "}
+                  {selectedGroomingTools.join(", ")}
+                </div>
+              )}
+            </section>
+          )}
 
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Forma de pagamento

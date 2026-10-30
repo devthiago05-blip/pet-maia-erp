@@ -26,6 +26,7 @@ interface AppointmentReceiptModalProps {
   valor: number;
   services: CompletedAppointmentService[];
   observacoes?: string;
+  groomingTools?: string[];
   onClose: () => void;
 }
 
@@ -36,6 +37,7 @@ export function AppointmentReceiptModal({
   valor,
   services,
   observacoes,
+  groomingTools = [],
   onClose,
 }: AppointmentReceiptModalProps) {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -118,6 +120,9 @@ export function AppointmentReceiptModal({
     ...serviceLines,
     `Total: ${formatCurrency(valor)}.`,
     `Forma de pagamento: ${formaPagamento}.`,
+    groomingTools.length > 0
+      ? `Pentes/lâminas: ${groomingTools.join(", ")}.`
+      : "",
     observacoes ? `Observações: ${observacoes}.` : "",
     pixCode ? "O código PIX será enviado em uma mensagem separada." : "",
     `Obrigado! ${clinicSettings?.nome || "PET MAIA ERP"}`,
@@ -241,6 +246,12 @@ export function AppointmentReceiptModal({
             {observacoes && (
               <p className="mt-3">
                 <strong>Observações:</strong> {observacoes}
+              </p>
+            )}
+
+            {groomingTools.length > 0 && (
+              <p className="mt-3">
+                <strong>Pentes/lâminas:</strong> {groomingTools.join(", ")}
               </p>
             )}
 

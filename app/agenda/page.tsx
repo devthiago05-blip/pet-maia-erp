@@ -32,6 +32,7 @@ import {
   fetchAppointments,
   fetchAppointmentServicesByAppointmentId,
   fetchPreviousAppointmentServicesByPet,
+  fetchPreviousGroomingToolsByPet,
   replaceAppointmentServices,
   updateAppointment,
   updateAppointmentStatus,
@@ -214,6 +215,9 @@ export default function AgendaPage() {
   const [previousServicePrices, setPreviousServicePrices] = useState<
     Record<string, number>
   >({});
+  const [previousGroomingTools, setPreviousGroomingTools] = useState<string[]>(
+    [],
+  );
   const [activePlanSubscription, setActivePlanSubscription] =
     useState<GroomingPlanSubscription | null>(null);
   const [completedReceipt, setCompletedReceipt] = useState<{
@@ -577,17 +581,22 @@ export default function AgendaPage() {
 
   async function handleOpenFinishAppointment(appointment: Appointment) {
     setPreviousServicePrices({});
+    setPreviousGroomingTools([]);
     setActivePlanSubscription(null);
 
     if (appointment.pet_id) {
-      const [previousServicesResponse, planSubscriptionResponse] =
-        await Promise.all([
-          fetchPreviousAppointmentServicesByPet(
-            appointment.pet_id,
-            appointment.id,
-          ),
-          fetchActiveGroomingPlanSubscriptionByPet(appointment.pet_id),
-        ]);
+      const [
+        previousServicesResponse,
+        previousGroomingToolsResponse,
+        planSubscriptionResponse,
+      ] = await Promise.all([
+        fetchPreviousAppointmentServicesByPet(
+          appointment.pet_id,
+          appointment.id,
+        ),
+        fetchPreviousGroomingToolsByPet(appointment.pet_id, appointment.id),
+        fetchActiveGroomingPlanSubscriptionByPet(appointment.pet_id),
+      ]);
 
       if (previousServicesResponse.error) {
         console.error(previousServicesResponse.error);
@@ -597,6 +606,15 @@ export default function AgendaPage() {
       } else {
         setPreviousServicePrices(
           buildPreviousServicePriceMap(previousServicesResponse.data || []),
+        );
+      }
+
+      if (previousGroomingToolsResponse.error) {
+        console.error(previousGroomingToolsResponse.error);
+        toast.warning("Não foi possível buscar os pentes da última tosa.");
+      } else {
+        setPreviousGroomingTools(
+          previousGroomingToolsResponse.data?.[0]?.grooming_tools || [],
         );
       }
 
@@ -1068,6 +1086,7 @@ export default function AgendaPage() {
             servico={appointmentToFinish.servico}
             services={services}
             previousServicePrices={previousServicePrices}
+            previousGroomingTools={previousGroomingTools}
             planSubscription={activePlanSubscription}
             allowCustomPricingWithoutPet={!appointmentToFinish.pet_id}
             onClose={() => {

@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type {
+  Appointment,
   AppointmentService,
   AppointmentStatus,
   CompletedAppointmentService,
@@ -196,4 +197,22 @@ export async function fetchPreviousAppointmentServicesByPet(
     .eq("appointments.status", "Finalizado")
     .neq("appointment_id", currentAppointmentId)
     .returns<PreviousAppointmentService[]>();
+}
+
+export async function fetchPreviousGroomingToolsByPet(
+  petId: number,
+  currentAppointmentId: number,
+) {
+  return supabase
+    .from("appointments")
+    .select("id, grooming_tools, data, hora")
+    .eq("pet_id", petId)
+    .eq("status", "Finalizado")
+    .neq("id", currentAppointmentId)
+    .not("grooming_tools", "is", null)
+    .order("data", { ascending: false })
+    .order("hora", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .returns<Pick<Appointment, "id" | "grooming_tools" | "data" | "hora">[]>();
 }

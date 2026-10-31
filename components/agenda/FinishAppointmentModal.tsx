@@ -15,6 +15,7 @@ interface FinishAppointmentModalProps {
   servico: string;
   services: Service[];
   previousServicePrices?: Record<string, number>;
+  previousGroomingTools?: string[];
   planSubscription?: GroomingPlanSubscription | null;
   allowCustomPricingWithoutPet?: boolean;
   onClose: () => void;
@@ -185,6 +186,7 @@ export function FinishAppointmentModal({
   servico,
   services,
   previousServicePrices = {},
+  previousGroomingTools = [],
   planSubscription,
   allowCustomPricingWithoutPet = false,
   onClose,
@@ -682,6 +684,26 @@ export function FinishAppointmentModal({
                   no histórico deste atendimento.
                 </p>
               </div>
+
+              {previousGroomingTools.length > 0 && (
+                <div className="mt-3 flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 text-sm text-emerald-900">
+                    <p className="font-bold">Usado na última tosa</p>
+                    <p className="mt-1 break-words">
+                      {previousGroomingTools.join(", ")}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelectedGroomingTools(previousGroomingTools)
+                    }
+                    className="min-h-10 shrink-0 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white transition hover:bg-emerald-700"
+                  >
+                    Usar novamente
+                  </button>
+                </div>
+              )}
 
               <div className="mt-3 flex flex-wrap gap-2">
                 {suggestedGroomingTools.map((tool) => {

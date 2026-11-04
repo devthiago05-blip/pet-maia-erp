@@ -54,6 +54,7 @@ export async function createPet(pet: NewPetInput) {
       porte: pet.porte,
       sexo: pet.sexo,
       idade: pet.idade,
+      bath_reminder_enabled: pet.bathReminderEnabled ?? true,
       bath_reminder_interval_days: pet.bathReminderIntervalDays
         ? Number(pet.bathReminderIntervalDays)
         : null,
@@ -73,6 +74,7 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
       porte: pet.porte,
       sexo: pet.sexo,
       idade: pet.idade,
+      bath_reminder_enabled: pet.bath_reminder_enabled ?? true,
       bath_reminder_interval_days: pet.bath_reminder_interval_days ?? null,
       photo_url: pet.photo_url || null,
       tutor_id: Number(pet.tutorId),

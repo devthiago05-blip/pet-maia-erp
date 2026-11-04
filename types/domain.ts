@@ -67,6 +67,7 @@ export interface Pet {
   idade?: string;
   photo_url?: string | null;
   tutor_id?: number;
+  bath_reminder_enabled?: boolean;
   bath_reminder_interval_days?: number | null;
   bath_reminder_dismissed_until?: string | null;
   created_at?: string;
@@ -1198,6 +1199,7 @@ export interface NewPetInput {
   idade?: string;
   porte: string;
   photoUrl?: string | null;
+  bathReminderEnabled?: boolean;
   bathReminderIntervalDays?: string;
 }
 

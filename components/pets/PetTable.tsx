@@ -80,7 +80,11 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
 
               <div className="mt-4 flex items-center gap-2 rounded-xl bg-purple-50 px-3 py-2 text-sm font-medium text-[#7100bd]">
                 <CalendarClock size={17} className="shrink-0" />
-                Banho: {formatBathRecurrence(pet.bath_reminder_interval_days)}
+                {pet.bath_reminder_enabled === false
+                  ? "Lembrete de banho desativado"
+                  : `Banho: ${formatBathRecurrence(
+                      pet.bath_reminder_interval_days,
+                    )}`}
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
@@ -152,7 +156,17 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                   <td className="p-3 sm:p-4">{pet.porte || "-"}</td>
                   <td className="p-3 sm:p-4">{pet.tutors?.nome || "-"}</td>
                   <td className="p-3 text-sm text-slate-600 sm:p-4">
-                    {formatBathRecurrence(pet.bath_reminder_interval_days)}
+                    <span
+                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        pet.bath_reminder_enabled === false
+                          ? "bg-slate-100 text-slate-500"
+                          : "bg-purple-50 text-[#7100bd]"
+                      }`}
+                    >
+                      {pet.bath_reminder_enabled === false
+                        ? "Desativado"
+                        : formatBathRecurrence(pet.bath_reminder_interval_days)}
+                    </span>
                   </td>
                   <td className="p-3 sm:p-4">
                     <div className="flex flex-wrap gap-3">

@@ -177,6 +177,8 @@ export async function fetchPetsForBathReminders() {
       id,
       nome,
       tutor_id,
+      created_at,
+      bath_reminder_enabled,
       bath_reminder_interval_days,
       bath_reminder_dismissed_until,
       tutors (
@@ -185,6 +187,7 @@ export async function fetchPetsForBathReminders() {
       )
     `,
     )
+    .eq("bath_reminder_enabled", true)
     .order("nome", { ascending: true });
 }
 

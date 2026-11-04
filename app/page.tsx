@@ -36,12 +36,14 @@ import {
 } from "@/services/financial";
 import { fetchGroomingSupplyAlerts } from "@/services/grooming";
 import { dismissPetBathReminder } from "@/services/pets";
+import { fetchTutorsPendingRegistration } from "@/services/tutors";
 import type {
   Appointment,
   FinancialEntry,
   GroomerDailyPayment,
   GroomingSupply,
   GroomingSupplyMovement,
+  Tutor,
 } from "@/types/domain";
 
 type DashboardDetail =
@@ -53,6 +55,7 @@ type DashboardDetail =
   | "pendingRevenue"
   | "paidRevenue"
   | "bathReminders"
+  | "incompleteTutors"
   | "groomingAlerts";
 
 type BathReminderAction = "whatsapp" | "schedule" | "delete";
@@ -137,6 +140,8 @@ function buildBathReminders(
     id: number;
     nome: string;
     tutor_id?: number | null;
+    created_at?: string | null;
+    bath_reminder_enabled?: boolean | null;
     bath_reminder_interval_days?: number | null;
     bath_reminder_dismissed_until?: string | null;
     tutors?:
@@ -149,6 +154,10 @@ function buildBathReminders(
   const today = getTodayDate();
 
   for (const pet of petsList) {
+    if (pet.bath_reminder_enabled === false) {
+      continue;
+    }
+
     if (
       pet.bath_reminder_dismissed_until &&
       pet.bath_reminder_dismissed_until >= today
@@ -163,6 +172,12 @@ function buildBathReminders(
     const intervalDays = pet.bath_reminder_interval_days || 30;
 
     if (!lastBath) {
+      const registrationDate = parseDateOnly(pet.created_at?.slice(0, 10));
+
+      if (registrationDate && calculateDaysSince(registrationDate) > 100) {
+        continue;
+      }
+
       reminders.push({
         petId: Number(pet.id),
         tutorId: pet.tutor_id ? Number(pet.tutor_id) : undefined,
@@ -183,6 +198,10 @@ function buildBathReminders(
     }
 
     const daysWithoutBath = calculateDaysSince(lastBathDate);
+
+    if (daysWithoutBath > 100) {
+      continue;
+    }
 
     if (daysWithoutBath <= intervalDays) {
       continue;
@@ -242,7 +261,8 @@ export default function HomePage() {
   const [previousWeekPaidRevenueList, setPreviousWeekPaidRevenueList] =
     useState<FinancialEntry[]>([]);
   const [bathReminders, setBathReminders] = useState<BathReminder[]>([]);
-  const [bathReminderStartupOpen, setBathReminderStartupOpen] = useState(false);
+  const [incompleteTutors, setIncompleteTutors] = useState<Tutor[]>([]);
+  const [dailyActionsOpen, setDailyActionsOpen] = useState(false);
   const [lowStockSupplies, setLowStockSupplies] = useState<GroomingSupply[]>(
     [],
   );
@@ -277,6 +297,7 @@ export default function HomePage() {
           pending,
           petsForReminders,
           finalizedBathAppointments,
+          tutorsPendingRegistration,
           groomingAlerts,
         ] = await Promise.all([
           fetchDashboardCounts(),
@@ -291,6 +312,7 @@ export default function HomePage() {
           fetchPendingAppointmentRequests(),
           fetchPetsForBathReminders(),
           fetchFinalizedBathAppointmentsForReminders(),
+          fetchTutorsPendingRegistration(),
           fetchGroomingSupplyAlerts(),
         ]);
 
@@ -338,9 +360,13 @@ export default function HomePage() {
         );
 
         setBathReminders(currentBathReminders);
+        setIncompleteTutors(tutorsPendingRegistration.data || []);
 
-        if (currentBathReminders.length > 0) {
-          setBathReminderStartupOpen(true);
+        if (
+          currentBathReminders.length > 0 ||
+          (tutorsPendingRegistration.data?.length || 0) > 0
+        ) {
+          setDailyActionsOpen(true);
         }
 
         if (!groomingAlerts.error && groomingAlerts.data) {
@@ -402,8 +428,8 @@ export default function HomePage() {
       ),
     );
 
-    if (bathReminders.length <= 1) {
-      setBathReminderStartupOpen(false);
+    if (bathReminders.length <= 1 && incompleteTutors.length === 0) {
+      setDailyActionsOpen(false);
     }
 
     toast.success("Lembrete removido até a próxima quinta-feira.");
@@ -623,6 +649,48 @@ Equipe Pet Maia Banho e Tosa.`;
       </div>
     );
   }
+
+  function renderIncompleteTutorsList() {
+    if (incompleteTutors.length === 0) {
+      return (
+        <div className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-sm text-slate-400">
+          Nenhum cadastro de tutor pendente.
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-3">
+        {incompleteTutors.map((tutor) => (
+          <div
+            key={tutor.id}
+            className="grid gap-3 rounded-xl border border-amber-200 bg-amber-50/60 p-3 sm:grid-cols-[1fr_auto] sm:items-center"
+          >
+            <div className="min-w-0">
+              <p className="font-semibold text-slate-800">{tutor.nome}</p>
+              <p className="text-sm text-amber-800">
+                Telefone provisório: {tutor.telefone || "85999999999"}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Confirme o telefone e complete os demais dados do tutor.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() =>
+                router.push(`/tutors?search=${encodeURIComponent(tutor.nome)}`)
+              }
+              className="min-h-10 rounded-xl bg-amber-500 px-4 text-sm font-bold text-white transition hover:bg-amber-600"
+            >
+              Finalizar cadastro
+            </button>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   function renderGroomingAlertsList() {
     const hasAlerts =
       lowStockSupplies.length > 0 ||
@@ -838,6 +906,16 @@ Equipe Pet Maia Banho e Tosa.`;
             </StatCard>
 
             <StatCard
+              title="Cadastros Pendentes"
+              value={String(incompleteTutors.length)}
+              icon={<AlertTriangle size={24} />}
+              active={activeDetail === "incompleteTutors"}
+              onClick={() => handleSelectDetail("incompleteTutors")}
+            >
+              {renderIncompleteTutorsList()}
+            </StatCard>
+
+            <StatCard
               title="Agendamentos da Semana"
               value={String(appointments)}
               icon={<CalendarDays size={24} />}
@@ -1023,46 +1101,64 @@ Equipe Pet Maia Banho e Tosa.`;
         </div>
       </main>
 
-      {bathReminderStartupOpen && bathReminders.length > 0 && (
-        <div
-          className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="bath-reminders-startup-title"
-        >
-          <section className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
-            <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:p-6">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A0EEA]">
-                  Ação do dia
-                </p>
-                <h2
-                  id="bath-reminders-startup-title"
-                  className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl"
+      {dailyActionsOpen &&
+        (bathReminders.length > 0 || incompleteTutors.length > 0) && (
+          <div
+            className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="daily-actions-title"
+          >
+            <section className="flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
+              <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:p-6">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#8A0EEA]">
+                    Ação do dia
+                  </p>
+                  <h2
+                    id="daily-actions-title"
+                    className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl"
+                  >
+                    Pendências para resolver
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Complete os cadastros provisórios e envie os lembretes de
+                    banho necessários.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDailyActionsOpen(false)}
+                  aria-label="Fechar ações do dia"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
                 >
-                  Clientes para lembrar do banho
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Envie a mensagem pelo WhatsApp ou já abra um novo agendamento.
-                </p>
+                  <X size={20} />
+                </button>
+              </header>
+
+              <div className="space-y-6 overflow-y-auto p-4 sm:p-6">
+                {incompleteTutors.length > 0 && (
+                  <section>
+                    <h3 className="mb-3 font-bold text-slate-900">
+                      Finalizar cadastro de tutores ({incompleteTutors.length})
+                    </h3>
+                    {renderIncompleteTutorsList()}
+                  </section>
+                )}
+
+                {bathReminders.length > 0 && (
+                  <section>
+                    <h3 className="mb-3 font-bold text-slate-900">
+                      Clientes para lembrar do banho ({bathReminders.length})
+                    </h3>
+                    {renderBathRemindersList()}
+                  </section>
+                )}
               </div>
-
-              <button
-                type="button"
-                onClick={() => setBathReminderStartupOpen(false)}
-                aria-label="Fechar lembretes de banho"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 transition hover:bg-slate-200"
-              >
-                <X size={20} />
-              </button>
-            </header>
-
-            <div className="overflow-y-auto p-4 sm:p-6">
-              {renderBathRemindersList()}
-            </div>
-          </section>
-        </div>
-      )}
+            </section>
+          </div>
+        )}
 
       {pendingReminderAction && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

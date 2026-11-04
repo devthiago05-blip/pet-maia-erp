@@ -7,6 +7,12 @@ function normalizeCpf(value: string | null | undefined) {
   return digits || null;
 }
 
+function hasPlaceholderPhone(phone?: string | null) {
+  const digits = (phone || "").replace(/\D/g, "");
+
+  return digits === "85999999999" || digits === "5585999999999";
+}
+
 export async function fetchTutors() {
   const response = await supabase
     .from("tutors")
@@ -23,6 +29,25 @@ export async function fetchTutors() {
       ...tutor,
       pets: tutor.pets?.[0]?.count ?? 0,
     })) as Tutor[],
+  };
+}
+
+export async function fetchTutorsPendingRegistration() {
+  const response = await supabase
+    .from("tutors")
+    .select("id, nome, telefone, cpf, email, endereco")
+    .ilike("telefone", "%99999%")
+    .order("nome", { ascending: true });
+
+  if (!response.data) {
+    return response;
+  }
+
+  return {
+    ...response,
+    data: response.data.filter((tutor) =>
+      hasPlaceholderPhone(tutor.telefone),
+    ) as Tutor[],
   };
 }
 

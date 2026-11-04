@@ -31,6 +31,7 @@ export function NewPetModal({
   const [idade, setIdade] = useState("");
   const [porte, setPorte] = useState("Pequeno");
   const [tutorId, setTutorId] = useState(defaultTutorId);
+  const [bathReminderEnabled, setBathReminderEnabled] = useState(true);
   const [bathReminderIntervalDays, setBathReminderIntervalDays] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState("");
@@ -65,6 +66,7 @@ export function NewPetModal({
     setIdade("");
     setPorte("Pequeno");
     setTutorId(defaultTutorId || "");
+    setBathReminderEnabled(true);
     setBathReminderIntervalDays("");
     setPhotoFile(null);
     setPhotoPreview("");
@@ -140,6 +142,7 @@ export function NewPetModal({
       idade: idade.trim(),
       porte,
       photoUrl,
+      bathReminderEnabled,
       bathReminderIntervalDays,
     });
 
@@ -261,13 +264,34 @@ export function NewPetModal({
                   onChange={(event) =>
                     setBathReminderIntervalDays(event.target.value)
                   }
-                  className="w-full rounded-lg border p-2 font-normal"
+                  disabled={!bathReminderEnabled}
+                  className="w-full rounded-lg border p-2 font-normal disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="">Sem recorrência automática</option>
                   <option value="7">A cada 7 dias</option>
                   <option value="15">A cada 15 dias</option>
                   <option value="30">A cada 30 dias</option>
                 </select>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-xl border border-purple-100 bg-purple-50 p-3 sm:col-span-2">
+                <input
+                  type="checkbox"
+                  checked={bathReminderEnabled}
+                  onChange={(event) =>
+                    setBathReminderEnabled(event.target.checked)
+                  }
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-[#8A0EEA]"
+                />
+                <span>
+                  <span className="block font-semibold text-slate-800">
+                    Incluir nos lembretes de banho
+                  </span>
+                  <span className="mt-1 block text-xs text-slate-500">
+                    Após mais de 100 dias sem banho, o lembrete será desativado
+                    automaticamente.
+                  </span>
+                </span>
               </label>
 
               <label className="grid gap-2 text-sm font-medium text-slate-700 sm:col-span-2">

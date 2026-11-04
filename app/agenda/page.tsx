@@ -913,6 +913,7 @@ export default function AgendaPage() {
                 tutors={tutors}
                 pets={pets}
                 services={services}
+                appointments={appointments}
                 onSave={handleCreateAppointment}
                 open={appointmentModalOpen}
                 onOpenChange={(open) => {

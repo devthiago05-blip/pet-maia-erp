@@ -975,6 +975,7 @@ export default function PetPage() {
             tutors={appointmentTutors}
             pets={appointmentPets}
             services={services}
+            appointments={appointments}
             onSave={handleCreateAppointmentFromPet}
             open={appointmentModalOpen}
             onOpenChange={setAppointmentModalOpen}
@@ -987,5 +988,3 @@ export default function PetPage() {
     </div>
   );
 }
-
-

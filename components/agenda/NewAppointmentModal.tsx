@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -11,6 +11,10 @@ import {
   isWalkInAppointment,
   stripWalkInGeneratedObservationLines,
 } from "@/lib/appointment-observation";
+import {
+  type AppointmentWithServiceNames,
+  getLastCompletedAppointmentServices,
+} from "@/lib/appointment-repeat";
 import type {
   Appointment,
   AppointmentStatus,
@@ -24,6 +28,7 @@ interface NewAppointmentModalProps {
   tutors: Tutor[];
   pets: Pet[];
   services: Service[];
+  appointments?: AppointmentWithServiceNames[];
   onSave:
     | ((appointment: NewAppointmentInput) => void)
     | ((appointment: NewAppointmentInput) => boolean)
@@ -117,6 +122,7 @@ export function NewAppointmentModal({
   tutors,
   pets,
   services,
+  appointments = [],
   onSave,
   open,
   onOpenChange,
@@ -172,6 +178,18 @@ export function NewAppointmentModal({
         observacao || appointment?.observacao,
       )
     : "";
+  const selectedPet = pets.find((pet) => String(pet.id) === petId);
+  const lastCompletedServices = useMemo(
+    () =>
+      !appointment && selectedPet
+        ? getLastCompletedAppointmentServices(
+            selectedPet.id,
+            appointments,
+            services,
+          )
+        : null,
+    [appointment, appointments, selectedPet, services],
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -318,6 +336,24 @@ export function NewAppointmentModal({
 
   function handleKeepOnlySelectedPet() {
     setSelectedPetIds(petId ? [petId] : []);
+  }
+
+  function handleRepeatLastServices() {
+    if (!lastCompletedServices?.selectableServices.length) {
+      toast.error("Os serviços do último atendimento não estão mais ativos.");
+      return;
+    }
+
+    setServicos(lastCompletedServices.selectableServices);
+
+    if (lastCompletedServices.unavailableServices.length > 0) {
+      toast.warning(
+        "Os serviços que não estão mais cadastrados não foram selecionados.",
+      );
+      return;
+    }
+
+    toast.success("Últimos serviços selecionados.");
   }
 
   function handleAppointmentTypeChange(nextType: "pet" | "walkIn") {
@@ -619,6 +655,46 @@ export function NewAppointmentModal({
                     sistema cria {selectedPetCount} agendamento(s) no mesmo
                     horário.
                   </p>
+                </div>
+              )}
+
+              {!appointment && !isWalkInMode && petId && (
+                <div className="rounded-xl border border-purple-200 bg-purple-50/70 p-3">
+                  {lastCompletedServices ? (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-900">
+                          Último atendimento de {selectedPet?.nome}
+                        </p>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {lastCompletedServices.appointment.data
+                            .split("-")
+                            .reverse()
+                            .join("/")}
+                          {" · "}
+                          {lastCompletedServices.performedServices.join(
+                            " + ",
+                          ) || "Serviço não informado"}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleRepeatLastServices}
+                        disabled={
+                          lastCompletedServices.selectableServices.length === 0
+                        }
+                        className="shrink-0 rounded-xl bg-[#8A0EEA] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#750bc9] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Repetir último serviço
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">
+                      Este pet ainda não possui atendimento finalizado para
+                      repetir.
+                    </p>
+                  )}
                 </div>
               )}
 

@@ -23,6 +23,9 @@ export async function fetchAppointments() {
           telefone,
           endereco
         )
+      ),
+      appointment_services (
+        service_name
       )
     `,
   );
@@ -31,7 +34,7 @@ export async function fetchAppointments() {
 export async function fetchAppointmentsByPet(petId: number) {
   return supabase
     .from("appointments")
-    .select("*")
+    .select("*, appointment_services(service_name)")
     .eq("pet_id", petId)
     .order("data", { ascending: false })
     .order("hora", { ascending: false });

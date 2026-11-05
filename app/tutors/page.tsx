@@ -37,6 +37,9 @@ export default function TutorsPage() {
   );
   const [petModalOpen, setPetModalOpen] = useState(false);
   const [petFilter, setPetFilter] = useState<PetFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<
+    "active" | "inactive" | "all"
+  >("active");
   const [search, setSearch] = useState(searchParams.get("search") || "");
 
   const normalizedSearch = search.trim().toLowerCase();
@@ -45,7 +48,12 @@ export default function TutorsPage() {
       (value) => value?.toLowerCase().includes(normalizedSearch),
     ),
   );
-  const filteredTutors = searchedTutors.filter((tutor) => {
+  const statusFilteredTutors = searchedTutors.filter((tutor) => {
+    if (statusFilter === "active") return tutor.ativo !== false;
+    if (statusFilter === "inactive") return tutor.ativo === false;
+    return true;
+  });
+  const filteredTutors = statusFilteredTutors.filter((tutor) => {
     const petCount = tutor.pets ?? 0;
 
     if (petFilter === "with-pets") {
@@ -93,7 +101,7 @@ export default function TutorsPage() {
       : tutors;
 
   async function loadTutors() {
-    const { data, error } = await fetchTutors();
+    const { data, error } = await fetchTutors({ includeInactive: true });
 
     if (error) {
       console.error(error);
@@ -266,9 +274,54 @@ export default function TutorsPage() {
             )}
           </div>
 
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                className="inline-flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 sm:w-auto"
+                aria-label="Filtrar tutores por status"
+              >
+                {[
+                  {
+                    value: "active" as const,
+                    label: "Ativos",
+                    count: tutors.filter((tutor) => tutor.ativo !== false)
+                      .length,
+                  },
+                  {
+                    value: "inactive" as const,
+                    label: "Inativos",
+                    count: tutors.filter((tutor) => tutor.ativo === false)
+                      .length,
+                  },
+                  {
+                    value: "all" as const,
+                    label: "Todos",
+                    count: tutors.length,
+                  },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setStatusFilter(option.value)}
+                    aria-pressed={statusFilter === option.value}
+                    className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                      statusFilter === option.value
+                        ? "bg-violet-700 text-white shadow-sm"
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    {option.label} ({option.count})
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-sm text-slate-500">
+                {filteredTutors.length} tutor(es) encontrado(s)
+              </p>
+            </div>
+
             <div
-              className="inline-flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 sm:w-auto"
+              className="inline-flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 sm:w-fit"
               aria-label="Filtrar tutores por pets"
             >
               {tutorFilterOptions.map((option) => {
@@ -300,10 +353,6 @@ export default function TutorsPage() {
                 );
               })}
             </div>
-
-            <p className="text-sm text-slate-500">
-              {filteredTutors.length} tutor(es) encontrado(s)
-            </p>
           </div>
 
           <TutorTable

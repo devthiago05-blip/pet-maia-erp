@@ -172,6 +172,12 @@ export function TutorDetailsDialog({
                   <h2 className="mt-1 text-xl font-bold">
                     {historyText(details.tutor.nome)}
                   </h2>
+                  {details.tutor.ativo === false && (
+                    <div className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                      <strong>Tutor inativo.</strong>{" "}
+                      {historyText(details.tutor.inactivation_reason)}
+                    </div>
+                  )}
                   <dl className="mt-4 grid gap-3 sm:grid-cols-2">
                     {[
                       ["Código", String(details.tutor.id)],

@@ -68,6 +68,7 @@ export async function GET(request: Request) {
         )
       `,
     )
+    .eq("ativo", true)
     .eq("pets.ativo", true)
     .order("nome", { ascending: true })
     .returns<TutorRow[]>();

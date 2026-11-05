@@ -173,6 +173,7 @@ export async function POST(request: Request) {
       .from("tutors")
       .select("id, nome, telefone, email, endereco")
       .eq("id", tutorId)
+      .eq("ativo", true)
       .maybeSingle<TutorRow>();
 
     if (error) {

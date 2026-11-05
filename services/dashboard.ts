@@ -29,7 +29,10 @@ export async function fetchDashboardCounts() {
       .from("pets")
       .select("*", { count: "exact", head: true })
       .eq("ativo", true),
-    supabase.from("tutors").select("*", { count: "exact", head: true }),
+    supabase
+      .from("tutors")
+      .select("*", { count: "exact", head: true })
+      .eq("ativo", true),
     supabase.from("appointments").select("*", { count: "exact", head: true }),
   ]);
 

@@ -13,11 +13,16 @@ function hasPlaceholderPhone(phone?: string | null) {
   return digits === "85999999999" || digits === "5585999999999";
 }
 
-export async function fetchTutors() {
-  const response = await supabase
+export async function fetchTutors(options?: { includeInactive?: boolean }) {
+  let query = supabase
     .from("tutors")
-    .select("*, pets(id, ativo)")
-    .order("nome", { ascending: true });
+    .select("*, pets(id, ativo)");
+
+  if (!options?.includeInactive) {
+    query = query.eq("ativo", true);
+  }
+
+  const response = await query.order("nome", { ascending: true });
 
   if (!response.data) {
     return response;
@@ -47,6 +52,7 @@ export async function fetchTutorsPendingRegistration() {
   const response = await supabase
     .from("tutors")
     .select("id, nome, telefone, cpf, email, endereco")
+    .eq("ativo", true)
     .ilike("telefone", "%99999%")
     .order("nome", { ascending: true });
 

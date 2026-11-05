@@ -57,6 +57,9 @@ export interface Tutor {
   pets?: number;
   activePets?: number;
   inactivePets?: number;
+  ativo?: boolean;
+  inactivated_at?: string | null;
+  inactivation_reason?: string | null;
 }
 
 export interface Pet {

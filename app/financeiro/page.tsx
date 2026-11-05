@@ -298,7 +298,7 @@ export default function FinanceiroPage() {
     const [financialResponse, tutorsResponse, petsResponse, recurringResponse] =
       await Promise.all([
         fetchFinancialEntries(),
-        fetchTutors(),
+        fetchTutors({ includeInactive: true }),
         fetchPets({ includeInactive: true }),
         fetchFinancialRecurringRules(),
       ]);

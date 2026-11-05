@@ -56,7 +56,11 @@ export function TutorTable({
             return (
               <article
                 key={tutor.id}
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className={`rounded-2xl border bg-white p-4 shadow-sm ${
+                  tutor.ativo === false
+                    ? "border-amber-200 opacity-80"
+                    : "border-slate-200"
+                }`}
               >
                 <div className="flex items-start gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-lg font-bold text-violet-700">
@@ -70,6 +74,11 @@ export function TutorTable({
                     >
                       {tutor.nome}
                     </button>
+                    {tutor.ativo === false && (
+                      <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+                        Tutor inativo
+                      </span>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleTutorClick(tutor)}
@@ -169,7 +178,14 @@ export function TutorTable({
                 );
 
                 return (
-                  <tr key={tutor.id} className="border-t border-slate-100">
+                  <tr
+                    key={tutor.id}
+                    className={`border-t border-slate-100 ${
+                      tutor.ativo === false
+                        ? "bg-amber-50/50 text-slate-500"
+                        : ""
+                    }`}
+                  >
                     <td className="p-3 sm:p-4">
                       <button
                         type="button"
@@ -179,6 +195,11 @@ export function TutorTable({
                       >
                         {tutor.nome}
                       </button>
+                      {tutor.ativo === false && (
+                        <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800">
+                          Inativo
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 sm:p-4">
                       {formatCpf(tutor.cpf) || "-"}

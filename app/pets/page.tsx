@@ -46,7 +46,7 @@ export default function PetsPage() {
   }
 
   async function loadTutors() {
-    const { data, error } = await fetchTutors();
+    const { data, error } = await fetchTutors({ includeInactive: true });
 
     if (error) {
       console.error(error);

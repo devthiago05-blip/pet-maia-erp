@@ -299,7 +299,7 @@ export default function FinanceiroPage() {
       await Promise.all([
         fetchFinancialEntries(),
         fetchTutors(),
-        fetchPets(),
+        fetchPets({ includeInactive: true }),
         fetchFinancialRecurringRules(),
       ]);
 

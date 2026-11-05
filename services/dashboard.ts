@@ -25,7 +25,10 @@ function getMondayToSundayRange(weekOffset = 0) {
 
 export async function fetchDashboardCounts() {
   const [pets, tutors, appointments] = await Promise.all([
-    supabase.from("pets").select("*", { count: "exact", head: true }),
+    supabase
+      .from("pets")
+      .select("*", { count: "exact", head: true })
+      .eq("ativo", true),
     supabase.from("tutors").select("*", { count: "exact", head: true }),
     supabase.from("appointments").select("*", { count: "exact", head: true }),
   ]);

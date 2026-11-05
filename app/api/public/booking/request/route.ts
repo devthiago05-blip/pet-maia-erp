@@ -47,6 +47,7 @@ interface PetRow {
   id: number;
   nome: string;
   tutor_id?: number | null;
+  ativo?: boolean;
 }
 
 function jsonError(message: string, status = 400) {
@@ -237,8 +238,9 @@ export async function POST(request: Request) {
   if (requestedPetIds.length > 0) {
     const { data, error } = await admin
       .from("pets")
-      .select("id, nome, tutor_id")
+      .select("id, nome, tutor_id, ativo")
       .in("id", requestedPetIds)
+      .eq("ativo", true)
       .returns<PetRow[]>();
 
     if (error) {

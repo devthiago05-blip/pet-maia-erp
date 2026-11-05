@@ -3,8 +3,8 @@ import type { NewPetInput, Pet } from "@/types/domain";
 
 const petPhotosBucket = "pet-photos";
 
-export async function fetchPets() {
-  return supabase
+export async function fetchPets(options?: { includeInactive?: boolean }) {
+  let query = supabase
     .from("pets")
     .select(
       `
@@ -15,15 +15,21 @@ export async function fetchPets() {
         telefone
       )
     `,
-    )
-    .order("nome", { ascending: true });
+    );
+
+  if (!options?.includeInactive) {
+    query = query.eq("ativo", true);
+  }
+
+  return query.order("nome", { ascending: true });
 }
 
 export async function fetchPetsByTutorId(tutorId: number) {
   return supabase
     .from("pets")
-    .select("id, nome, especie, raca, porte, sexo, idade, tutor_id")
+    .select("id, nome, especie, raca, porte, sexo, idade, tutor_id, ativo")
     .eq("tutor_id", tutorId)
+    .eq("ativo", true)
     .order("nome", { ascending: true });
 }
 
@@ -76,6 +82,7 @@ export async function updatePet(pet: Pet & { tutorId?: string }) {
       idade: pet.idade,
       bath_reminder_enabled: pet.bath_reminder_enabled ?? true,
       bath_reminder_interval_days: pet.bath_reminder_interval_days ?? null,
+      ativo: pet.ativo ?? true,
       photo_url: pet.photo_url || null,
       tutor_id: Number(pet.tutorId),
     })

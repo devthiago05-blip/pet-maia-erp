@@ -16,16 +16,26 @@ import type { NewPetInput, Pet, Tutor } from "@/types/domain";
 
 export default function PetsPage() {
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | "all">(
+    "active",
+  );
   const [pets, setPets] = useState<Pet[]>([]);
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
 
-  const filteredPets = pets.filter((pet) =>
-    pet.nome.toLowerCase().includes(search.toLowerCase()),
+  const searchedPets = pets.filter((pet) =>
+    [pet.nome, pet.tutors?.nome].some((value) =>
+      value?.toLowerCase().includes(search.toLowerCase()),
+    ),
   );
+  const filteredPets = searchedPets.filter((pet) => {
+    if (statusFilter === "active") return pet.ativo !== false;
+    if (statusFilter === "inactive") return pet.ativo === false;
+    return true;
+  });
 
   async function loadPets() {
-    const { data, error } = await fetchPets();
+    const { data, error } = await fetchPets({ includeInactive: true });
 
     if (error) {
       console.error(error);
@@ -143,6 +153,35 @@ export default function PetsPage() {
               onClose={() => setEditingPet(null)}
             />
           )}
+
+          <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1 sm:w-fit">
+            {[
+              {
+                value: "active" as const,
+                label: "Ativos",
+                count: pets.filter((pet) => pet.ativo !== false).length,
+              },
+              {
+                value: "inactive" as const,
+                label: "Inativos",
+                count: pets.filter((pet) => pet.ativo === false).length,
+              },
+              { value: "all" as const, label: "Todos", count: pets.length },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setStatusFilter(option.value)}
+                className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  statusFilter === option.value
+                    ? "bg-violet-700 text-white"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {option.label} ({option.count})
+              </button>
+            ))}
+          </div>
 
           <PetTable
             pets={filteredPets}

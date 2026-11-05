@@ -26,7 +26,7 @@ import {
 } from "@/services/tutors";
 import type { NewPetInput, NewTutorInput, Tutor } from "@/types/domain";
 
-type PetFilter = "all" | "with-pets" | "without-pets";
+type PetFilter = "all" | "with-pets" | "inactive-pets" | "without-pets";
 
 export default function TutorsPage() {
   const searchParams = useSearchParams();
@@ -49,7 +49,11 @@ export default function TutorsPage() {
     const petCount = tutor.pets ?? 0;
 
     if (petFilter === "with-pets") {
-      return petCount > 0;
+      return (tutor.activePets ?? petCount) > 0;
+    }
+
+    if (petFilter === "inactive-pets") {
+      return (tutor.inactivePets ?? 0) > 0;
     }
 
     if (petFilter === "without-pets") {
@@ -67,7 +71,14 @@ export default function TutorsPage() {
     {
       value: "with-pets",
       label: "Com pets",
-      count: tutors.filter((tutor) => (tutor.pets ?? 0) > 0).length,
+      count: tutors.filter(
+        (tutor) => (tutor.activePets ?? tutor.pets ?? 0) > 0,
+      ).length,
+    },
+    {
+      value: "inactive-pets",
+      label: "Com pets inativos",
+      count: tutors.filter((tutor) => (tutor.inactivePets ?? 0) > 0).length,
     },
     {
       value: "without-pets",

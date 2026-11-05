@@ -63,10 +63,12 @@ export async function GET(request: Request) {
           porte,
           sexo,
           idade,
-          tutor_id
+          tutor_id,
+          ativo
         )
       `,
     )
+    .eq("pets.ativo", true)
     .order("nome", { ascending: true })
     .returns<TutorRow[]>();
 

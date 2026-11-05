@@ -16,7 +16,7 @@ function hasPlaceholderPhone(phone?: string | null) {
 export async function fetchTutors() {
   const response = await supabase
     .from("tutors")
-    .select("*, pets(count)")
+    .select("*, pets(id, ativo)")
     .order("nome", { ascending: true });
 
   if (!response.data) {
@@ -25,10 +25,21 @@ export async function fetchTutors() {
 
   return {
     ...response,
-    data: response.data.map((tutor) => ({
-      ...tutor,
-      pets: tutor.pets?.[0]?.count ?? 0,
-    })) as Tutor[],
+    data: response.data.map((tutor) => {
+      const pets: Array<{ id: number; ativo?: boolean }> = Array.isArray(
+        tutor.pets,
+      )
+        ? tutor.pets
+        : [];
+      const activePets = pets.filter((pet) => pet.ativo !== false).length;
+
+      return {
+        ...tutor,
+        pets: pets.length,
+        activePets,
+        inactivePets: pets.length - activePets,
+      };
+    }) as Tutor[],
   };
 }
 

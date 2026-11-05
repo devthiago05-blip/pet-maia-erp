@@ -44,7 +44,11 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
           pets.map((pet) => (
             <article
               key={pet.id}
-              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_5px_20px_rgba(15,23,42,0.05)]"
+              className={`rounded-2xl border bg-white p-4 shadow-[0_5px_20px_rgba(15,23,42,0.05)] ${
+                pet.ativo === false
+                  ? "border-amber-200 opacity-80"
+                  : "border-slate-200"
+              }`}
             >
               <div className="flex items-start gap-3">
                 {pet.photo_url ? (
@@ -75,6 +79,11 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                   <p className="mt-1 truncate text-sm text-slate-500">
                     Tutor: {pet.tutors?.nome || "Não informado"}
                   </p>
+                  {pet.ativo === false && (
+                    <span className="mt-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+                      Inativo
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -127,7 +136,12 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
 
             <tbody>
               {pets.map((pet) => (
-                <tr key={pet.id} className="border-t border-slate-100">
+                <tr
+                  key={pet.id}
+                  className={`border-t border-slate-100 ${
+                    pet.ativo === false ? "bg-amber-50/50 text-slate-500" : ""
+                  }`}
+                >
                   <td className="p-3 sm:p-4">
                     <div className="flex items-center gap-3">
                       {pet.photo_url ? (
@@ -149,6 +163,11 @@ export function PetTable({ pets, onDelete, onEdit }: PetTableProps) {
                       >
                         {pet.nome}
                       </Link>
+                      {pet.ativo === false && (
+                        <span className="rounded-full bg-amber-100 px-2 py-1 text-[11px] font-bold text-amber-800">
+                          Inativo
+                        </span>
+                      )}
                     </div>
                   </td>
                   <td className="p-3 sm:p-4">{pet.especie}</td>

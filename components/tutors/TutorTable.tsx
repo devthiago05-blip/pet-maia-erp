@@ -80,6 +80,11 @@ export function TutorTable({
                         ? "1 pet vinculado"
                         : `${petCount} pets vinculados`}
                     </button>
+                    {(tutor.inactivePets ?? 0) > 0 && (
+                      <p className="mt-1 text-xs font-semibold text-amber-700">
+                        {tutor.inactivePets} inativo(s)
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -205,6 +210,11 @@ export function TutorTable({
                       >
                         {tutor.pets ?? 0}
                       </span>
+                      {(tutor.inactivePets ?? 0) > 0 && (
+                        <span className="ml-2 inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-800">
+                          {tutor.inactivePets} inativo(s)
+                        </span>
+                      )}
                     </td>
                     <td className="p-3 sm:p-4">
                       <div className="flex flex-wrap gap-3">

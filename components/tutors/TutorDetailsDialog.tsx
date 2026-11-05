@@ -216,6 +216,12 @@ export function TutorDetailsDialog({
                               historyText(pet.nome)
                             )}
                           </h4>
+                          {pet.ativo === false && (
+                            <div className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                              <strong>Pet inativo.</strong>{" "}
+                              {historyText(pet.inactivation_reason)}
+                            </div>
+                          )}
                           <p>
                             Espécie: {historyText(pet.especie)} • Raça:{" "}
                             {historyText(pet.raca)}

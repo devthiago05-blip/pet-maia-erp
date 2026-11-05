@@ -29,6 +29,7 @@ export function EditPetModal({
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState(pet.photo_url || "");
   const [saving, setSaving] = useState(false);
+  const [ativo, setAtivo] = useState(pet.ativo !== false);
   const [bathReminderEnabled, setBathReminderEnabled] = useState(
     pet.bath_reminder_enabled !== false,
   );
@@ -94,6 +95,7 @@ export function EditPetModal({
       bath_reminder_interval_days: bathReminderIntervalDays
         ? Number(bathReminderIntervalDays)
         : null,
+      ativo,
     });
 
     setSaving(false);
@@ -203,6 +205,31 @@ export function EditPetModal({
               <span className="mt-1 block text-xs text-slate-500">
                 Após mais de 100 dias sem banho, o sistema desmarca esta opção
                 automaticamente.
+              </span>
+            </span>
+          </label>
+
+          <label
+            className={`flex items-start gap-3 rounded-xl border p-3 sm:col-span-2 ${
+              ativo
+                ? "border-emerald-100 bg-emerald-50"
+                : "border-amber-200 bg-amber-50"
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={ativo}
+              onChange={(event) => setAtivo(event.target.checked)}
+              className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600"
+            />
+            <span>
+              <span className="block font-semibold text-slate-800">
+                Pet ativo
+              </span>
+              <span className="mt-1 block text-xs text-slate-500">
+                Pets inativos preservam ficha e histórico, mas não aparecem em
+                novos agendamentos. O sistema inativa automaticamente após mais
+                de 120 dias sem atendimento.
               </span>
             </span>
           </label>

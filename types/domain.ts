@@ -55,6 +55,8 @@ export interface Tutor {
   email?: string;
   endereco?: string;
   pets?: number;
+  activePets?: number;
+  inactivePets?: number;
 }
 
 export interface Pet {
@@ -71,6 +73,9 @@ export interface Pet {
   bath_reminder_interval_days?: number | null;
   bath_reminder_dismissed_until?: string | null;
   created_at?: string;
+  ativo?: boolean;
+  inactivated_at?: string | null;
+  inactivation_reason?: string | null;
   tutors?: {
     id?: number;
     nome: string;

@@ -512,6 +512,7 @@ export async function fetchClinicPatients() {
         )
       `,
     )
+    .eq("ativo", true)
     .order("nome");
 }
 

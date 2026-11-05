@@ -45,7 +45,9 @@ export async function fetchTutorDetails(
   const pets = await allPages<Pet>((from, to) =>
     supabase
       .from("pets")
-      .select("id, nome, especie, raca, porte, sexo, idade, tutor_id")
+      .select(
+        "id, nome, especie, raca, porte, sexo, idade, tutor_id, ativo, inactivated_at, inactivation_reason",
+      )
       .eq("tutor_id", tutorId)
       .order("nome")
       .order("id")

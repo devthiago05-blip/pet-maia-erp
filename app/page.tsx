@@ -113,12 +113,11 @@ function getTodayDate() {
   return formatDateInput(new Date());
 }
 
-function getNextThursdayDate() {
+function getNextReminderDate() {
   const date = new Date();
   date.setHours(0, 0, 0, 0);
 
-  const daysUntilThursday = (4 - date.getDay() + 7) % 7 || 7;
-  date.setDate(date.getDate() + daysUntilThursday);
+  date.setDate(date.getDate() + 15);
 
   return formatDateInput(date);
 }
@@ -410,7 +409,7 @@ export default function HomePage() {
   }
 
   async function dismissBathReminder(reminder: BathReminder) {
-    const dismissedUntil = getNextThursdayDate();
+    const dismissedUntil = getNextReminderDate();
     const { error } = await dismissPetBathReminder(
       reminder.petId,
       dismissedUntil,
@@ -432,7 +431,7 @@ export default function HomePage() {
       setDailyActionsOpen(false);
     }
 
-    toast.success("Lembrete removido até a próxima quinta-feira.");
+    toast.success("Lembrete ocultado por 15 dias.");
     return true;
   }
 
@@ -1168,8 +1167,8 @@ Equipe Pet Maia Banho e Tosa.`;
             </h2>
 
             <p className="mt-2 text-sm text-slate-500">
-              Deseja tirar {pendingReminderAction.reminder.petName} dos
-              lembretes até a próxima quinta-feira?
+              Deseja ocultar os lembretes de {pendingReminderAction.reminder.petName}
+por 15 dias?
             </p>
 
             <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -1186,7 +1185,7 @@ Equipe Pet Maia Banho e Tosa.`;
                 onClick={handleConfirmReminderAction}
                 className="rounded-xl bg-[#8A0EEA] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#7600d1]"
               >
-                Remover até quinta
+                Ocultar por 15 dias
               </button>
             </div>
           </div>

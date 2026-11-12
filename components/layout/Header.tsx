@@ -123,7 +123,7 @@ export function Header() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [browserNotificationPermission, setBrowserNotificationPermission] =
-    useState<NotificationPermission | "unsupported">("default");
+    useState<NotificationPermission | "unsupported">(() => typeof window === "undefined" || !("Notification" in window) ? "unsupported" : window.Notification.permission);
   const knownNotificationIdsRef = useRef<Set<string> | null>(null);
   const today = new Date().toLocaleDateString("pt-BR");
   const todayIso = new Date().toLocaleDateString("en-CA");
@@ -135,14 +135,6 @@ export function Header() {
     ? pageTitles[route]
     : pageTitles[pathname] || "PET MAIA ERP";
 
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      setBrowserNotificationPermission("unsupported");
-      return;
-    }
-
-    setBrowserNotificationPermission(window.Notification.permission);
-  }, []);
 
   useEffect(() => {
     let active = true;

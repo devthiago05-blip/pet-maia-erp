@@ -92,7 +92,18 @@ function MenuItems({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-col gap-2">
       {menuItems
-        .filter((item) => canAccess(item.module) && !["/pdv", "/estoque", "/clinica", "/crm", "/bi", "/fiscal"].includes(item.href))
+        .filter(
+          (item) =>
+            canAccess(item.module) &&
+            ![
+              "/pdv",
+              "/estoque",
+              "/clinica",
+              "/crm",
+              "/bi",
+              "/fiscal",
+            ].includes(item.href),
+        )
         .map((item) => {
           const Icon = item.icon;
           const isActive =

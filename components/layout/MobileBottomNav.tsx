@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  CalendarDays,
-  LayoutDashboard,
-  PackageSearch,
-  ShoppingCart,
-} from "lucide-react";
+import { CalendarDays, LayoutDashboard } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -21,8 +16,6 @@ const items: Array<{
 }> = [
   { href: "/", label: "Início", module: "dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", module: "agenda", icon: CalendarDays },
-  { href: "/pdv", label: "PDV", module: "pdv", icon: ShoppingCart },
-  { href: "/estoque", label: "Estoque", module: "pdv", icon: PackageSearch },
 ];
 
 export function MobileBottomNav() {

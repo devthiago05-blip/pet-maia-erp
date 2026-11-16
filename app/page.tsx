@@ -941,20 +941,6 @@ Equipe Pet Maia Banho e Tosa.`;
             </StatCard>
 
             <StatCard
-              title="Solicitações Pendentes"
-              value={String(pendingAppointments)}
-              icon={<CalendarDays size={24} />}
-              active={activeDetail === "pendingAppointments"}
-              onClick={() => handleSelectDetail("pendingAppointments")}
-            >
-              {renderAppointmentsList(
-                pendingAppointmentsList,
-                "Nenhuma solicitação pendente no momento.",
-                "/agenda?status=Pendente",
-              )}
-            </StatCard>
-
-            <StatCard
               title="A Receber"
               value={formatCurrency(receber)}
               icon={<Wallet size={24} />}
@@ -987,20 +973,6 @@ Equipe Pet Maia Banho e Tosa.`;
               onClick={() => handleSelectDetail("bathReminders")}
             >
               {renderBathRemindersList()}
-            </StatCard>
-
-            <StatCard
-              title="Alertas de Insumos"
-              value={String(
-                lowStockSupplies.length +
-                  pendingSupplyPayments.length +
-                  pendingGroomerPayments.length,
-              )}
-              icon={<AlertTriangle size={24} />}
-              active={activeDetail === "groomingAlerts"}
-              onClick={() => handleSelectDetail("groomingAlerts")}
-            >
-              {renderGroomingAlertsList()}
             </StatCard>
           </div>
 
@@ -1167,8 +1139,9 @@ Equipe Pet Maia Banho e Tosa.`;
             </h2>
 
             <p className="mt-2 text-sm text-slate-500">
-              Deseja ocultar os lembretes de {pendingReminderAction.reminder.petName}
-por 15 dias?
+              Deseja ocultar os lembretes de{" "}
+              {pendingReminderAction.reminder.petName}
+              por 15 dias?
             </p>
 
             <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

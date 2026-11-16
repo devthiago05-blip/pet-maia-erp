@@ -14,6 +14,7 @@ import { NewAppointmentModal } from "@/components/agenda/NewAppointmentModal";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useMountEffect } from "@/hooks/useMountEffect";
+import { filterAgendaAppointments } from "@/lib/agenda-filters";
 import {
   formatAppointmentObservation,
   getAppointmentPetAndTutorDisplayName,
@@ -261,27 +262,17 @@ export default function AgendaPage() {
     return () => window.clearTimeout(timeout);
   }, [appointments, requestedAppointmentId]);
 
-  const filteredAppointments = useMemo(() => {
-    const term = normalizeText(search);
-
-    return appointments.filter((appointment) => {
-      const matchesSearch =
-        !term ||
-        normalizeText(appointment.pets?.nome || "").includes(term) ||
-        normalizeText(appointment.pets?.tutors?.nome || "").includes(term) ||
-        normalizeText(appointment.servico).includes(term) ||
-        normalizeText(appointment.observacao || "").includes(term);
-
-      const matchesDate =
-        (!startDate || appointment.data >= startDate) &&
-        (!endDate || appointment.data <= endDate);
-
-      const matchesStatus =
-        filterStatus === "Todos" || appointment.status === filterStatus;
-
-      return matchesSearch && matchesDate && matchesStatus;
-    });
-  }, [appointments, endDate, filterStatus, search, startDate]);
+  const filteredAppointments = useMemo(
+    () =>
+      filterAgendaAppointments(
+        appointments,
+        filterStatus,
+        startDate,
+        endDate,
+        search,
+      ),
+    [appointments, endDate, filterStatus, search, startDate],
+  );
 
   const kanbanDate = startDate || getTodayDateString();
 
@@ -289,7 +280,8 @@ export default function AgendaPage() {
     const term = normalizeText(search);
 
     return appointments.filter((appointment) => {
-      const matchesDate = appointment.data === kanbanDate;
+      const matchesDate =
+        filterStatus === "Agendado" || appointment.data === kanbanDate;
 
       const matchesSearch =
         !term ||
@@ -311,7 +303,7 @@ export default function AgendaPage() {
   const isSearchFilterActive = Boolean(search.trim());
   const hasDateFilter = Boolean(startDate || endDate);
   const shouldShowFilteredTableInKanban =
-    isSearchFilterActive || isPeriodFilterActive;
+    isSearchFilterActive || isPeriodFilterActive || filterStatus === "Agendado";
 
   const sortedFilteredAppointments = useMemo(
     () => sortAppointmentsForPrint(filteredAppointments),
@@ -851,13 +843,17 @@ export default function AgendaPage() {
   const appointmentsToPrint = useMemo(
     () =>
       sortAppointmentsForPrint(
-        viewMode === "kanban" && !isPeriodFilterActive && !isSearchFilterActive
+        viewMode === "kanban" &&
+          filterStatus !== "Agendado" &&
+          !isPeriodFilterActive &&
+          !isSearchFilterActive
           ? filteredKanbanAppointments
           : filteredAppointments,
       ),
     [
       filteredAppointments,
       filteredKanbanAppointments,
+      filterStatus,
       isPeriodFilterActive,
       isSearchFilterActive,
       viewMode,
@@ -1000,7 +996,12 @@ export default function AgendaPage() {
           {viewMode === "kanban" ? (
             <div className="space-y-3">
               <div className="rounded-xl border border-purple-100 bg-purple-50 p-3 text-sm text-[#8A0EEA]">
-                {isSearchFilterActive ? (
+                {filterStatus === "Agendado" ? (
+                  <>
+                    Exibindo todos os agendamentos com status Agendado,
+                    independentemente da data selecionada.
+                  </>
+                ) : isSearchFilterActive ? (
                   <>
                     Busca exibindo os agendamentos que combinam com{" "}
                     <span className="font-semibold">“{search.trim()}”</span>
@@ -1067,7 +1068,12 @@ export default function AgendaPage() {
           ) : (
             <AppointmentTable
               appointments={sortedFilteredAppointments}
-              showDate={Boolean(startDate || endDate || isSearchFilterActive)}
+              showDate={Boolean(
+                startDate ||
+                endDate ||
+                isSearchFilterActive ||
+                filterStatus === "Agendado",
+              )}
               onFinish={(appointment) =>
                 void handleOpenFinishAppointment(appointment)
               }

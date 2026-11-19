@@ -1,10 +1,13 @@
 import { useState } from "react";
 
+import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   buildAppointmentObservation,
   getAppointmentPetDisplayName,
+  getAppointmentTutorAddress,
   getAppointmentTutorDisplayName,
+  stripAppointmentAddressLine,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
@@ -37,6 +40,8 @@ export function AppointmentCard({
     "Tutor nao informado",
   );
   const observation = buildAppointmentObservation(appointment);
+  const address = getAppointmentTutorAddress(appointment);
+  const observationWithoutAddress = stripAppointmentAddressLine(observation);
 
   return (
     <>
@@ -60,10 +65,24 @@ export function AppointmentCard({
             {appointment.servico}
           </p>
 
-          {observation && (
-            <p className="line-clamp-3 whitespace-pre-line rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
-              {observation}
-            </p>
+          {(address || observationWithoutAddress) && (
+            <div className="space-y-1 rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
+              {address && (
+                <div className="flex min-w-0 items-start gap-1">
+                  <span className="shrink-0">Endereço:</span>
+                  <MapsRouteLink
+                    address={address}
+                    compact
+                    className="min-w-0 text-xs"
+                  />
+                </div>
+              )}
+              {observationWithoutAddress && (
+                <p className="line-clamp-3 whitespace-pre-line">
+                  {observationWithoutAddress}
+                </p>
+              )}
+            </div>
           )}
         </div>
 

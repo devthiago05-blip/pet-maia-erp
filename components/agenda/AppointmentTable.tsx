@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 
+import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 import {
   formatAppointmentObservation,
   getAppointmentPetAndTutorDisplayName,
   getAppointmentPetDisplayName,
+  getAppointmentTutorAddress,
+  stripAppointmentAddressLine,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
@@ -35,6 +38,34 @@ export function AppointmentTable({
 }: AppointmentTableProps) {
   const [appointmentToDelete, setAppointmentToDelete] =
     useState<Appointment | null>(null);
+
+  function renderObservation(appointment: Appointment) {
+    const formatted = formatAppointmentObservation(appointment);
+    const address = getAppointmentTutorAddress(appointment);
+    const observation = stripAppointmentAddressLine(formatted);
+
+    if (!address && (!observation || observation === "-")) {
+      return "-";
+    }
+
+    return (
+      <div className="space-y-1">
+        {address && (
+          <div className="flex min-w-0 items-start gap-1">
+            <span className="shrink-0">Endereço:</span>
+            <MapsRouteLink
+              address={address}
+              compact
+              className="min-w-0 text-sm"
+            />
+          </div>
+        )}
+        {observation && observation !== "-" && (
+          <p className="whitespace-pre-line">{observation}</p>
+        )}
+      </div>
+    );
+  }
 
   function renderActions(appointment: Appointment, mobile = false) {
     const buttonClass = mobile
@@ -161,9 +192,9 @@ export function AppointmentTable({
                 </p>
 
                 {observation && observation !== "-" && (
-                  <p className="mt-3 whitespace-pre-line text-sm text-slate-500">
-                    {observation}
-                  </p>
+                  <div className="mt-3 text-sm text-slate-500">
+                    {renderObservation(appointment)}
+                  </div>
                 )}
 
                 <div className="mt-4 border-t border-slate-100 pt-3">
@@ -220,7 +251,7 @@ export function AppointmentTable({
                     <td className="p-3 sm:p-4">{appointment.servico}</td>
 
                     <td className="max-w-72 whitespace-pre-line p-3 text-sm text-slate-500 sm:p-4">
-                      {formatAppointmentObservation(appointment)}
+                      {renderObservation(appointment)}
                     </td>
 
                     <td className="p-3 sm:p-4">

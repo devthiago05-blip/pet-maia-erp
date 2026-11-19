@@ -6,6 +6,7 @@ const walkInMarkerLinePattern = /^Tipo:\s?Avulso$/i;
 const walkInTutorLinePattern = /^Tutor:\s?(.+)$/i;
 const walkInPetCountLinePattern = /^Quantidade de c[aã]es:\s?(\d+)$/i;
 const phoneLinePattern = /^Telefone:\s?(.+)$/i;
+const addressLinePattern = /^(?:Endere[cç]o|Endereco):\s?(.+)$/i;
 
 function getObservationLines(observation?: string) {
   return observation?.split("\n").map((line) => line.trim()) || [];
@@ -47,6 +48,14 @@ export function getPhoneFromObservation(observation?: string) {
   return (
     getObservationLines(observation)
       .map((line) => line.match(phoneLinePattern)?.[1]?.trim())
+      .find(Boolean) || ""
+  );
+}
+
+export function getAddressFromObservation(observation?: string) {
+  return (
+    getObservationLines(observation)
+      .map((line) => line.match(addressLinePattern)?.[1]?.trim())
       .find(Boolean) || ""
   );
 }
@@ -146,6 +155,20 @@ export function getAppointmentTutorPhone(appointment: Appointment) {
     appointment.pets?.tutors?.telefone?.trim() ||
     getPhoneFromObservation(appointment.observacao)
   );
+}
+
+export function getAppointmentTutorAddress(appointment: Appointment) {
+  return (
+    appointment.pets?.tutors?.endereco?.trim() ||
+    getAddressFromObservation(appointment.observacao)
+  );
+}
+
+export function stripAppointmentAddressLine(observation?: string) {
+  return getObservationLines(observation)
+    .filter((line) => !addressLinePattern.test(line))
+    .join("\n")
+    .trim();
 }
 
 export function getAppointmentPetAndTutorDisplayName(

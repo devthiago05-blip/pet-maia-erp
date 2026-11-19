@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LayoutDashboard } from "lucide-react";
+import { CalendarDays, LayoutDashboard, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -16,6 +16,7 @@ const items: Array<{
 }> = [
   { href: "/", label: "Início", module: "dashboard", icon: LayoutDashboard },
   { href: "/agenda", label: "Agenda", module: "agenda", icon: CalendarDays },
+  { href: "/tutors", label: "Tutores", module: "tutores", icon: UserRoundPlus },
 ];
 
 export function MobileBottomNav() {

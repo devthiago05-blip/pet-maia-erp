@@ -10,35 +10,42 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCpf, onlyDigits } from "@/lib/formatters";
+import { formatTutorPhoneInput, isTutorWithoutPhone } from "@/lib/tutor-phone";
 import type { Tutor } from "@/types/domain";
 
 interface EditTutorModalProps {
   tutor: Tutor;
-  onSave: (tutor: Tutor) => void;
+  onSave: (tutor: Tutor) => Promise<boolean>;
 }
 
 export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
   const [open, setOpen] = useState(true);
   const [nome, setNome] = useState(tutor.nome || "");
-  const [telefone, setTelefone] = useState(tutor.telefone || "");
+  const [telefone, setTelefone] = useState(
+    isTutorWithoutPhone(tutor.telefone) ? "" : tutor.telefone || "",
+  );
+  const [semNumero, setSemNumero] = useState(
+    isTutorWithoutPhone(tutor.telefone),
+  );
   const [cpf, setCpf] = useState(formatCpf(tutor.cpf));
   const [email, setEmail] = useState(tutor.email || "");
   const [endereco, setEndereco] = useState(tutor.endereco || "");
+  const [saving, setSaving] = useState(false);
 
-  function handleSave() {
+  async function handleSave() {
     if (!nome.trim()) {
       toast.error("Informe o nome do tutor");
       return;
     }
 
-    if (!telefone.trim()) {
+    if (!semNumero && !telefone.trim()) {
       toast.error("Informe o telefone");
       return;
     }
 
     const telefoneLimpo = telefone.replace(/\D/g, "");
 
-    if (telefoneLimpo.length !== 11) {
+    if (!semNumero && telefoneLimpo.length !== 11) {
       toast.error("Telefone deve estar no formato (85) 99999-9999");
       return;
     }
@@ -55,14 +62,18 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
       return;
     }
 
-    onSave({
+    setSaving(true);
+    const success = await onSave({
       ...tutor,
       nome,
-      telefone,
+      telefone: semNumero ? "" : telefone,
       cpf: cpfLimpo || null,
       email,
       endereco: endereco.trim().toUpperCase(),
     });
+    setSaving(false);
+
+    if (!success) return;
 
     setOpen(false);
     setNome("");
@@ -95,19 +106,26 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
             <label className="text-sm font-medium">Telefone</label>
             <input
               value={telefone}
+              disabled={semNumero}
               onChange={(event) => {
-                const value = event.target.value
-                  .replace(/\D/g, "")
-                  .slice(0, 11);
-
-                const formatted = value
-                  .replace(/^(\d{2})(\d)/g, "($1) $2")
-                  .replace(/(\d{5})(\d)/, "$1-$2");
-
-                setTelefone(formatted);
+                setTelefone(formatTutorPhoneInput(event.target.value));
               }}
-              className="mt-1 w-full rounded-lg border p-2"
+              inputMode="tel"
+              placeholder={semNumero ? "Tutor sem número" : "(85) 99999-9999"}
+              className="mt-1 w-full rounded-lg border p-2 disabled:bg-slate-100 disabled:text-slate-400"
             />
+            <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                checked={semNumero}
+                onChange={(event) => {
+                  setSemNumero(event.target.checked);
+                  if (event.target.checked) setTelefone("");
+                }}
+                className="size-4 accent-[#8A0EEA]"
+              />
+              Sem número
+            </label>
           </div>
 
           <div>
@@ -144,9 +162,10 @@ export function EditTutorModal({ tutor, onSave }: EditTutorModalProps) {
           <button
             type="button"
             onClick={handleSave}
-            className="mt-2 w-full rounded-xl bg-[#8A0EEA] py-2 text-white"
+            disabled={saving}
+            className="mt-2 w-full rounded-xl bg-[#8A0EEA] py-2 text-white disabled:opacity-60"
           >
-            Salvar Alterações
+            {saving ? "Salvando..." : "Salvar Alterações"}
           </button>
         </div>
       </DialogContent>

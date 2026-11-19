@@ -1,16 +1,11 @@
 import { supabase } from "@/lib/supabase";
+import { isTutorWithoutPhone, tutorPhonesMatch } from "@/lib/tutor-phone";
 import type { NewTutorInput, Tutor } from "@/types/domain";
 
 function normalizeCpf(value: string | null | undefined) {
   const digits = (value || "").replace(/\D/g, "");
 
   return digits || null;
-}
-
-function hasPlaceholderPhone(phone?: string | null) {
-  const digits = (phone || "").replace(/\D/g, "");
-
-  return digits === "85999999999" || digits === "5585999999999";
 }
 
 export async function fetchTutors(options?: { includeInactive?: boolean }) {
@@ -53,7 +48,6 @@ export async function fetchTutorsPendingRegistration() {
     .from("tutors")
     .select("id, nome, telefone, cpf, email, endereco")
     .eq("ativo", true)
-    .ilike("telefone", "%99999%")
     .order("nome", { ascending: true });
 
   if (!response.data) {
@@ -63,9 +57,31 @@ export async function fetchTutorsPendingRegistration() {
   return {
     ...response,
     data: response.data.filter((tutor) =>
-      hasPlaceholderPhone(tutor.telefone),
+      isTutorWithoutPhone(tutor.telefone),
     ) as Tutor[],
   };
+}
+
+export async function findTutorByPhone(phone: string, excludeTutorId?: number) {
+  if (isTutorWithoutPhone(phone)) {
+    return { data: null as Tutor | null, error: null };
+  }
+
+  const response = await supabase
+    .from("tutors")
+    .select("id, nome, telefone")
+    .order("nome", { ascending: true });
+
+  if (response.error) {
+    return { data: null as Tutor | null, error: response.error };
+  }
+
+  const duplicate = response.data?.find(
+    (tutor) =>
+      tutor.id !== excludeTutorId && tutorPhonesMatch(tutor.telefone, phone),
+  );
+
+  return { data: (duplicate as Tutor | undefined) || null, error: null };
 }
 
 export async function createTutor(tutor: NewTutorInput) {
@@ -74,7 +90,7 @@ export async function createTutor(tutor: NewTutorInput) {
     .insert([
       {
         nome: tutor.nome.trim().toUpperCase(),
-        telefone: tutor.telefone,
+        telefone: tutor.telefone.trim(),
         cpf: normalizeCpf(tutor.cpf),
         email: tutor.email,
         endereco: tutor.endereco.trim().toUpperCase(),
@@ -89,7 +105,7 @@ export async function updateTutor(tutor: Tutor) {
     .from("tutors")
     .update({
       nome: tutor.nome.trim().toUpperCase(),
-      telefone: tutor.telefone,
+      telefone: tutor.telefone?.trim() || "",
       cpf: normalizeCpf(tutor.cpf),
       email: tutor.email,
       endereco: tutor.endereco?.trim().toUpperCase(),

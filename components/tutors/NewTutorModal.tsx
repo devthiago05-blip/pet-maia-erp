@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { formatCpf, onlyDigits } from "@/lib/formatters";
+import { formatTutorPhoneInput } from "@/lib/tutor-phone";
 import type { NewTutorInput } from "@/types/domain";
 
 interface NewTutorModalProps {
@@ -20,6 +21,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   const [open, setOpen] = useState(false);
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [semNumero, setSemNumero] = useState(false);
   const [cpf, setCpf] = useState("");
   const [email, setEmail] = useState("");
   const [endereco, setEndereco] = useState("");
@@ -28,6 +30,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
   function resetForm() {
     setNome("");
     setTelefone("");
+    setSemNumero(false);
     setCpf("");
     setEmail("");
     setEndereco("");
@@ -39,14 +42,14 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
       return;
     }
 
-    if (!telefone.trim()) {
+    if (!semNumero && !telefone.trim()) {
       toast.error("Informe o telefone");
       return;
     }
 
     const telefoneLimpo = telefone.replace(/\D/g, "");
 
-    if (telefoneLimpo.length !== 11) {
+    if (!semNumero && telefoneLimpo.length !== 11) {
       toast.error("Telefone deve estar no formato (85) 99999-9999");
       return;
     }
@@ -67,7 +70,7 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
 
     const success = await onSave({
       nome: nome.trim(),
-      telefone,
+      telefone: semNumero ? "" : telefone,
       cpf: cpfLimpo || null,
       email: email.trim(),
       endereco: endereco.trim().toUpperCase(),
@@ -113,19 +116,26 @@ export function NewTutorModal({ onSave }: NewTutorModalProps) {
               <label className="text-sm font-medium">Telefone</label>
               <input
                 value={telefone}
+                disabled={semNumero}
                 onChange={(event) => {
-                  const value = event.target.value
-                    .replace(/\D/g, "")
-                    .slice(0, 11);
-
-                  const formatted = value
-                    .replace(/^(\d{2})(\d)/g, "($1) $2")
-                    .replace(/(\d{5})(\d)/, "$1-$2");
-
-                  setTelefone(formatted);
+                  setTelefone(formatTutorPhoneInput(event.target.value));
                 }}
-                className="mt-1 w-full rounded-lg border p-2"
+                inputMode="tel"
+                placeholder={semNumero ? "Tutor sem número" : "(85) 99999-9999"}
+                className="mt-1 w-full rounded-lg border p-2 disabled:bg-slate-100 disabled:text-slate-400"
               />
+              <label className="mt-2 inline-flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={semNumero}
+                  onChange={(event) => {
+                    setSemNumero(event.target.checked);
+                    if (event.target.checked) setTelefone("");
+                  }}
+                  className="size-4 accent-[#8A0EEA]"
+                />
+                Sem número
+              </label>
             </div>
 
             <div>

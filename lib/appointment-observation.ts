@@ -171,6 +171,13 @@ export function stripAppointmentAddressLine(observation?: string) {
     .trim();
 }
 
+export function stripAppointmentPhoneLine(observation?: string) {
+  return getObservationLines(observation)
+    .filter((line) => !phoneLinePattern.test(line))
+    .join("\n")
+    .trim();
+}
+
 export function getAppointmentPetAndTutorDisplayName(
   appointment: Appointment,
   fallback = "-",

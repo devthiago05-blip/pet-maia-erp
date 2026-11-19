@@ -3,9 +3,14 @@ import {
   getAppointmentTutorDisplayName,
   getAppointmentTutorPhone,
 } from "@/lib/appointment-observation";
+import { isLegacyPlaceholderPhone } from "@/lib/tutor-phone";
 import type { Appointment } from "@/types/domain";
 
 export function normalizeBrazilianWhatsAppPhone(phone?: string | null) {
+  if (isLegacyPlaceholderPhone(phone)) {
+    return "";
+  }
+
   const digits = phone?.replace(/\D/g, "") || "";
 
   if (digits.length === 10 || digits.length === 11) {

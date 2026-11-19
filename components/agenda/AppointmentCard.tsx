@@ -2,12 +2,15 @@ import { useState } from "react";
 
 import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { WhatsAppPhoneLink } from "@/components/whatsapp/WhatsAppPhoneLink";
 import {
   buildAppointmentObservation,
   getAppointmentPetDisplayName,
   getAppointmentTutorAddress,
   getAppointmentTutorDisplayName,
+  getAppointmentTutorPhone,
   stripAppointmentAddressLine,
+  stripAppointmentPhoneLine,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
@@ -41,7 +44,10 @@ export function AppointmentCard({
   );
   const observation = buildAppointmentObservation(appointment);
   const address = getAppointmentTutorAddress(appointment);
-  const observationWithoutAddress = stripAppointmentAddressLine(observation);
+  const phone = getAppointmentTutorPhone(appointment);
+  const observationWithoutContact = stripAppointmentPhoneLine(
+    stripAppointmentAddressLine(observation),
+  );
 
   return (
     <>
@@ -65,7 +71,7 @@ export function AppointmentCard({
             {appointment.servico}
           </p>
 
-          {(address || observationWithoutAddress) && (
+          {(address || phone || observationWithoutContact) && (
             <div className="space-y-1 rounded-xl bg-slate-50 p-2 text-xs text-slate-500">
               {address && (
                 <div className="flex min-w-0 items-start gap-1">
@@ -77,9 +83,20 @@ export function AppointmentCard({
                   />
                 </div>
               )}
-              {observationWithoutAddress && (
+              {phone && (
+                <div className="flex min-w-0 items-start gap-1">
+                  <span className="shrink-0">Telefone:</span>
+                  <WhatsAppPhoneLink
+                    phone={phone}
+                    tutorName={tutorName}
+                    compact
+                    className="min-w-0 text-xs"
+                  />
+                </div>
+              )}
+              {observationWithoutContact && (
                 <p className="line-clamp-3 whitespace-pre-line">
-                  {observationWithoutAddress}
+                  {observationWithoutContact}
                 </p>
               )}
             </div>

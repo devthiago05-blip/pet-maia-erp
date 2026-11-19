@@ -22,6 +22,7 @@ import {
   createTutor,
   deleteTutor,
   fetchTutors,
+  findTutorByPhone,
   updateTutor,
 } from "@/services/tutors";
 import type { NewPetInput, NewTutorInput, Tutor } from "@/types/domain";
@@ -116,6 +117,21 @@ export default function TutorsPage() {
   });
 
   async function handleCreateTutor(novoTutor: NewTutorInput): Promise<boolean> {
+    const duplicate = await findTutorByPhone(novoTutor.telefone);
+
+    if (duplicate.error) {
+      console.error(duplicate.error);
+      toast.error("Não foi possível validar o telefone");
+      return false;
+    }
+
+    if (duplicate.data) {
+      toast.error(
+        `Este número já está cadastrado para ${duplicate.data.nome}.`,
+      );
+      return false;
+    }
+
     const { data, error } = await createTutor(novoTutor);
 
     if (error) {
@@ -169,18 +185,37 @@ export default function TutorsPage() {
     setPetModalOpen(true);
   }
 
-  async function handleUpdateTutor(tutorAtualizado: Tutor) {
+  async function handleUpdateTutor(tutorAtualizado: Tutor): Promise<boolean> {
+    const duplicate = await findTutorByPhone(
+      tutorAtualizado.telefone || "",
+      tutorAtualizado.id,
+    );
+
+    if (duplicate.error) {
+      console.error(duplicate.error);
+      toast.error("Não foi possível validar o telefone");
+      return false;
+    }
+
+    if (duplicate.data) {
+      toast.error(
+        `Este número já está cadastrado para ${duplicate.data.nome}.`,
+      );
+      return false;
+    }
+
     const { error } = await updateTutor(tutorAtualizado);
 
     if (error) {
       console.error(error);
       toast.error("Erro ao atualizar tutor");
-      return;
+      return false;
     }
 
     await loadTutors();
     setEditingTutor(null);
     toast.success("Tutor atualizado com sucesso!");
+    return true;
   }
 
   async function handleDeleteTutor(id: number) {

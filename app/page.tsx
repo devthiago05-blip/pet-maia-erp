@@ -668,7 +668,9 @@ Equipe Pet Maia Banho e Tosa.`;
             <div className="min-w-0">
               <p className="font-semibold text-slate-800">{tutor.nome}</p>
               <p className="text-sm text-amber-800">
-                Telefone provisório: {tutor.telefone || "85999999999"}
+                {tutor.telefone
+                  ? `Telefone provisório: ${tutor.telefone}`
+                  : "Sem número informado"}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 Confirme o telefone e complete os demais dados do tutor.

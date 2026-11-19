@@ -4,12 +4,16 @@ import { useState } from "react";
 
 import { MapsRouteLink } from "@/components/maps/MapsRouteLink";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+import { WhatsAppPhoneLink } from "@/components/whatsapp/WhatsAppPhoneLink";
 import {
   formatAppointmentObservation,
   getAppointmentPetAndTutorDisplayName,
   getAppointmentPetDisplayName,
   getAppointmentTutorAddress,
+  getAppointmentTutorDisplayName,
+  getAppointmentTutorPhone,
   stripAppointmentAddressLine,
+  stripAppointmentPhoneLine,
 } from "@/lib/appointment-observation";
 import type { Appointment } from "@/types/domain";
 
@@ -42,9 +46,12 @@ export function AppointmentTable({
   function renderObservation(appointment: Appointment) {
     const formatted = formatAppointmentObservation(appointment);
     const address = getAppointmentTutorAddress(appointment);
-    const observation = stripAppointmentAddressLine(formatted);
+    const phone = getAppointmentTutorPhone(appointment);
+    const observation = stripAppointmentPhoneLine(
+      stripAppointmentAddressLine(formatted),
+    );
 
-    if (!address && (!observation || observation === "-")) {
+    if (!address && !phone && (!observation || observation === "-")) {
       return "-";
     }
 
@@ -55,6 +62,17 @@ export function AppointmentTable({
             <span className="shrink-0">Endereço:</span>
             <MapsRouteLink
               address={address}
+              compact
+              className="min-w-0 text-sm"
+            />
+          </div>
+        )}
+        {phone && (
+          <div className="flex min-w-0 items-start gap-1">
+            <span className="shrink-0">Telefone:</span>
+            <WhatsAppPhoneLink
+              phone={phone}
+              tutorName={getAppointmentTutorDisplayName(appointment, "")}
               compact
               className="min-w-0 text-sm"
             />
